@@ -59,13 +59,13 @@ def process_5hz(wind_50hz, mr_5hz, iso_5hz, t1, t2):
     ##_________________________________________________________________________            
     print("Processing wind data.")
 
-    windkeys_new = ["lon", "lat", "alt", "u", "v", "w", "T"]
+    windkeys_new = ["u", "v", "w", "T"]
     wind_pro = varsubset(
         wind_50hz, t1, t2, 
         ["lon", "lat", "alt", "eastward_wind", 
          "northward_wind", "vertical_wind", "total_air_temperature"
          ], 
-        keys_new=windkeys_new
+        keys_new=["lon", "lat", "alt"] + windkeys_new
         )
     wind_pro_df = wind_pro.to_dataframe() # Convert to pd for faster comps.
     wind_pro_df['time'] = wind_pro_df.index.values
