@@ -4,9 +4,9 @@ Created on Mon Apr 18 10:37:07 2022
 
 @author: Dean
 
-Isolate and process data for a P-3 horizontal level leg, prepping it 
-for eddy covariance and spectral analyses at 5 Hz sampling rate. Processed 
-data is saved as a new file, one file per level leg. The following variables 
+
+Isolate and process data for a P-3 horizontal level leg, prepping it for eddy 
+covariance and spectral analyses at 5 Hz sampling rate. The following variables 
 are collected into the file:
     latitude, longitude, altitude
     horizontal wind componenets
@@ -55,6 +55,7 @@ def process_5hz(wind_50hz, mr_5hz, iso_5hz, t1, t2):
     
     """
     
+    print("processing wind data")
     ## Process wind data
     ##_________________________________________________________________________            
     windkeys_new = ["lon", "lat", "alt", "u", "v", "w", "T"]
@@ -65,12 +66,14 @@ def process_5hz(wind_50hz, mr_5hz, iso_5hz, t1, t2):
          ], 
         keys_new=windkeys_new
         )
-    wind_pro = avgtofreq(wind_pro, 5, reportna=False)
+    wind_pro_df = wind_pro.to_dataframe() # Convert to pd for faster comps.
+    wind_pro_df['time'] = wind_pro_df.index.values
+    wind_pro_df = avgtofreq(wind_pro_df, 5, reportna=False)
     wind_pro = perturbations(wind_pro, windkeys_new, [k+"'" for k in windkeys_new])
     ##_________________________________________________________________________            
     ## Process wind data
         
-    
+    """
     ## Process water mixing ratio and isotope data
     ##_________________________________________________________________________            
     # Remove missing time values then merge datasets:
@@ -117,9 +120,10 @@ def process_5hz(wind_50hz, mr_5hz, iso_5hz, t1, t2):
     plt.legend(fontsize=12)
     ##_________________________________________________________________________            
     ## Process water mixing ratio and isotope data
-
+    """
     
-    data_merged = wind_pro.merge(mriso_pro, join='exact')
+    #data_merged = wind_pro.merge(mriso_pro, join='exact')
+    data_merged = wind_pro
     return data_merged
 
 
@@ -163,14 +167,14 @@ def varsubset(data_xrds, t1, t2, keys_old, reportna=False, keys_new=None):
     
     
     
-def avgtofreq(data_xrds, frq, reportna=False):
+def avgtofreq(data, frq, reportna=False):
     """
     Average a dataset to a specified frequency. Interpolate any NAN values.
     
     Inputs
     ------
-    data_xrds: xarray.Dataset.
-        Dataset with 'time' as a coordinate.
+    data: pandas.DataFrame or xarray.Dataset.
+        DataFrame / Dataset with 'time' as a coordinate or variable key.
     frq: float.
         Frequency (Hz) to average data to. 
         e.g. a timestamp every 1/frq seconds.
@@ -184,15 +188,15 @@ def avgtofreq(data_xrds, frq, reportna=False):
     """
     # Dataset time values rounded to input frequency:
     dt_frq = 1/frq
-    t_frq = np.round(data_xrds['time']/dt_frq)*dt_frq
+    t_frq = np.round(data['time']/dt_frq)*dt_frq
     # Average duplicate time stamps to get desired result:
-    data_avg = data_xrds.groupby(t_frq).mean()
+    data_avg = data.groupby(t_frq).mean()
         
     return data_avg
 
 
 
-def perturbations(data_xrds, varkeys, purtkeys):
+def perturbations(data, varkeys, purtkeys):
     """
     Computes purturbations from the mean for time series data. The mean is 
     taken over the entire time series. Purturbations are added as new 
@@ -200,7 +204,7 @@ def perturbations(data_xrds, varkeys, purtkeys):
 
     Inputs
     ------
-    data_xrds: xarray.Dataset.
+    data: pandas.DataFrame or xarray.Dataset.
         Timeseries data.
     varkeys, purtkeys: each a list of str's, same size.
         varkeys are the variable keys in data_xrds to get purturbations for. 
@@ -210,7 +214,7 @@ def perturbations(data_xrds, varkeys, purtkeys):
     -------
     data_new: xarray.Dataset.
     """
-    data_new = data_xrds.copy()
+    data_new = data.copy()
     for vk, pk in zip(varkeys, purtkeys):
         data_new[pk] = data_new[vk] - data_new[vk].mean()
     return data_new
