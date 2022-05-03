@@ -34,11 +34,11 @@ import iso_fxns as isofxn
 
 
 
-#def process_5hz(t1, t2, fname_wind, fname_pic_mr, fname_pic_iso):
 def process_5hz(wind_50hz, mr_5hz, iso_5hz, t1, t2):
     """ 
     Returns processed wind, water, and isotope ratio data at 5Hz, collected 
-    into a single xarray dataset.   
+    into a single xarray dataset. Includes total values as well as 
+    perturbations.
 
     Inputs
     ------
@@ -52,12 +52,13 @@ def process_5hz(wind_50hz, mr_5hz, iso_5hz, t1, t2):
         
     Returns
     -------
-    
+    xarray.Dataset
     """
     
-    print("processing wind data")
     ## Process wind data
     ##_________________________________________________________________________            
+    print("Processing wind data.")
+
     windkeys_new = ["lon", "lat", "alt", "u", "v", "w", "T"]
     wind_pro = varsubset(
         wind_50hz, t1, t2, 
@@ -69,13 +70,17 @@ def process_5hz(wind_50hz, mr_5hz, iso_5hz, t1, t2):
     wind_pro_df = wind_pro.to_dataframe() # Convert to pd for faster comps.
     wind_pro_df['time'] = wind_pro_df.index.values
     wind_pro_df = avgtofreq(wind_pro_df, 5, reportna=False)
-    wind_pro = perturbations(wind_pro, windkeys_new, [k+"'" for k in windkeys_new])
+    wind_pro_df = perturbations(wind_pro_df, windkeys_new, [k+"'" for k in windkeys_new])
+    wind_pro = wind_pro_df.to_xarray() # Back to xarray for rest of fxn.
     ##_________________________________________________________________________            
     ## Process wind data
         
-    """
+    
     ## Process water mixing ratio and isotope data
     ##_________________________________________________________________________            
+    print("Processing water and isotope data.")
+
+
     # Remove missing time values then merge datasets:
     mr_5hz = mr_5hz.where(~mr_5hz['time'].isnull(), drop=True)
     iso_5hz = iso_5hz.where(~iso_5hz['time'].isnull(), drop=True)
@@ -105,8 +110,8 @@ def process_5hz(wind_50hz, mr_5hz, iso_5hz, t1, t2):
     c, xcor, n = xcorr.correlation(mriso_pro["q'"], wind_pro["w'"], 0, 35)
     tshift = c[np.argmax(xcor)]/5
         # Verification plot        
-    plt.figure(figsize=(6,5))
-    plt.plot(c/5, xcor, label='before shift')
+    #plt.figure(figsize=(6,5))
+    #plt.plot(c/5, xcor, label='before shift')
     plt.xlabel("Time lag q' wrt to w' (seconds)", fontsize=14)
     plt.ylabel("Cross-correlation", fontsize=14)
         # Apply shift and realign with wind time:
@@ -116,14 +121,13 @@ def process_5hz(wind_50hz, mr_5hz, iso_5hz, t1, t2):
         method='nearest'
         )
     c, xcor, n = xcorr.correlation(mriso_pro["q'"], wind_pro["w'"], 0, 35)
-    plt.plot(c/5, xcor, label='after shift')
-    plt.legend(fontsize=12)
+    #plt.plot(c/5, xcor, label='after shift')
+    #plt.legend(fontsize=12)
     ##_________________________________________________________________________            
     ## Process water mixing ratio and isotope data
-    """
     
-    #data_merged = wind_pro.merge(mriso_pro, join='exact')
-    data_merged = wind_pro
+    
+    data_merged = wind_pro.merge(mriso_pro, join='exact')
     return data_merged
 
 
