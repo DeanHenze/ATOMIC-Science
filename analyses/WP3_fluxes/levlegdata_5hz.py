@@ -239,36 +239,6 @@ def convert_time(dt64):
 
 
 
-# Load data (currently for the 1/31 flight specifically):
-fname_wind = "P3_FST_50Hz_20200131_135707.nc" # wind and temp.
-fname_pic_mr = ("EUREC4A_ATOMIC_P3_Isotope-Analyzer_"
-                "Water-Vapor-5Hz_20200131_v1.1.nc") # Picarro h2o.
-fname_pic_iso = ("EUREC4A_ATOMIC_P3_Isotope-Analyzer_Water-Vapor-Isotope-"
-                 "Ratios-5Hz_20200131_v1.0.nc") # Picarro isotope ratios.
-# Time intervals for two of the horizontal level legs:
-tleg1 = (2667600, 2667913)
-tleg2 = (2671900, 2672633)
-tleg3 = (2670758, 2671573)
-tleg4 = (2664350, 2665134)
-tleg5 = (2663208, 2664007)
-tleg6 = (2662429, 2662987)
-
-
-
-
-tleg_list = (tleg1, tleg2, tleg3, tleg4, tleg5, tleg6)
-levleg_str = ['levleg'+str(i) for i in range(1,7)]
-
-for tleg, lls in zip(tleg_list, levleg_str):
-    # 50 Hz files:
-    data_50hz = process_50hz(tleg[0], tleg[1], fname_wind)
-    data_50hz.to_netcdf('P-3_20200131_%s_50Hz.nc' % lls)
-    # 5 hz files:
-    data_5hz = process_5hz(
-        tleg[0], tleg[1], 
-        fname_wind, fname_pic_mr, fname_pic_iso
-        )    
-    data_5hz.to_netcdf('P-3_20200131_%s_5Hz.nc' % lls)
 
 
 
