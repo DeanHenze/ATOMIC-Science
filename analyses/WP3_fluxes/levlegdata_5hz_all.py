@@ -22,7 +22,7 @@ import levlegdata_5hz
 time_levlegs = pd.read_csv("p3_cloudmodule_legs.csv").copy()
 
 #
-time_levlegs['tstart_tstamp'] = time_levlegs['tend_leg'].apply(pd.Timestamp)
+time_levlegs['tstart_tstamp'] = time_levlegs['tstart_leg'].apply(pd.Timestamp)
 time_levlegs['tend_tstamp'] = time_levlegs['tend_leg'].apply(pd.Timestamp)
 
 
@@ -34,6 +34,10 @@ path_fastwater = "../../data/WP3/fast_water_iso/"
 for i, row in time_levlegs.iterrows():
         
     date = str(row['flight_date'])
+    
+    print("Flight on, %s, cloud module %i, leg number %i"
+          % tuple([date, row['num_cld'], row['num_leg']])
+          )
     
     # Load wind and temperature data:
     fnames_fastwind = os.listdir(path_fastwind)
@@ -55,11 +59,13 @@ for i, row in time_levlegs.iterrows():
     iso = xr.load_dataset(fname_iso)
     
     
-    # Get processed data:
-    t1 = row['tstart_tstamp']
-    t2 = row['tend_tstamp']
+    # Get processed data and save as new file:
+    t1 = levlegdata_5hz.convert_time(row['tstart_tstamp'].to_datetime64())
+    t2 = levlegdata_5hz.convert_time(row['tend_tstamp'].to_datetime64())
     data_proc = levlegdata_5hz.process_5hz(wind, mr, iso, t1, t2)
-
+    data_proc.to_netcdf("./levlegdata_5hz/WP3_5hz_%s_cld%i_levleg%i.nc"
+                        % tuple([date, row['num_cld'], row['num_leg']])
+                        )
 
 
 
