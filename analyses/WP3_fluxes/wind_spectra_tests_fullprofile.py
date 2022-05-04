@@ -227,8 +227,8 @@ def flux_profiles(date, ncldmod):
 
 
 #date = 20200124
-date = 20200205
-ncldmod=2
+date = 20200131
+ncldmod=1
 flux_profiles(date, ncldmod)
 
 
