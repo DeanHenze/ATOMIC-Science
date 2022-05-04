@@ -128,6 +128,8 @@ def process_5hz(wind_50hz, mr_5hz, iso_5hz, t1, t2):
     
     
     data_merged = wind_pro.merge(mriso_pro, join='exact')
+        # Sometimes there are leading or lagging NANs in mriso from time alignment:
+    data_merged = data_merged.dropna(dim='time', how='any')
     return data_merged
 
 

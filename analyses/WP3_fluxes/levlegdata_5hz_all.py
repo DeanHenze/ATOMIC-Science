@@ -6,6 +6,14 @@ Created on Tue May  3 10:41:10 2022
 
 Processes all P-3 level leg fast data at 5 Hz. Creates a sepearate file for 
 each leg. 
+
+The following warning may be raised: 
+    
+"RuntimeWarning: invalid value encountered in multiply
+    flat_num_dates.astype(np.float64) * _NS_PER_TIME_DELTA[delta]"
+    
+It occurs because there are NANs in the time variable for some of the Picarro 
+files.
 """
 
 
