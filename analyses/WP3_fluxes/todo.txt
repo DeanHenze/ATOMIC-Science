@@ -1,2 +1,0 @@
-Jupyter Notebook showing verification that 5Hz data doesn't lose much signal in 
-comparison to the 50 Hz.

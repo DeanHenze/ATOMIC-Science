@@ -1,0 +1,70 @@
+!!!!!!
+Develop algorithm to remove transit portions of stacked level legs - e.g. the 
+flight portions where P-3 was moving from one level to the other. Maybe can use 
+the roll data from the P-3:
+	- flag data with roll > 5
+	- for flagged segments < ~ 10 seconds, keep the data
+	- for lagged segments > ~10 seconds, remove.
+	- for remaining data, keep only intervals > 3 consecutive minutes.
+	- If there is not at least ## minutes of data total for a given leg, 
+	  throw away the leg.
+	- fill NAN values with mean values. How does this affect the spectra? 
+	  May reduce the power so have to divide by something like (Ngood/Ntot)
+	  where Ngood is the number of data points left after the roll screening.
+	  Can test this procedure with simple sine wave.
+
+What to do about level legs where the P3 did not fly in a straight line. E.g. 
+when the pilots circumvented convection (happened for both cloud modules on 
+1/24).
+!!!!!!
+
+Ideas for sources of flux comparisons to get reasonability checks
+----------------------------------------------------------------
+RICO
+Peggy Lamone
+Gij's Raven flux calcs
+DYCOMS
+Steven et al 2021 EUREC4A data paper, figure 6.
+
+
+Look into:
+ATR isotope enrichment/depletion for updrafts/downdrafts
+Ron Brown LIDAR for eddy covariance measurements and comparison to P-3.
+Sunil might also looking at vertical velocity distributions
+
+Could try:
+PDFs of vertical velocity from P-3 or lidar. Look at skewness of distributions, 
+are these captured in CAM?
+
+Do our cospectra need to follow a -5/3 power law at higher altitudes, or is that 
+a near surface property?
+
+what is the predominant angle of the mean wind during ATOMIC? What is the relative
+angle of the mean wind in comparison to the north-south and east-west cloud 
+module trajectories?
+
+normalize w'w' by w*
+
+normalize fluxes by something like surface buoyancy flux, w*^3 = B0*zi; As starting 
+point could use the metflux files from RHB
+
+Look at frequency correction techniques. Some sources in this dir:
+	- "Brief_Intro_Eddy_Covariance" (starting at pp.114).
+	- "Flux Sampling Errors for Aircraft and Towers"
+
+Have to check for along vs. crosswind differences in spectra, e.g. what direction 
+relative to the wind was the P-3 flying? Some references in this dir:
+	- Bean et al JAS 1972.
+	- ...
+
+Try using alternate temperature measurements (on drive that Gijs shared).
+
+get error bars on fluxes by computing spectra for each 3min window, then get 
+flux estimate for each spectra. The spread of these fluxes gives an estimate of 
+uncertainty
+
+Check for flux calcs for BOMEX, ASTEX
+
+Buoyancy flux at PBL top in theory is -0.2*(surface buoyancy flux). This theory 
+is for PBL topped by inversions and little to no turbulence above. So this does 
+not describe the trade cumulus MBL. Does it follow this rule or another one?
