@@ -37,6 +37,13 @@ time_levlegs['tend_tstamp'] = time_levlegs['tend_leg'].apply(pd.Timestamp)
 # Paths to high frequency data sets:
 path_fastwind = "../../data/WP3/fast_wind_temp/"
 path_fastwater = "../../data/WP3/fast_water_iso/"
+path_flightlev1hz = "../../data/WP3/flight_level_1Hz/"
+
+
+#row = time_levlegs.iloc[0]
+#fname = "EUREC4A_ATOMIC_P3_Flight-level_20200117_v1.0.nc"
+#data = xr.load_dataset(path_flightlev1hz + fname)
+
 
 
 for i, row in time_levlegs.iterrows():
