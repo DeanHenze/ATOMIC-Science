@@ -41,8 +41,9 @@ path_flightlev1hz = "../../data/WP3/flight_level_1Hz/"
 
 
 #row = time_levlegs.iloc[0]
-#fname = "EUREC4A_ATOMIC_P3_Flight-level_20200117_v1.0.nc"
-#data = xr.load_dataset(path_flightlev1hz + fname)
+#fname = "EUREC4A_ATOMIC_P3_Flight-level_20200124_v1.0.nc"
+#roll = xr.load_dataset(path_flightlev1hz + fname)
+#roll = roll[['lat','lon','alt','roll']]
 
 
 

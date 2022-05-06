@@ -34,7 +34,7 @@ import iso_fxns as isofxn
 
 
 
-def process_5hz(wind_50hz, mr_5hz, iso_5hz, t1, t2):
+def process_5hz(wind_50hz, mr_5hz, iso_5hz, roll_1hz, t1, t2):
     """ 
     Returns processed wind, water, and isotope ratio data at 5Hz, collected 
     into a single xarray dataset. Includes total values as well as 
@@ -42,11 +42,17 @@ def process_5hz(wind_50hz, mr_5hz, iso_5hz, t1, t2):
 
     Inputs
     ------
-    wind_50hz: pandas.Dataframe.
-        Wind data at 50 Hz sampling frequency, with time as the index.
-    mr_5hz, iso_5hz: pandas.Dataframe's.
+    wind_50hz: xarray.Dataset.
+        Wind / temperature at 50 Hz sampling frequency, with time as the 
+        single dimension.
+    
+    mr_5hz, iso_5hz: xarray.Dataset's.
         Water and HDO mixing ratio at 5 Hz sampling frequency, with time 
-        as the index.
+        as the single dimension.
+    
+    roll_1hz: xarray.Dataset.
+        Includes aircraft roll data. Has 1Hz time as a single dimension.
+    
     t1, t2: floats.
         Start and end times for segment to isolate.
         
@@ -55,13 +61,20 @@ def process_5hz(wind_50hz, mr_5hz, iso_5hz, t1, t2):
     xarray.Dataset
     """
     
+    wind_leg = wind_50hz.copy().sel(time=slice(t1, t2))
+    mr_leg = mr_5hz.copy().sel(time=slice(t1, t2))
+    iso_leg = iso_5hz.copy().sel(time=slice(t1, t2))
+    roll_leg = roll_1hz.copy().sel(time=slice(t1, t2))
+
+    
     ## Process wind data
     ##_________________________________________________________________________            
     print("Processing wind data.")
 
     windkeys_new = ["u", "v", "w", "T"]
     wind_pro = varsubset(
-        wind_50hz, t1, t2, 
+        wind_leg, t1, t2, 
+        #wind_50hz, t1, t2, 
         ["lon", "lat", "alt", "eastward_wind", 
          "northward_wind", "vertical_wind", "total_air_temperature"
          ], 
@@ -127,6 +140,22 @@ def process_5hz(wind_50hz, mr_5hz, iso_5hz, t1, t2):
     ## Process water mixing ratio and isotope data
     
     
+    ## Aircraft roll QC
+    ##_________________________________________________________________________            
+    tnew_roll = [convert_time(dt64) for dt64 in roll_1hz.time.values]
+    roll_1hz = roll_1hz.assign_coords(time=tnew_roll) 
+    
+    
+    
+    #test = roll_1hz.interp(time=wind_pro['time'], method='nearest')
+    #interp_opts = {'bounds_error':None, 'fill_value':np.nan}
+    #test = roll_1hz.interp(time=wind['time'], method='nearest', 
+    #                       kwargs=interp_opts)
+    
+    ##_________________________________________________________________________            
+    ## Aircraft roll QC
+    
+    
     data_merged = wind_pro.merge(mriso_pro, join='exact')
         # Sometimes there are leading or lagging NANs in mriso from time alignment:
     data_merged = data_merged.dropna(dim='time', how='any')
@@ -156,7 +185,8 @@ def varsubset(data_xrds, t1, t2, keys_old, reportna=False, keys_new=None):
     data_tintv: xarray.Dataset.
     """
     # Subset of vars cut to values within the time interval:
-    data_tintv = data_xrds.sel(time=slice(t1, t2))
+    #data_tintv = data_xrds.sel(time=slice(t1, t2))
+    data_tintv = data_xrds # NEW LINE IN TESTING !!!!!!
     data_tintv = data_tintv[keys_old]
     
     # Interpolate any missing values:
