@@ -61,20 +61,14 @@ def process_5hz(wind_50hz, mr_5hz, iso_5hz, roll_1hz, t1, t2):
     xarray.Dataset
     """
     
-    wind_leg = wind_50hz.copy().sel(time=slice(t1, t2))
-    mr_leg = mr_5hz.copy().sel(time=slice(t1, t2))
-    iso_leg = iso_5hz.copy().sel(time=slice(t1, t2))
-    roll_leg = roll_1hz.copy().sel(time=slice(t1, t2))
-
-    
     ## Process wind data
     ##_________________________________________________________________________            
     print("Processing wind data.")
 
     windkeys_new = ["u", "v", "w", "T"]
     wind_pro = varsubset(
-        wind_leg, t1, t2, 
-        #wind_50hz, t1, t2, 
+        #wind_leg, t1, t2, # NEW LINE IN TESTING
+        wind_50hz, t1, t2, 
         ["lon", "lat", "alt", "eastward_wind", 
          "northward_wind", "vertical_wind", "total_air_temperature"
          ], 
@@ -98,14 +92,15 @@ def process_5hz(wind_50hz, mr_5hz, iso_5hz, roll_1hz, t1, t2):
     mr_5hz = mr_5hz.where(~mr_5hz['time'].isnull(), drop=True)
     iso_5hz = iso_5hz.where(~iso_5hz['time'].isnull(), drop=True)
     mriso = mr_5hz.merge(iso_5hz, join='exact')
-    
+    #mriso = mr_leg.merge(iso_leg, join='exact')    
+
     # Compute HDO mixing ratio 
     mriso['qD'] = isofxn.qD_dD_convert('dD2qD', mriso['mmr'], mriso['dD'])
 
     # Process the time dimension:
-    #mriso = mriso.where(~mriso['time'].isnull(), drop=True) # remove missing vals.
     tnew = [convert_time(dt64) for dt64 in mriso.time.values]
     mriso_pro = mriso.assign_coords(time=tnew)  
+    interp_opts = {'bounds_error':None, 'fill_value':np.nan}
     mriso_pro = mriso_pro.interp(time=wind_pro['time'], method='nearest')
     
     mriso_pro = varsubset(
@@ -125,8 +120,8 @@ def process_5hz(wind_50hz, mr_5hz, iso_5hz, roll_1hz, t1, t2):
         # Verification plot        
     #plt.figure(figsize=(6,5))
     #plt.plot(c/5, xcor, label='before shift')
-    plt.xlabel("Time lag q' wrt to w' (seconds)", fontsize=14)
-    plt.ylabel("Cross-correlation", fontsize=14)
+    #plt.xlabel("Time lag q' wrt to w' (seconds)", fontsize=14)
+    #plt.ylabel("Cross-correlation", fontsize=14)
         # Apply shift and realign with wind time:
     mriso_pro = mriso_pro.assign_coords(time=mriso_pro['time']+tshift)  
     mriso_pro = mriso_pro.interp(
@@ -144,19 +139,20 @@ def process_5hz(wind_50hz, mr_5hz, iso_5hz, roll_1hz, t1, t2):
     ##_________________________________________________________________________            
     tnew_roll = [convert_time(dt64) for dt64 in roll_1hz.time.values]
     roll_1hz = roll_1hz.assign_coords(time=tnew_roll) 
-    
-    
-    
-    #test = roll_1hz.interp(time=wind_pro['time'], method='nearest')
-    #interp_opts = {'bounds_error':None, 'fill_value':np.nan}
-    #test = roll_1hz.interp(time=wind['time'], method='nearest', 
-    #                       kwargs=interp_opts)
+    roll_leg = roll_1hz.sel(time=slice(t1, t2))
+    roll_leg = roll_leg.interp(time=wind_pro['time'], method='nearest', kwargs=interp_opts)
+    roll_leg = roll_leg['roll']
+
+    data_merged = xr.merge([wind_pro, mriso_pro, roll_leg], join='exact')
+    highroll = abs(data_merged['roll']) > 5
+    mr_5hz = data_merged.where(~mr_5hz['time'].isnull(), drop=True)
+    #data_merged = wind_pro.merge([mriso_pro, roll_leg], join='exact')
     
     ##_________________________________________________________________________            
     ## Aircraft roll QC
     
     
-    data_merged = wind_pro.merge(mriso_pro, join='exact')
+    #data_merged = wind_pro.merge(mriso_pro, join='exact')
         # Sometimes there are leading or lagging NANs in mriso from time alignment:
     data_merged = data_merged.dropna(dim='time', how='any')
     return data_merged
@@ -185,8 +181,8 @@ def varsubset(data_xrds, t1, t2, keys_old, reportna=False, keys_new=None):
     data_tintv: xarray.Dataset.
     """
     # Subset of vars cut to values within the time interval:
-    #data_tintv = data_xrds.sel(time=slice(t1, t2))
-    data_tintv = data_xrds # NEW LINE IN TESTING !!!!!!
+    data_tintv = data_xrds.sel(time=slice(t1, t2))
+    #data_tintv = data_xrds # NEW LINE IN TESTING !!!!!!
     data_tintv = data_tintv[keys_old]
     
     # Interpolate any missing values:
