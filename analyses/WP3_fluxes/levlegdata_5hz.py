@@ -16,8 +16,10 @@ are collected into the file:
     HDO mixing ratio
     
     
-Current status: need to change fxns so they expect pd.DataFrames rather than 
-xr.Datasets.
+Current status: 
+    The roll can be ~0 for the first few seconds of the time series and then 
+    jump to > 5 after. Ideally, an algorithm will remove the first few 
+    seconds along with the high roll interval.
 """
 
 
