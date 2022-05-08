@@ -34,10 +34,10 @@ time_levlegs['tstart_tstamp'] = time_levlegs['tstart_leg'].apply(pd.Timestamp)
 time_levlegs['tend_tstamp'] = time_levlegs['tend_leg'].apply(pd.Timestamp)
 
 
-# Paths to high frequency data sets:
-path_fastwind = "../../data/WP3/fast_wind_temp/"
-path_fastwater = "../../data/WP3/fast_water_iso/"
-path_flightlev1hz = "../../data/WP3/flight_level_1Hz/"
+# Paths to data sets:
+path_fastwind = "../../data/WP3/fast_wind_temp/" # High freq wind / temp
+path_fastwater = "../../data/WP3/fast_water_iso/" # high freq water / iso
+path_flightlev1hz = "../../data/WP3/flight_level_1Hz/" # files with roll data
 
 
 #row = time_levlegs.iloc[0]
@@ -75,10 +75,17 @@ for i, row in time_levlegs.iterrows():
     iso = xr.load_dataset(fname_iso)
     
     
+    # Load 1 Hz flight level data and get roll var:
+    fnamehead_flev = "EUREC4A_ATOMIC_P3_Flight-level_"
+    fname_flev = (path_flightlev1hz + fnamehead_flev + date + "_v1.0.nc")
+    flightlev = xr.load_dataset(fname_flev)    
+    roll = flightlev['roll']
+    
+    
     # Get processed data and save as new file:
     t1 = levlegdata_5hz.convert_time(row['tstart_tstamp'].to_datetime64())
     t2 = levlegdata_5hz.convert_time(row['tend_tstamp'].to_datetime64())
-    data_proc = levlegdata_5hz.process_5hz(wind, mr, iso, t1, t2)
+    data_proc = levlegdata_5hz.process_5hz(wind, mr, iso, roll, t1, t2)
     data_proc.to_netcdf("./levlegdata_5hz/WP3_5hz_%s_cld%i_levleg%i.nc"
                         % tuple([date, row['num_cld'], row['num_leg']])
                         )

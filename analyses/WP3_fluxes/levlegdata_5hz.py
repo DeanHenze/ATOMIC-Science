@@ -89,7 +89,6 @@ def process_5hz(wind_50hz, mr_5hz, iso_5hz, roll_1hz, t1, t2):
     ##_________________________________________________________________________            
     print("Processing water and isotope data.")
 
-
     # Remove missing time values then merge datasets:
     mr_5hz = mr_5hz.where(~mr_5hz['time'].isnull(), drop=True)
     iso_5hz = iso_5hz.where(~iso_5hz['time'].isnull(), drop=True)
@@ -139,15 +138,19 @@ def process_5hz(wind_50hz, mr_5hz, iso_5hz, roll_1hz, t1, t2):
     
     ## Aircraft roll QC
     ##_________________________________________________________________________            
+    print("Processing roll data.")
+
+    # If a dataset was passed, isolate the roll variable:
+    if type(roll_1hz) == xr.core.dataset.Dataset:
+        roll_1hz = roll_1hz['roll']  
+    
     tnew_roll = [convert_time(dt64) for dt64 in roll_1hz.time.values]
     roll_1hz = roll_1hz.assign_coords(time=tnew_roll) 
     roll_leg = roll_1hz.sel(time=slice(t1, t2))
     roll_leg = roll_leg.interp(time=wind_pro['time'], method='nearest', kwargs=interp_opts)
-    roll_leg = roll_leg['roll']
 
-    data_merged = xr.merge([wind_pro, mriso_pro, roll_leg], join='exact')
-    highroll = abs(data_merged['roll']) > 5
-    mr_5hz = data_merged.where(~mr_5hz['time'].isnull(), drop=True)
+    #highroll = abs(data_merged['roll']) > 5
+    #mr_5hz = data_merged.where(~mr_5hz['time'].isnull(), drop=True)
     #data_merged = wind_pro.merge([mriso_pro, roll_leg], join='exact')
     
     ##_________________________________________________________________________            
@@ -155,6 +158,7 @@ def process_5hz(wind_50hz, mr_5hz, iso_5hz, roll_1hz, t1, t2):
     
     
     #data_merged = wind_pro.merge(mriso_pro, join='exact')
+    data_merged = xr.merge([wind_pro, mriso_pro, roll_leg], join='exact')
         # Sometimes there are leading or lagging NANs in mriso from time alignment:
     data_merged = data_merged.dropna(dim='time', how='any')
     return data_merged
