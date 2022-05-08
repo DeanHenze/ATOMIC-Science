@@ -35,7 +35,7 @@ def meanimpute(data_df, varkeys_impute, roll_crit=5):
     Inputs
     ------
     data_df: pandas.DataFrame.
-        Time series data.
+        Time series data. Includes roll data as a column with key 'roll'.
         
     varkeys_imput: list of str's.
         Keys in data_df to impute.
