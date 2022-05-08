@@ -16,7 +16,16 @@ the roll data from the P-3:
 What to do about level legs where the P3 did not fly in a straight line. E.g. 
 when the pilots circumvented convection (happened for both cloud modules on 
 1/24).
+
+Other, more sophisticated methods for dealing with windows of missing data (also 
+see email David sent under my ATOMIC project tab):
+	- random gaussian imputation (e.g. fill with white noise)
+	- Non-FFT spectral decomp methods, which can handle non-constant timesteps.
 !!!!!!
+
+- somewhere down the line, the 5hz altitude data should be replaced with 1Hz data. 
+  From what I can see the 1Hz data has had some QC/Calibration that the 5Hz does not.
+
 
 Ideas for sources of flux comparisons to get reasonability checks
 ----------------------------------------------------------------
