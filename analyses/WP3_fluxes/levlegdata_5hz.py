@@ -148,11 +148,6 @@ def process_5hz(wind_50hz, mr_5hz, iso_5hz, roll_1hz, t1, t2):
     roll_1hz = roll_1hz.assign_coords(time=tnew_roll) 
     roll_leg = roll_1hz.sel(time=slice(t1, t2))
     roll_leg = roll_leg.interp(time=wind_pro['time'], method='nearest', kwargs=interp_opts)
-
-    #highroll = abs(data_merged['roll']) > 5
-    #mr_5hz = data_merged.where(~mr_5hz['time'].isnull(), drop=True)
-    #data_merged = wind_pro.merge([mriso_pro, roll_leg], join='exact')
-    
     ##_________________________________________________________________________            
     ## Aircraft roll QC
     
