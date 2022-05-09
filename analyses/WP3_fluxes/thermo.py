@@ -55,7 +55,6 @@ def flux_sh(flux_wT, T, P):
 def flux_lh(flux_wq, T, P):
     """
     Latent heat flux. Density is computed from ideal gas law. 
-    Pressure is estimated as 1013 hPa surface and 100 hPa decrease per km.
     """
     # !!!!! Replace this with constant corrected for water vapor 
     # !!!!! concentration:
