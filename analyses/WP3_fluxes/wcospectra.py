@@ -18,6 +18,7 @@ from scipy import signal
 
 # Local code
 import rollqc
+import thermo
 
 
 
@@ -96,22 +97,45 @@ if __name__=="__main__":
     
     for fname in fnames_levlegs:
     
+        # Cospectra:
         data = xr.load_dataset(dir_5hzdata + fname)
         data_df = data.to_dataframe() # Easier / faster to work with pandas.
         print("Computing cospectra for %s" % fname)
         wcospec_df, N_tot, N_imputed = wcospectra(data_df, varkeys)
         
-        # Convert back to xarray and save:
+        
+        # Additional info to include in the data file:
+            # Level leg number for this cloud module:
+        i_levleg = fname.index('_levleg')+7
+        n_levleg = int(fname[i_levleg]) # Works b/c there are < 10 lev legs.
+            # Mean altitude, temperature, pressure (estimated):
+        alt_mean=data['alt'].mean().round(decimals=0).values
+        T_mean=data['T'].mean().round(decimals=0).values 
+        P_mean=thermo.P_est(alt_mean/1000)
+        
+        
+        # Convert back to xarray and add some coords/attributes before saving:
         wcospec_df.set_index('freq', drop=True, inplace=True, append=False)
         wcospec_xr = wcospec_df.to_xarray()
         
+        
+        wcospec_xr = wcospec_xr.assign_coords(
+            dict(
+                alt_mean=alt_mean,
+                T_mean=T_mean,
+                P_mean=P_mean,
+                n_levleg=n_levleg,
+                reftime=data['time'].mean().values
+                )
+            )
+
         wcospec_xr.attrs = dict(
             title="Cospectra with vertical wind computed with 5Hz data from "
                 "P-3 level legs.", 
-            alt_mean=data['alt'].mean().round(decimals=0).values, 
             Ntot_ts=N_tot,
             Nimputed_ts=N_imputed
             )
+
         
         fnamesave = dir_cospectra + ("WP3_%s_wcospectra.nc" % fname[8:-3])
         wcospec_xr.to_netcdf(fnamesave)
