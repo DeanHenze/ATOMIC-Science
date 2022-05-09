@@ -52,7 +52,7 @@ for i, row in time_levlegs.iterrows():
     date = str(row['flight_date'])
     
     print("Flight on, %s, cloud module %i, leg number %i"
-          % tuple([date, row['num_cld'], row['num_leg']])
+          % tuple([date, row['num_cld_iop'], row['num_leg']])
           )
     
     # Load wind and temperature data:
@@ -87,7 +87,7 @@ for i, row in time_levlegs.iterrows():
     t2 = levlegdata_5hz.convert_time(row['tend_tstamp'].to_datetime64())
     data_proc = levlegdata_5hz.process_5hz(wind, mr, iso, roll, t1, t2)
     data_proc.to_netcdf("./levlegdata_5hz/WP3_5hz_%s_cld%i_levleg%i.nc"
-                        % tuple([date, row['num_cld'], row['num_leg']])
+                        % tuple([date, row['num_cld_iop'], row['num_leg']])
                         )
 
 
