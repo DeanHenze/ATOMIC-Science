@@ -8,9 +8,14 @@ Collection of functions to compute atmospheric / thermodynamic quantities.
 """
 
 
+
+import numpy as np
+
+
+
 def P_est(alt):
     """
-    Estimate pressure P (hPa) from given altitude. Assume P decreases by 
+    Estimate pressure P (hPa) from given altitude (in km). Assume P decreases by 
     100 hPa per km.
     """
     Psfc = 1013 # assumed surface pressure

@@ -19,6 +19,9 @@ import xarray as xr
 from scipy import signal
 from scipy.integrate import trapz
 
+# Local code
+import thermo
+
 
 
 # Save fluxes to this directory:
@@ -91,7 +94,8 @@ for n in ncldmod_unique:
     
     
     # Also include sensible and latent heat fluxes:
-    
+    P_est = thermo.P_est(np.array(altmean)/1000) # Estimated pressure, hPa.
+    flux_sh = thermo.flux_sh(np.array(fluxes["T'w'"]), T, P_est)
 
         
 
