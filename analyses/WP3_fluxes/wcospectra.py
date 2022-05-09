@@ -59,38 +59,62 @@ def wcospectra(data_df, varkeys):
         Pco = Pcross.real  # Co-spectrum
         f, Pco = f[1:], Pco[1:] # Remove 0 frequency.
 
-        cospectra[vk] = Pco
+        cospectra[vk+"w'"] = Pco
         cospectra['freq'] = f
+        
+    # Correction for imputed values:
+    N_tot = len(data_df)
+    N_imputed = data_df['imputed'].sum()
+    for vk in varkeys:
+        cospectra[vk+"w'"] = cospectra[vk+"w'"]*((N_tot-N_imputed)/N_tot)
 
-    return cospectra
-
-
-# All level leg data filenames:
-dir_5hzdata = "./levlegdata_5hz/"
-fnames_levlegs = [f for f in os.listdir(dir_5hzdata) if f.endswith(".nc")]
-
-
-# Save cospectra to this directory:
-dir_cospectra = "./wcospectra_levlegs/"
-if not os.path.isdir(dir_cospectra):
-    os.makedirs(dir_cospectra)
+    return cospectra, N_tot, N_imputed
 
 
-# Keys of variables to get cospectra / fluxes for:
-varkeys = ["u","v","w","T","q","qD"]
-varkeys = [k+"'" for k in varkeys]        
+
+if __name__=="__main__":
+    """
+    Compute cospectra for all level leg files and save results to new 
+    folder. One cospectra file per level leg.
+    """
+
+    # All level leg data filenames:
+    dir_5hzdata = "./levlegdata_5hz/"
+    fnames_levlegs = [f for f in os.listdir(dir_5hzdata) if f.endswith(".nc")]
     
-
-for fname in fnames_levlegs:
-
-    data = xr.load_dataset(dir_5hzdata + fname)
-    data_df = data.to_dataframe() # Easier / faster to work with pandas.
-    print("Computing cospectra for %s" % fname)
-    wcospec = wcospectra(data_df, varkeys)
     
-    # Convert back to xarray and save:
-    fnamesave = dir_cospectra + ("WP3_%s_wcospectra.nc" % fname[8:-3])
-    wcospec.to_xarray().to_netcdf(fnamesave)
+    # Save cospectra to this directory:
+    dir_cospectra = "./wcospectra_levlegs/"
+    if not os.path.isdir(dir_cospectra):
+        os.makedirs(dir_cospectra)
+    
+    
+    # Keys of variables to get cospectra / fluxes for:
+    varkeys = ["u","v","w","T","q","qD"]
+    varkeys = [k+"'" for k in varkeys]        
+        
+    
+    for fname in fnames_levlegs:
+    
+        data = xr.load_dataset(dir_5hzdata + fname)
+        data_df = data.to_dataframe() # Easier / faster to work with pandas.
+        print("Computing cospectra for %s" % fname)
+        wcospec_df, N_tot, N_imputed = wcospectra(data_df, varkeys)
+        
+        # Convert back to xarray and save:
+        wcospec_df.set_index('freq', drop=True, inplace=True, append=False)
+        wcospec_xr = wcospec_df.to_xarray()
+        
+        wcospec_xr.attrs = dict(
+            title="Cospectra with vertical wind computed with 5Hz data from "
+                "P-3 level legs.", 
+            alt_mean=data['alt'].mean().round(decimals=0).values, 
+            Ntot_ts=N_tot,
+            Nimputed_ts=N_imputed
+            )
+        
+        fnamesave = dir_cospectra + ("WP3_%s_wcospectra.nc" % fname[8:-3])
+        wcospec_xr.to_netcdf(fnamesave)
 
 
 
