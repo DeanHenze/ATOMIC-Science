@@ -1,3 +1,11 @@
+Should make 
+	mean Temperature, mean esimated pressure
+	level leg number, mean altitude
+	reference time coordinates for all 
+the data files involving level leg data (e.g. wcospectra, 5Hz time series, fluxes).
+
+denisty fluctuation corrections for sensible and latent heat fluxes.
+
 !!!!!!
 Develop algorithm to remove transit portions of stacked level legs - e.g. the 
 flight portions where P-3 was moving from one level to the other. Maybe can use 
