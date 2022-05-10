@@ -67,7 +67,7 @@ def wcospectra(data_df, varkeys):
     N_tot = len(data_df)
     N_imputed = data_df['imputed'].sum()
     for vk in varkeys:
-        cospectra[vk+"w'"] = cospectra[vk+"w'"]*((N_tot-N_imputed)/N_tot)
+        cospectra[vk+"w'"] = cospectra[vk+"w'"]*(N_tot/(N_tot-N_imputed))
 
     return cospectra, N_tot, N_imputed
 
