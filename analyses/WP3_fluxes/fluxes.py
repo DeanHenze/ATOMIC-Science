@@ -46,45 +46,58 @@ ncldmod_unique = np.unique(ncldmod)
 
 for n in ncldmod_unique:
     
+    print("Working on cloud module # %s" % n)
+    
     fnames_cldmod = [f for f in fnames_wcospec if ("_cld%s" % n) in f]
     
     
     # Objects to store results in before combining into a dataset:
     covarkeys = ["u'w'", "v'w'", "w'w'", "T'w'", "q'w'", "qD'w'"]
-    fluxes = dict(zip(covarkeys, [[] for e in covarkeys]))
+    fluxkeys = ["%s_bar" % k for k in covarkeys]
+    fluxes = dict(zip(fluxkeys, [[] for e in fluxkeys]))
     frac_imputed = [] # Fraction of imputed data points for each leg.
-    altmean = [] # Mean altitude of each leg.
-    n_levleg = [] # Level leg number for the cloud module.
-
+    addvar_keys = ['T_mean', 'P_mean', 'reftime'] # Additional variables
+    addvars = dict(zip(addvar_keys, [[] for e in addvar_keys]))
+    coord_keys = ['n_levleg', 'alt_mean'] # Coordinates for the xr.Dataset
+    coords = dict(zip(coord_keys, [[] for e in coord_keys]))
+    
 
     # Results for each leg:
     for fn in fnames_cldmod:
         wcospec = xr.load_dataset(dir_wcospec + fn)
         
         # Fluxes from integral of power spectra:
-        for vk in covarkeys:
-            flux_vk = trapz(wcospec[vk], x=wcospec['freq'])
-            fluxes[vk].append(flux_vk)
+        for vk, fk in zip(covarkeys, fluxkeys):
+            flux_vk = trapz(wcospec[vk], x=wcospec['freq'])            
+            # Correct for imputed data points before appending:
+            #N_tot = wcospec.attrs['Ntot_ts']
+            #N_imputed = wcospec.attrs['Nimputed_ts']
+            #flux_vk = flux_vk*(N_tot/(N_tot-N_imputed))
+            
+            fluxes[fk].append(flux_vk)
 
-        # Other info:
+        # Additional vars:
         frac_imputed.append(wcospec.attrs['Nimputed_ts']/wcospec.attrs['Ntot_ts'])
-        altmean.append(wcospec.attrs['alt_mean'])
-        i_levleg = fn.index('_levleg')+7
-        n_levleg.append(int(fn[i_levleg])) # Works b/c there are < 10 lev legs.
+        for k in addvar_keys:
+            addvars[k].append(wcospec[k].values.item())
+            
+        # Info that will be used as coordinates:
+        for k in coord_keys:
+            coords[k].append(wcospec[k].values.item())        
         
         
     # Combine into xarray.Dataset:
-    ds = xr.Dataset(
+    dsvars = {**fluxes, **addvars}
+    flux_ds = xr.Dataset(
         data_vars=dict(
             zip(
-                ["flux_"+vk for vk in covarkeys], 
-                [(["alt"], fluxes[flux_vk]) for flux_vk in fluxes]
+                [k for k in dsvars], 
+                [(["n_levleg"], dsvars[k]) for k in dsvars]
                 )
             ),
         coords=dict(
-            alt=altmean,
-            n_levleg=(['alt'], n_levleg)
-            #reference_time=reference_time,
+            n_levleg=coords['n_levleg'],
+            alt=(['n_levleg'], coords['alt_mean'])
             ),
         attrs=dict(
             description="Fluxes from P-3 level legs during ATOMIC, "
@@ -92,13 +105,26 @@ for n in ncldmod_unique:
             )
         )
     
+    # Also add percentage of imputed data points:
+    flux_ds = flux_ds.assign(
+        frac_imputed = xr.DataArray(
+            data=frac_imputed,
+            dims=["n_levleg"],
+            coords=dict(n_levleg=coords['n_levleg']),
+            )
+        )
+           
     
     # Also include sensible and latent heat fluxes:
-    P_est = thermo.P_est(np.array(altmean)/1000) # Estimated pressure, hPa.
-    flux_sh = thermo.flux_sh(np.array(fluxes["T'w'"]), T, P_est)
+    flux_ds['flux_sh'] = thermo.flux_sh(
+        flux_ds["T'w'_bar"], flux_ds["T_mean"], flux_ds["P_mean"]
+        )
+    flux_ds['flux_lh'] = thermo.flux_lh(
+        flux_ds["q'w'_bar"]/1000, flux_ds["T_mean"], flux_ds["P_mean"]
+        )
 
-        
-
-    # Correction for number of imputed data points:
-        #...
+    
+    # Save:
+    date = fnames_cldmod[0][4:12]
+    flux_ds.to_netcdf(dir_fluxes + "WP3_%s_cld%s_fluxes.nc" % tuple([date, n]))
 
