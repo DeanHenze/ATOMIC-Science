@@ -6,26 +6,29 @@ Created on Thu May 12 13:47:26 2022
 """
 
 
-
 import numpy as np
-#from sklearn.preprocessing import minmax_scale
 import matplotlib.pyplot as plt
-
 
 
 def piecewise_linscale(x, x_bnds, xscaled_bnds):
     """
-    Linear scaling of piecewise segments. Each segment is scaled to specified 
-    bounds.
+    Linear scaling of piecewise segments for x. Any values of x below the 
+    lowest bound given will be scaled by the same factor as the first bound 
+    segment, and x values above the highest bound will be scaled the same as 
+    the last bound segment.
     
     Inputs
     ------
-    x: iterable.
-        Each element of x is a piecewise segment. Even if only one piece, 
-        it should be put in an iterable.
+    x: 1D list/array-like.
+        Values to scale.
+        
+    x_bnds: iterable.
+        The values of x which will be endpoints for piecewise segments. E.g. 
+        x_bnds=(2,6) will results in segments [-inf,2), [2,6), and [6,+inf). 
     
-    xscale_bnds: iterable of 2-tuples.
-        The bounds to scale each segment by.
+    xscale_bnds: iterable.
+        Same size as x_bnds. Each segment will be linearly scaled to these 
+        new bounds.
     """
     if len(x_bnds) != len(xscaled_bnds):
         print("Length of x_bnds and xscaled_bnds must match.")
@@ -41,7 +44,7 @@ def piecewise_linscale(x, x_bnds, xscaled_bnds):
     if len(i_belowbnds) != 0:
         xpiece_below = x[i_belowbnds]
         
-    x_pieceabove = None # Any values above the highest bound go here.
+    xpiece_above = None # Any values above the highest bound go here.
     i_abovebnds = np.where(x>=x_bnds[-1])[0]
     if len(i_abovebnds) != 0:
         xpiece_above = x[i_abovebnds]
@@ -86,7 +89,6 @@ def piecewise_linscale(x, x_bnds, xscaled_bnds):
         
     return xscaled
     
-
 
 def quicktest():
     x = np.arange(0,100,1)
