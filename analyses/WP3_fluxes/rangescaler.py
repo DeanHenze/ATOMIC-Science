@@ -27,57 +27,80 @@ def piecewise_linscale(x, x_bnds, xscaled_bnds):
     xscale_bnds: iterable of 2-tuples.
         The bounds to scale each segment by.
     """
+    if len(x_bnds) != len(xscaled_bnds):
+        print("Length of x_bnds and xscaled_bnds must match.")
+        return None
+    if len(x_bnds)<2:
+        print("Must specify at least 2 bounds.")
+        return None
+    
     
     # Break x into piecewise segments:
-    x_belowbnds = None
-    i_belowbnds = np.where(x<x_bnds[0][0])[0]
+    xpiece_below = None # Any values below the lowest bound go here.
+    i_belowbnds = np.where(x<x_bnds[0])[0]
     if len(i_belowbnds) != 0:
-        x_belowbnds = x[i_belowbnds]
+        xpiece_below = x[i_belowbnds]
         
-    x_abovebnds = None
-    i_abovebnds = np.where(x>=x_bnds[-1][1])[0]
+    x_pieceabove = None # Any values above the highest bound go here.
+    i_abovebnds = np.where(x>=x_bnds[-1])[0]
     if len(i_abovebnds) != 0:
-        x_abovebnds = x[i_abovebnds]
+        xpiece_above = x[i_abovebnds]
         
-    xpiece = []
-    for bnds in x_bnds:
-        b1 = bnds[0]
-        b2 = bnds[1]
+    xpiece = [] # All segments within bounds here.
+    for i in range(len(x_bnds)-1):
+        b1 = x_bnds[i]
+        b2 = x_bnds[i+1]
         xpiece.append(x[np.where((x>=b1) & (x<b2))])
         
         
-    # Scaled segments:
-    def linscale(xp, bnds, bnds_scaled):
-        b1 = bnds[0]; b2 = bnds[1]
-        bs1 = bnds_scaled[0]; bs2 = bnds_scaled[1]
+    # Scale segments:
+    def linscale(xp, b1, b2, bs1, bs2):
+        # xp = values to scale.
+        # b1, b2 = unscaled bounds; bs1, bs2 = scaled bounds
         x_std = (xp - b1) / (b2 - b1)        
         return x_std * (bs2 - bs1) + bs1
         
     xscaled = np.array([])
-    for xp, bnds, bnds_scaled in zip(xpiece, x_bnds, xscaled_bnds):
-        xpiece_scaled = linscale(xp, bnds, bnds_scaled)
+        
+    for i in range(len(x_bnds)-1): # Segments within bounds.
+        xpiece_scaled = linscale(
+            xpiece[i], 
+            x_bnds[i], x_bnds[i+1], xscaled_bnds[i], xscaled_bnds[i+1]
+            )
         xscaled = np.append(xscaled, xpiece_scaled)
-    if x_belowbnds is not None:
-        x_belowbnds_scaled = linscale(x_belowbnds, x_bnds[0], xscaled_bnds[0])
-        xscaled = np.append(x_belowbnds_scaled, xscaled)
-    if x_abovebnds is not None:
-        x_abovebnds_scaled = linscale(x_abovebnds, x_bnds[-1], xscaled_bnds[-1])
-        xscaled = np.append(xscaled, x_abovebnds_scaled)
+    
+    if xpiece_below is not None:
+        xpiece_below_scaled = linscale(
+            xpiece_below, 
+            x_bnds[0], x_bnds[1], xscaled_bnds[0], xscaled_bnds[1]
+            )
+        xscaled = np.append(xpiece_below_scaled, xscaled)
+    
+    if xpiece_above is not None:
+        xpiece_above_scaled = linscale(
+            xpiece_above, 
+            x_bnds[-2], x_bnds[-1], xscaled_bnds[-2], xscaled_bnds[-1]
+            )
+        xscaled = np.append(xscaled, xpiece_above_scaled)
 
         
     return xscaled
     
 
-x = np.arange(0,100,1)
-#x_bnds = [(0,20), (20,40), (40,60), (60,100)]
-x_bnds = [(20,40), (40,60)]
-xscaled_bnds = [(2,5), (5,10)]
 
-xs = piecewise_linscale(x, x_bnds, xscaled_bnds)
-
-plt.figure()
-plt.scatter(x, xs)
-
+def quicktest():
+    x = np.arange(0,100,1)
+    #x_bnds = (0,20,40,60,100)
+    #xscaled_bnds = (1,2,5,10,11)
+    x_bnds = (20,40,60)
+    xscaled_bnds = (2,5,10)
+    
+    xs = piecewise_linscale(x, x_bnds, xscaled_bnds)
+    
+    plt.figure()
+    plt.scatter(x, xs)
+    plt.xlabel("unscaled x", fontsize=14)
+    plt.ylabel("scaled x", fontsize=14)
 
 
 
