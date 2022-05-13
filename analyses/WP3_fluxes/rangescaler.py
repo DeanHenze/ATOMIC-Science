@@ -27,10 +27,6 @@ def piecewise_linscale(x, x_bnds, xscaled_bnds):
     xscale_bnds: iterable of 2-tuples.
         The bounds to scale each segment by.
     """
-    #if len(x) != len(xscale_bnds):
-    #    print("x and xscale_bnds are not the same length")
-    #    return
-    
     
     # Break x into piecewise segments:
     x_belowbnds = None
@@ -51,25 +47,31 @@ def piecewise_linscale(x, x_bnds, xscaled_bnds):
         
         
     # Scaled segments:
-    xpiece_scaled = []
-    for xp, bnds, bnds_scaled in zip(xpiece, x_bnds, xscaled_bnds):
+    def linscale(xp, bnds, bnds_scaled):
         b1 = bnds[0]; b2 = bnds[1]
         bs1 = bnds_scaled[0]; bs2 = bnds_scaled[1]
-        x_std = (xp - b1) / (b2 - b1)
-        xpiece_scaled.append(x_std * (bs2 - bs1) + bs1)
-
+        x_std = (xp - b1) / (b2 - b1)        
+        return x_std * (bs2 - bs1) + bs1
         
-    # Reshape:
     xscaled = np.array([])
-    for xp in xpiece_scaled:
-        xscaled = np.append(xscaled, xp)
+    for xp, bnds, bnds_scaled in zip(xpiece, x_bnds, xscaled_bnds):
+        xpiece_scaled = linscale(xp, bnds, bnds_scaled)
+        xscaled = np.append(xscaled, xpiece_scaled)
+    if x_belowbnds is not None:
+        x_belowbnds_scaled = linscale(x_belowbnds, x_bnds[0], xscaled_bnds[0])
+        xscaled = np.append(x_belowbnds_scaled, xscaled)
+    if x_abovebnds is not None:
+        x_abovebnds_scaled = linscale(x_abovebnds, x_bnds[-1], xscaled_bnds[-1])
+        xscaled = np.append(xscaled, x_abovebnds_scaled)
+
         
     return xscaled
     
 
 x = np.arange(0,100,1)
-x_bnds = [(0,20), (20,40), (40,60), (60,100)]
-xscaled_bnds = [(1,2), (2,5), (5,10), (10,11)]
+#x_bnds = [(0,20), (20,40), (40,60), (60,100)]
+x_bnds = [(20,40), (40,60)]
+xscaled_bnds = [(2,5), (5,10)]
 
 xs = piecewise_linscale(x, x_bnds, xscaled_bnds)
 
