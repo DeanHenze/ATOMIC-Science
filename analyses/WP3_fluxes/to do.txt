@@ -1,8 +1,22 @@
-Should make 
-	mean Temperature, mean esimated pressure
-	level leg number, mean altitude
-	reference time coordinates for all 
-the data files involving level leg data (e.g. wcospectra, 5Hz time series, fluxes).
+Fourier transform of the covariance.
+
+Take note of cloud fraction during in cloud leg.
+
+Comparison of fluxes to GCMs
+
+w' vs q quadrant plot for comparison updrafts and downdrafts.
+
+w' vs dD quadrant plot
+
+q vs dD distributions for updraft vs downdrafts (colored in some way by w'?)
+
+sweep ejection
+
+Low level convergence plot?
+
+normalized altitude 0, 1, 2 parabola fit 0=surface, 1=LCL, 2=trade inversion bottom
+
+cartoon schematic of trade cumulus MBL
 
 denisty fluctuation corrections for sensible and latent heat fluxes.
 
