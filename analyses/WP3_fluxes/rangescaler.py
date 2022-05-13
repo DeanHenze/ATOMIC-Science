@@ -20,12 +20,12 @@ def piecewise_linscale(x, x_bnds, xscaled_bnds):
     
     Inputs
     ------
-    x: iterable of lists / arrays.
+    x: iterable.
         Each element of x is a piecewise segment. Even if only one piece, 
         it should be put in an iterable.
     
     xscale_bnds: iterable of 2-tuples.
-        Same length as x. The bounds to scale each segment by.
+        The bounds to scale each segment by.
     """
     #if len(x) != len(xscale_bnds):
     #    print("x and xscale_bnds are not the same length")
@@ -33,6 +33,16 @@ def piecewise_linscale(x, x_bnds, xscaled_bnds):
     
     
     # Break x into piecewise segments:
+    x_belowbnds = None
+    i_belowbnds = np.where(x<x_bnds[0][0])[0]
+    if len(i_belowbnds) != 0:
+        x_belowbnds = x[i_belowbnds]
+        
+    x_abovebnds = None
+    i_abovebnds = np.where(x>=x_bnds[-1][1])[0]
+    if len(i_abovebnds) != 0:
+        x_abovebnds = x[i_abovebnds]
+        
     xpiece = []
     for bnds in x_bnds:
         b1 = bnds[0]
