@@ -21,6 +21,7 @@ from scipy.integrate import trapz
 
 # Local code
 import thermo
+import iso
 
 
 
@@ -115,12 +116,19 @@ for n in ncldmod_unique:
         )
            
     
-    # Also include sensible and latent heat fluxes:
+    # Add sensible and latent heat fluxes:
     flux_ds['flux_sh'] = thermo.flux_sh(
         flux_ds["T'w'_bar"], flux_ds["T_mean"], flux_ds["P_mean"]
         )
     flux_ds['flux_lh'] = thermo.flux_lh(
         flux_ds["q'w'_bar"]/1000, flux_ds["T_mean"], flux_ds["P_mean"]
+        )
+    
+    
+    # Add dD of flux:
+    flux_ds['dD_flux'] = iso.qD_dD_convert(
+        'qD2dD', 
+        flux_ds["q'w'_bar"], flux_ds["qD'w'_bar"]
         )
 
     
