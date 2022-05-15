@@ -51,7 +51,9 @@ def get_fluxprofiles(ncld_list, keyalts_table, dir_flux):
 
     # Collect flux profiles into a dictionary of pandas.DataFrame's.
     # Each DataFrame will contain all profiles for a specific var.
-    fluxvarkeys = ["w'w'_bar", "flux_sh", "flux_lh", "dD_flux"]
+    fluxvarkeys = ["u'u'_bar", "v'v'_bar", "w'w'_bar", "TKE", 
+                   "flux_sh", "flux_lh", "dD_flux"
+                   ]
     fluxprfs_dict = {}
     for k in fluxvarkeys: fluxprfs_dict[k] = pd.DataFrame({})
     
@@ -93,34 +95,68 @@ def get_fluxprofiles(ncld_list, keyalts_table, dir_flux):
 
 
 
-## Plot P-3 flux profiles with mean overlain.
+## Plot P-3 flux profiles for wind components and TKE.
 ##_____________________________________________________________________________
 keyalts_table = pd.read_csv("./cldmod_keyaltitudes.csv")
 ncld_list = np.arange(4, 12, 1)
 flux_prfs = get_fluxprofiles(ncld_list, keyalts_table, dir_flux)
 
-fig, axes = plt.subplots(1, 4, figsize=(10, 5))
+fig1, axes1 = plt.subplots(1, 4, figsize=(10, 5)) # Wind components and TKE.
 
-for varkey, ax in zip(flux_prfs.keys(), axes):
+windkeys = ["u'u'_bar", "v'v'_bar", "w'w'_bar", "TKE"]
+for varkey, ax in zip(windkeys, axes1):
 
+    # Individual profiles:
     for k in flux_prfs[varkey].columns:
         colplot = flux_prfs[varkey][k].dropna()
         ax.plot(colplot, colplot.index, c='grey', alpha=0.5)
         ax.scatter(colplot, colplot.index, c='grey', s=10, alpha=0.5)  
     
-    altgrouped = np.round(flux_prfs[varkey].index/0.5)*0.5
+    # Compute and plot mean profile:
+    altgrouped = np.round(flux_prfs[varkey].index/0.5)*0.5 # vertical binning.
     #altgrouped = flux_prfs[varkey].index.values//0.25
     #altgrouped[altgrouped % 2 == 0] += 1
     #altgrouped = altgrouped*0.25
     fluxvar_grouped = flux_prfs[varkey].groupby(altgrouped, axis=0, as_index=True)
-    
     meanprf = fluxvar_grouped.mean().mean(axis=1)
     ax.plot(meanprf.values, meanprf.index, 'b-', linewidth=5)
     ax.scatter(meanprf.values, meanprf.index, c='b', s=10)
 ##_____________________________________________________________________________
-## Plot P-3 flux profiles with mean overlain.
+## Plot P-3 flux profiles for wind components and TKE.
     
    
+    
+
+## Plot P-3 flux profiles for SHF, LHF, and dD of flux.
+##_____________________________________________________________________________
+keyalts_table = pd.read_csv("./cldmod_keyaltitudes.csv")
+ncld_list = np.arange(4, 12, 1)
+flux_prfs = get_fluxprofiles(ncld_list, keyalts_table, dir_flux)
+
+fig2, axes2 = plt.subplots(1, 4, figsize=(10, 5)) # Wind components and TKE.
+
+scalarfluxkeys = ["flux_sh", "flux_lh", "dD_flux"]
+for varkey, ax in zip(scalarfluxkeys, axes2[0:3]):
+
+    # Individual profiles:
+    for k in flux_prfs[varkey].columns:
+        colplot = flux_prfs[varkey][k].dropna()
+        ax.plot(colplot, colplot.index, c='grey', alpha=0.5)
+        ax.scatter(colplot, colplot.index, c='grey', s=10, alpha=0.5)  
+    
+    # Compute and plot mean profile:
+    altgrouped = np.round(flux_prfs[varkey].index/0.5)*0.5 # vertical binning.
+    #altgrouped = flux_prfs[varkey].index.values//0.25
+    #altgrouped[altgrouped % 2 == 0] += 1
+    #altgrouped = altgrouped*0.25
+    fluxvar_grouped = flux_prfs[varkey].groupby(altgrouped, axis=0, as_index=True)
+    meanprf = fluxvar_grouped.mean().mean(axis=1)
+    ax.plot(meanprf.values, meanprf.index, 'b-', linewidth=5)
+    ax.scatter(meanprf.values, meanprf.index, c='b', s=10)
+##_____________________________________________________________________________
+## Plot P-3 flux profiles for SHF, LHF, and dD of flux.
+   
+
     
 ## Add surface flux mean +/- std for RHB measurements for the time period 
 ## 2020-01-17 to 2020-02-12.
@@ -138,12 +174,12 @@ flux_P3iopmean = rhb_metflux[rhbfluxkeys].mean(dim='obs')
 flux_P3iopstd = rhb_metflux[rhbfluxkeys].std(dim='obs')
 
 rhb_samplingalt = 20/500 # height of RHB instruments, roughly normalized by z_ML.
-axes[1].errorbar(
+axes2[0].errorbar(
     -1*flux_P3iopmean['hs_bulk'], rhb_samplingalt, 
     xerr = flux_P3iopstd['hs_bulk'], 
     marker='o', markersize=5, markerfacecolor='red', ecolor='red'
     )
-axes[2].errorbar(
+axes2[1].errorbar(
     -1*flux_P3iopmean['hl_bulk'], rhb_samplingalt, 
     xerr = flux_P3iopstd['hl_bulk'], 
     marker='o', markersize=5, markerfacecolor='red', ecolor='red'
@@ -153,27 +189,38 @@ axes[2].errorbar(
     
 
 
-## Axes limits, labels, etc:    
-axes[0].set_xlim(0, 0.65)
-axes[2].set_xlim(-20, 650)
-axes[3].set_xlim(-120, -40)
+## Axes limits, labels, etc for figure 1:    
+for ax in axes1[0:3]: ax.set_xlim(0, 0.8)
 yticks = [0,1,2,3,4]
-for ax in axes:
-    ax.set_yticks(yticks)
-axes[0].set_yticklabels([
+for ax in axes1: ax.set_yticks(yticks)
+yticklabels = [
     "0", r"$z_{ML}$", r"$z_{IB} = z_{ML} + \Delta z_{CL}$", 
     r"$z_{ML} + 2\Delta z_{CL}$", r"$z_{ML} + 3\Delta z_{CL}$"
-    ])
-for ax in axes[1:]: ax.set_yticklabels(["" for t in yticks])
+    ]
+axes1[0].set_yticklabels(yticklabels)
+for ax in axes1[1:]: ax.set_yticklabels(["" for t in yticks])
 
-axes[0].set_xlabel(r"w'w' (m/s)$^2$", fontsize=14)
-axes[1].set_xlabel("SH flux (W/m$^2$)", fontsize=14)
-axes[2].set_xlabel("LH flux (W/m$^2$)", fontsize=14)
-axes[3].set_xlabel(r"$\delta D_{flux}$ (permil)", fontsize=14)
+axes1[0].set_xlabel(r"u'u' (m/s)$^2$", fontsize=14)
+axes1[1].set_xlabel(r"v'v' (m/s)$^2$", fontsize=14)
+axes1[2].set_xlabel(r"w'w' (m/s)$^2$", fontsize=14)
+axes1[3].set_xlabel(r"TKE (m/s)$^2$", fontsize=14)
+
+
+
+## Axes limits, labels, etc for figure 2:    
+axes2[1].set_xlim(-20, 650)
+axes2[2].set_xlim(-120, -40)
+for ax in axes2: ax.set_yticks(yticks)
+axes2[0].set_yticklabels(yticklabels)
+for ax in axes2[1:]: ax.set_yticklabels(["" for t in yticks])
+axes2[0].set_xlabel("SH flux (W/m$^2$)", fontsize=14)
+axes2[1].set_xlabel("LH flux (W/m$^2$)", fontsize=14)
+axes2[2].set_xlabel(r"$\delta D_{flux}$ (permil)", fontsize=14)
+
 
 
 ## Save figure:
-fig.savefig("./fig_fluxprofiles.png")
+fig1.savefig("./fig_fluxprofiles.png")
 
 
 
