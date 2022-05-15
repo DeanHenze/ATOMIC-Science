@@ -6,6 +6,12 @@ Created on Sat May 14 16:49:36 2022
 
 Compare updraft and downdraft q, dD distributions.
 
+Vertical wind PDF is not symmetric, the upward tail is larger than downward 
+tail. Maybe this is capturing updrafts. 
+
+Could try seeing if the larger tails for upward wind are only for the 
+day time clouds. Maybe night time is reversed.
+
 Next step: try taking the top and bottom w' quartiles for comparison.
 """
 
