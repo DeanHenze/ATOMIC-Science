@@ -22,101 +22,18 @@ import thermo
 import rangescaler
 
 
+
+## Data directories and filenames.
+##_____________________________________________________________________________    
 dir_flux = "./fluxes_levlegs/"
 fnames_flux = [f for f in os.listdir(dir_flux) if f.endswith('.nc')]
 
 
 dir_prf = "../../data/WP3/cloud_modules/"
 fnames_prf = [f for f in os.listdir(dir_prf) if f.endswith('.nc')]
+##_____________________________________________________________________________
+## Data directories and filenames.
 
-
-ncld = np.arange(1, 17, 1).astype(str)
-
-
-def plot_fluxprf(ncld):
-    """
-    """
-    fname_flux = [f for f in fnames_flux if "_cld%s_" % n in f]
-    if len(fname_flux) == 0: return
-    fname_flux = fname_flux[0]
-    fname_prf = [f for f in fnames_prf if "_%s.nc" % n.zfill(2) in f]
-    fname_prf = fname_prf[0]
-    
-    
-    fluxes = xr.load_dataset(dir_flux + fname_flux)
-    prf = xr.load_dataset(dir_prf + fname_prf)
-    prfmean = prf.groupby(np.round(prf['alt']/50)*50).mean()
-
-    
-    fig, axes = plt.subplots(1, 3, figsize=(8, 3))
-    for k, ax in zip(["w'w'_bar", "flux_sh", "flux_lh"], axes):
-        ax.scatter(fluxes[k], fluxes['alt'])
-    
-    
-    axes[2].twiny().plot(prfmean['mr'], prfmean['alt'])
-    theta = thermo.ptemp(prfmean['Ta'], prfmean['press'])
-    axes[0].twiny().plot(theta, prfmean['alt'])
-    
-    
-    axes[0].set_ylabel(fname_flux[4:18], fontsize=12)
-    for ax in axes:
-        ax.set_ylim(0, 3250)
-    axes[0].set_xlim(0, np.max(fluxes["w'w'_bar"]+0.02))
-    axes[2].set_xlim(0, np.max(fluxes["flux_lh"]+20))
-
-
-#for n in ncld:
-#    plot_fluxprf(ncld)    
-    
-
-# ## Profiles with scaled altitude
-
-keyalts = pd.read_csv("./cldmod_keyaltitudes.csv")
-g1 = (keyalts['ncld']>=4) & (keyalts['ncld']<=11)
-keyalts_g1 = keyalts.loc[g1]
-keyalts_g2 = keyalts.loc[~g1 & (keyalts['z_mltop']!=(-1))]
-
-"""
-fig, axes = plt.subplots(1, 4, figsize=(10, 5))
-
-for n in keyalts_g1['ncld']:
-    
-    n = str(n)
-    keyalt_info = keyalts_g1.loc[keyalts_g1['ncld']==int(n)]
-    
-    fname_flux = [f for f in fnames_flux if "_cld%s_" % n in f]
-    if len(fname_flux) == 0: continue
-    fname_flux = fname_flux[0]
-    fname_prf = [f for f in fnames_prf if "_%s.nc" % n.zfill(2) in f]
-    fname_prf = fname_prf[0]
-    
-    
-    fluxes = xr.load_dataset(dir_flux + fname_flux)
-    prf = xr.load_dataset(dir_prf + fname_prf)
-    prfmean = prf.groupby(np.round(prf['alt']/50)*50).mean()
-
-    zflux_scaled = rangescaler.piecewise_linscale(
-        fluxes['alt'].values, (0, keyalt_info['z_mltop'].values, keyalt_info['z_tradeinversion'].values), 
-        (0,1,2)
-        )
-    
-    for k, ax in zip(["w'w'_bar", "flux_sh", "flux_lh", "dD_flux"], axes):
-        ax.scatter(fluxes[k], zflux_scaled, s=3, c='grey')
-        ax.plot(fluxes[k], zflux_scaled, c='grey', alpha=0.3)
-        
-    
-axes[0].set_xlim(0, 0.65)
-axes[2].set_xlim(-20, 650)
-axes[3].set_xlim(-120, -40)
-yticks = [0,1,2,3,4]
-for ax in axes:
-    ax.set_yticks(yticks)
-axes[0].set_yticklabels([
-    "0", r"$z_{ML}$", r"$z_{IB} = z_{ML} + \Delta z_{CL}$", 
-    r"$z_{ML} + 2\Delta z_{CL}$", r"$z_{ML} + 3\Delta z_{CL}$"
-    ])
-for ax in axes[1:]: ax.set_yticklabels(["" for t in yticks])
-"""
 
 
 def get_fluxprofiles(ncld_list, keyalts_table, dir_flux):
@@ -175,6 +92,9 @@ def get_fluxprofiles(ncld_list, keyalts_table, dir_flux):
     return fluxprfs_dict
 
 
+
+## Plot P-3 flux profiles with mean overlain.
+##_____________________________________________________________________________
 keyalts_table = pd.read_csv("./cldmod_keyaltitudes.csv")
 ncld_list = np.arange(4, 12, 1)
 flux_prfs = get_fluxprofiles(ncld_list, keyalts_table, dir_flux)
@@ -188,7 +108,6 @@ for varkey, ax in zip(flux_prfs.keys(), axes):
         ax.plot(colplot, colplot.index, c='grey', alpha=0.5)
         ax.scatter(colplot, colplot.index, c='grey', s=10, alpha=0.5)  
     
-    #altgrouped = np.round(flux_prfs[varkey].index/0.25)*0.25
     altgrouped = np.round(flux_prfs[varkey].index/0.5)*0.5
     #altgrouped = flux_prfs[varkey].index.values//0.25
     #altgrouped[altgrouped % 2 == 0] += 1
@@ -198,8 +117,43 @@ for varkey, ax in zip(flux_prfs.keys(), axes):
     meanprf = fluxvar_grouped.mean().mean(axis=1)
     ax.plot(meanprf.values, meanprf.index, 'b-', linewidth=5)
     ax.scatter(meanprf.values, meanprf.index, c='b', s=10)
-      
+##_____________________________________________________________________________
+## Plot P-3 flux profiles with mean overlain.
     
+   
+    
+## Add surface flux mean +/- std for RHB measurements for the time period 
+## 2020-01-17 to 2020-02-12.
+##_____________________________________________________________________________
+dir_rhbflux = "../../data/RHB/metflux/"
+fname = "EUREC4A_ATOMIC_RonBrown_10min_nav_met_sea_flux_20200109-20200212_v1.3.nc"
+
+rhb_metflux = xr.load_dataset(dir_rhbflux+fname)
+dts_wp3start = np.datetime64("2020-01-17")
+    # Remove measurements for dates before the P-3 started sampling:
+rhb_metflux = rhb_metflux.where(rhb_metflux['time'] > dts_wp3start, drop=True)
+
+rhbfluxkeys = ["hs_bulk", "hl_bulk", "ustar", "gust"]
+flux_P3iopmean = rhb_metflux[rhbfluxkeys].mean(dim='obs')
+flux_P3iopstd = rhb_metflux[rhbfluxkeys].std(dim='obs')
+
+rhb_samplingalt = 20/500 # height of RHB instruments, roughly normalized by z_ML.
+axes[1].errorbar(
+    -1*flux_P3iopmean['hs_bulk'], rhb_samplingalt, 
+    xerr = flux_P3iopstd['hs_bulk'], 
+    marker='o', markersize=5, markerfacecolor='red', ecolor='red'
+    )
+axes[2].errorbar(
+    -1*flux_P3iopmean['hl_bulk'], rhb_samplingalt, 
+    xerr = flux_P3iopstd['hl_bulk'], 
+    marker='o', markersize=5, markerfacecolor='red', ecolor='red'
+    )
+##_____________________________________________________________________________
+  ## Add surface flux mean +/- std for RHB measurements.
+    
+
+
+## Axes limits, labels, etc:    
 axes[0].set_xlim(0, 0.65)
 axes[2].set_xlim(-20, 650)
 axes[3].set_xlim(-120, -40)
