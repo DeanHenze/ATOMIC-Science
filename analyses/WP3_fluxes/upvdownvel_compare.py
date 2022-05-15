@@ -81,19 +81,23 @@ def plots(ncld):
         print("percentage downward = %0.2f" % (100*len(datadown)/len(data_dfqc)))
         
         
-        plt.figure()
-        ax1 = plt.subplot(1,2,1)
-        qdD_pdf(dataup, 'blue', ax1)
-        qdD_pdf(datadown, 'red', ax1)
+        #plt.figure()
+        #ax1 = plt.subplot(1,2,1)
+        #qdD_pdf(dataup, 'blue', ax1)
+        #qdD_pdf(datadown, 'red', ax1)
         
         
         # Same as above execpt for data above / below the upper / lower quartile:
         q1, q3 = np.nanquantile(data_dfqc["w'"], [0.25, 0.75])
         dataup = data_dfqc.loc[data_dfqc["w'"]>q3]
         datadown = data_dfqc.loc[data_dfqc["w'"]<q1]
-        ax2 = plt.subplot(1,2,2)
-        qdD_pdf(dataup, 'blue', ax2)
-        qdD_pdf(datadown, 'red', ax2)
+        #ax2 = plt.subplot(1,2,2)
+        #qdD_pdf(dataup, 'blue', ax2)
+        #qdD_pdf(datadown, 'red', ax2)
+        
+        plt.figure()
+        plt.hist(dataup["dD"], bins=20, histtype='step')
+        plt.hist(datadown["dD"], bins=20, histtype='step')
         
         
         
@@ -112,7 +116,7 @@ def qdD_pdf(data, color, ax, scatter=False):
 
 
 
-plots(4)
+plots(6)
 
  
     
