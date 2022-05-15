@@ -32,7 +32,7 @@ if not os.path.isdir(dir_fluxes):
 
 
 # All cospectra filenames:
-dir_wcospec = "./wcospectra_levlegs/"
+dir_wcospec = "./cospectra_levlegs/"
 fnames_wcospec = [f for f in os.listdir(dir_wcospec) if f.endswith(".nc")]
 
 
@@ -53,7 +53,7 @@ for n in ncldmod_unique:
     
     
     # Objects to store results in before combining into a dataset:
-    covarkeys = ["u'w'", "v'w'", "w'w'", "T'w'", "q'w'", "qD'w'"]
+    covarkeys = ["u'u'", "v'v'", "u'w'", "v'w'", "w'w'", "T'w'", "q'w'", "qD'w'"]
     fluxkeys = ["%s_bar" % k for k in covarkeys]
     fluxes = dict(zip(fluxkeys, [[] for e in fluxkeys]))
     frac_imputed = [] # Fraction of imputed data points for each leg.
