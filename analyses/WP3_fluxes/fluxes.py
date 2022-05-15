@@ -125,6 +125,10 @@ for n in ncldmod_unique:
         )
     
     
+    # Add total kinetic energy:
+    flux_ds['TKE'] = 0.5*(flux_ds["u'u'_bar"] + flux_ds["v'v'_bar"] + flux_ds["w'w'_bar"])
+    
+    
     # Add dD of flux:
     flux_ds['dD_flux'] = iso.qD_dD_convert(
         'qD2dD', 
