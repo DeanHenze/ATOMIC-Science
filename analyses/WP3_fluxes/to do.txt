@@ -1,3 +1,9 @@
+Vertical profiles of TKE and w' skewness (apparently <w'w'w'>?, third moment of 
+w' normalized by the cube of its standard deviation).
+
+Compute LCL for each cloud module. Use this to determine which horizontal leg 
+was the cloud base one. Were there also incloud ones?
+
 Fourier transform of the covariance.
 
 Take note of cloud fraction during in cloud leg.
@@ -13,8 +19,6 @@ q vs dD distributions for updraft vs downdrafts (colored in some way by w'?)
 sweep ejection
 
 Low level convergence plot?
-
-normalized altitude 0, 1, 2 parabola fit 0=surface, 1=LCL, 2=trade inversion bottom
 
 cartoon schematic of trade cumulus MBL
 
