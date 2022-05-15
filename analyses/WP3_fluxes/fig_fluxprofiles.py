@@ -172,4 +172,8 @@ axes[2].set_xlabel("LH flux (W/m$^2$)", fontsize=14)
 axes[3].set_xlabel(r"$\delta D_{flux}$ (permil)", fontsize=14)
 
 
+## Save figure:
+fig.savefig("./fig_fluxprofiles.png")
+
+
 
