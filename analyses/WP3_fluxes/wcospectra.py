@@ -22,10 +22,9 @@ import thermo
 
 
 
-def wcospectra(data_df, varkeys):
+def cospectra(data_df, varkeypairs):
     """
-    Get cospectra of one or more variables with vertical wind perturbation. 
-    
+    Get cospectra of one or more set of variables. 
     QC data for high aircraft roll first.
     
     Inputs
@@ -34,40 +33,48 @@ def wcospectra(data_df, varkeys):
         Time series data for a single level leg. Has key "w'" for the vertical 
         wind perturbation.
         
-    varkeys: list of str's
-        Variable keys in data_df to get cospectra for.
+    varkeypairs: list of 2-tuples of str's
+        Variable key pairs in data_df to get cospectra for.
 
     Returns
     -------
-    cospectra: pandas.DataFrame
+    cospectra: pandas.DataFrame. Column are the cospectra for each pair in 
+        varkeypairs.
     """
 
     # Aircraft roll QC    
     data_df = rollqc.meanimpute(data_df, varkeys, roll_crit=5) # Impute
 
-    # Cospectra of variables with vertical wind:
+
+    # Cospectra:
     cospectra = pd.DataFrame({}) # Collect results here.
-    for vk in varkeys:
+    for vpair in varkeypairs:
+        
+        vk1 = vpair[0]
+        vk2 = vpair[1]
         
         fs = 5     # Sampling frequency        
         dt_window=3*60 # time interval of window for spectral decomp, seconds
 
         f, Pcross = signal.csd(    # Cross-spectrum
-            data_df[vk], data_df["w'"],  
+            data_df[vk1], data_df[vk2],  
             fs=fs, nperseg=int(dt_window*fs), 
             window='hamming', detrend='linear'
             )
         Pco = Pcross.real  # Co-spectrum
         f, Pco = f[1:], Pco[1:] # Remove 0 frequency.
 
-        cospectra[vk+"w'"] = Pco
+        cospectra[vk1+vk2] = Pco
         cospectra['freq'] = f
+        
         
     # Correction for imputed values:
     N_tot = len(data_df)
     N_imputed = data_df['imputed'].sum()
-    for vk in varkeys:
-        cospectra[vk+"w'"] = cospectra[vk+"w'"]*(N_tot/(N_tot-N_imputed))
+    for vpair in varkeypairs:
+        vk1 = vpair[0]
+        vk2 = vpair[1]
+        cospectra[vk1+vk2] = cospectra[vk1+vk2]*(N_tot/(N_tot-N_imputed))
 
     return cospectra, N_tot, N_imputed
 
@@ -85,14 +92,15 @@ if __name__=="__main__":
     
     
     # Save cospectra to this directory:
-    dir_cospectra = "./wcospectra_levlegs/"
+    dir_cospectra = "./cospectra_levlegs/"
     if not os.path.isdir(dir_cospectra):
         os.makedirs(dir_cospectra)
     
     
-    # Keys of variables to get cospectra / fluxes for:
+    # Keys of variables to get cospectra for:
     varkeys = ["u","v","w","T","q","qD"]
-    varkeys = [k+"'" for k in varkeys]        
+    varkeys = [k+"'" for k in varkeys]
+    varkeypairs = [("u'","u'"), ("v'","v'")] + [(vk, "w'") for vk in varkeys] 
         
     
     for fname in fnames_levlegs:
@@ -101,7 +109,7 @@ if __name__=="__main__":
         data = xr.load_dataset(dir_5hzdata + fname)
         data_df = data.to_dataframe() # Easier / faster to work with pandas.
         print("Computing cospectra for %s" % fname)
-        wcospec_df, N_tot, N_imputed = wcospectra(data_df, varkeys)
+        cospec_df, N_tot, N_imputed = cospectra(data_df, varkeypairs)
         
         
         # Additional info to include in the data file:
@@ -117,11 +125,11 @@ if __name__=="__main__":
         
         # Convert back to xarray and add some vars/coords/attributes 
         # before saving:
-        wcospec_df.set_index('freq', drop=True, inplace=True, append=False)
-        wcospec_xr = wcospec_df.to_xarray()
+        cospec_df.set_index('freq', drop=True, inplace=True, append=False)
+        cospec_xr = cospec_df.to_xarray()
             
             # Coords:        
-        wcospec_xr = wcospec_xr.assign_coords({'n_levleg':n_levleg})
+        cospec_xr = cospec_xr.assign_coords({'n_levleg':n_levleg})
         
             # Vars:
         addvar_keys = ['alt_mean', 'T_mean', 'P_mean', 'reftime']
@@ -132,10 +140,10 @@ if __name__=="__main__":
                 dims=["n_levleg"],
                 coords=dict(n_levleg=[n_levleg]),
                 )
-            wcospec_xr = wcospec_xr.assign({k:da})
+            cospec_xr = cospec_xr.assign({k:da})
         
             # Attributes:
-        wcospec_xr.attrs = dict(
+        cospec_xr.attrs = dict(
             title="Cospectra with vertical wind computed with 5Hz data from "
                 "P-3 level legs.", 
             Ntot_ts=N_tot,
@@ -143,8 +151,8 @@ if __name__=="__main__":
             )
 
         
-        fnamesave = dir_cospectra + ("WP3_%s_wcospectra.nc" % fname[8:-3])
-        wcospec_xr.to_netcdf(fnamesave)
+        fnamesave = dir_cospectra + ("WP3_%s_cospectra.nc" % fname[8:-3])
+        cospec_xr.to_netcdf(fnamesave)
 
 
 
