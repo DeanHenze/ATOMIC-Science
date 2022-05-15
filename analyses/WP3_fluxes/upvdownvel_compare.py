@@ -82,21 +82,25 @@ def plots(ncld):
         
         
         plt.figure()
-        ax = plt.axes()
-        qdD_pdf(dataup, 'blue', ax)
-        qdD_pdf(datadown, 'red', ax)
+        ax1 = plt.subplot(1,2,1)
+        qdD_pdf(dataup, 'blue', ax1)
+        qdD_pdf(datadown, 'red', ax1)
         
         
         # Same as above execpt for data above / below the upper / lower quartile:
-        q1, q3 = np.nanquantile(data_df["w'"], [0.25, 0.75])
+        q1, q3 = np.nanquantile(data_dfqc["w'"], [0.25, 0.75])
         dataup = data_dfqc.loc[data_dfqc["w'"]>q3]
         datadown = data_dfqc.loc[data_dfqc["w'"]<q1]
+        ax2 = plt.subplot(1,2,2)
+        qdD_pdf(dataup, 'blue', ax2)
+        qdD_pdf(datadown, 'red', ax2)
         
         
         
-def qdD_pdf(data, color, ax):
+def qdD_pdf(data, color, ax, scatter=False):
         
-        ax.scatter(data["q"], data["dD"], s=1, c=color)
+    
+        if scatter: ax.scatter(data["q"], data["dD"], s=1, c=color)
         kernel = gaussian_kde([data["q"].values, data["dD"].values])
         qq, dDdD = np.meshgrid(
             np.linspace(np.min(data["q"]), np.max(data["q"])),
@@ -110,59 +114,6 @@ def qdD_pdf(data, color, ax):
 
 plots(4)
 
-"""
-for i in (8, 9, 10, 11):
-    fname = fnames_levlegs[i]
-    print(fname)
-    data = xr.load_dataset(dir_5hzdata + fname)
-    data_df = data.to_dataframe() # Easier / faster to work with pandas.
-    
-    # Add dD column:
-    data_df["dD"] = iso.qD_dD_convert('qD2dD', data_df["q"], data_df["qD"])
-    
-    # Remove data where the roll was greater than 5 degrees:
-    roll_crit = 5
-    highroll = abs(data_df['roll']) > roll_crit
-    data_dfqc = data_df.loc[~highroll]
-    
-    # Split into rows of upward vs downward velocities:
-    dataup = data_dfqc.loc[data_dfqc["w'"]>0]
-    datadown = data_dfqc.loc[data_dfqc["w'"]<0]
-    
-    # Plots:
-    #plt.figure()
-    #plt.scatter(data_dfqc["w'"], data_dfqc["q"])
-    
-    #plt.figure()
-    #plt.scatter(data_dfqc["w'"], data_dfqc["q'"], s=1)
-    
-    #plt.figure()
-    #plt.hist(dataup['q'], bins=20, histtype='step')
-    #plt.hist(datadown['q'], bins=20, histtype='step')
-    
-    #plt.figure()
-    #plt.hist(dataup["w'"], bins=20, histtype='step')
-    #plt.hist(datadown["w'"], bins=20, histtype='step')
-
-    print("percentage upward = %0.2f" % (100*len(dataup)/len(data_dfqc)))
-    print("percentage downward = %0.2f" % (100*len(datadown)/len(data_dfqc)))
-    
-    
-    plt.figure()
-
-    plt.scatter(dataup["q"], dataup["dD"], s=1, c='blue')
-    kernelup = gaussian_kde([dataup["q"].values, dataup["dD"].values])
-    qq, dDdD = np.meshgrid(
-        np.linspace(np.min(data_dfqc["q"]), np.max(data_dfqc["q"])),
-        np.linspace(np.min(data_dfqc["dD"]), np.max(data_dfqc["dD"]))
-        )
-    probup = np.reshape(kernelup([qq.ravel(), dDdD.ravel()]).T, qq.shape)
-    plt.contour(qq, dDdD, probup, colors='blue')
-    
-    plt.scatter(datadown["q"], datadown["dD"], s=1, c='red')
-    kerneldown = gaussian_kde([datadown["q"].values, datadown["dD"].values])
-    probdown = np.reshape(kerneldown([qq.ravel(), dDdD.ravel()]).T, qq.shape)
-    plt.contour(qq, dDdD, probdown, colors='red')    
-"""    
+ 
     
     
