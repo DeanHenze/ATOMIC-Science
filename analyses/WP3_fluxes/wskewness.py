@@ -71,4 +71,4 @@ for f in fnames_levlegs:
 # Collect info pandas df and save:
 dfkeys = ['ncld', 'nleg', 'altleg', 'wskew']
 wskew_df = pd.DataFrame(dict(zip(dfkeys, [ncld, nleg, altleg, wskew])))
-wskew_df.to_csv(dir_wskew + "WP3_wskewness_levlegs.csv")
+wskew_df.to_csv(dir_wskew + "WP3_wskewness_levlegs.csv", index=False)
