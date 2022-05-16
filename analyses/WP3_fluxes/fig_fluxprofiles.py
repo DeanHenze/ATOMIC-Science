@@ -36,7 +36,7 @@ fnames_prf = [f for f in os.listdir(dir_prf) if f.endswith('.nc')]
 
 
 
-def get_fluxprofiles(ncld_list, keyalts_table, dir_flux):
+def get_fluxprofiles(ncld_list, keyalts_table, dir_flux, scale_altitude=False):
     """
     keyalts_table: pandas.DataFrame.
         Cannot have NAN's for the mixed layer top or trade inversion bottom.
@@ -69,20 +69,23 @@ def get_fluxprofiles(ncld_list, keyalts_table, dir_flux):
         fname_flux = fname_flux[0]        
         fluxes = xr.load_dataset(dir_flux + fname_flux)
     
-        # Scale altitude.
+        # Optional scale altitude.
         # 0=sea level, 1=mixed layer top, 2=trade inversion bottom.
-        alt_scaled = rangescaler.piecewise_linscale(
-            fluxes['alt'].values, 
-            (0, keyalts['z_mltop'], keyalts['z_tradeinversion']), 
-            (0,1,2)
-            )
-        
+        if scale_altitude:
+            alt = rangescaler.piecewise_linscale(
+                fluxes['alt'].values, 
+                (0, keyalts['z_mltop'], keyalts['z_tradeinversion']), 
+                (0,1,2)
+                )
+        else:
+            alt = fluxes['alt'].values
+            
         # Merge flux profiles of current module into resp. DataFrame's:
         for k in fluxvarkeys:
             
             fluxvar_pd = pd.DataFrame(  # easier to work in pandas.
                 {k+"_cld%i"%n: fluxes[k].values}, 
-                index=alt_scaled
+                index=alt
                 )
                 
             fluxprfs_dict[k] = pd.merge(
@@ -95,7 +98,7 @@ def get_fluxprofiles(ncld_list, keyalts_table, dir_flux):
 
 
 
-def plot_fluxprofiles(flux_prfs_dict, varkeysplot, axset):
+def plot_fluxprofiles(flux_prfs_dict, varkeysplot, axset, plotmeans=False):
     """
     Plot both individual profiles and mean profile for passed data.
     
@@ -111,6 +114,9 @@ def plot_fluxprofiles(flux_prfs_dict, varkeysplot, axset):
         
     axset: list of matplotlib.pyplot.Axes.
         Same length as varkeysplot. Axes to plot on.
+        
+    plotmeans: bool.
+        If set to True, plot the average proifiles as well as individuals.
     """
     for varkey, ax in zip(varkeysplot, axset):
 
@@ -120,27 +126,28 @@ def plot_fluxprofiles(flux_prfs_dict, varkeysplot, axset):
             ax.plot(colplot, colplot.index, c='grey', alpha=0.5)
             ax.scatter(colplot, colplot.index, c='grey', s=10, alpha=0.5)  
         
-        # Compute and plot mean profile:
-        altgrouped = np.round(flux_prfs[varkey].index/0.5)*0.5 # vertical binning.
-        #altgrouped = flux_prfs[varkey].index.values//0.25
-        #altgrouped[altgrouped % 2 == 0] += 1
-        #altgrouped = altgrouped*0.25
-        fluxvar_grouped = flux_prfs[varkey].groupby(altgrouped, axis=0, as_index=True)
-        meanprf = fluxvar_grouped.mean().mean(axis=1)
-        ax.plot(meanprf.values, meanprf.index, 'b-', linewidth=5)
-        ax.scatter(meanprf.values, meanprf.index, c='b', s=10)
-    
+        # Optional compute and plot mean profile:
+        if plotmeans:
+            altgrouped = np.round(flux_prfs[varkey].index/0.5)*0.5 # vertical binning.
+            #altgrouped = flux_prfs[varkey].index.values//0.25
+            #altgrouped[altgrouped % 2 == 0] += 1
+            #altgrouped = altgrouped*0.25
+            fluxvar_grouped = flux_prfs[varkey].groupby(altgrouped, axis=0, as_index=True)
+            meanprf = fluxvar_grouped.mean().mean(axis=1)
+            ax.plot(meanprf.values, meanprf.index, 'b-', linewidth=5)
+            ax.scatter(meanprf.values, meanprf.index, c='b', s=10)
+        
 
 
 ## Plot P-3 flux profiles for wind components and TKE.
 ##_____________________________________________________________________________
 keyalts_table = pd.read_csv("./cldmod_keyaltitudes.csv")
 ncld_list = list(np.arange(4, 12, 1))
-flux_prfs = get_fluxprofiles(ncld_list, keyalts_table, dir_flux)
+flux_prfs = get_fluxprofiles(ncld_list, keyalts_table, dir_flux, scale_altitude=True)
 
 fig1, axes1 = plt.subplots(1, 4, figsize=(10, 5)) # Wind components and TKE.
 windkeys = ["u'u'_bar", "v'v'_bar", "w'w'_bar", "TKE"]
-plot_fluxprofiles(flux_prfs, windkeys, axes1)
+plot_fluxprofiles(flux_prfs, windkeys, axes1, plotmeans=True)
 ##_____________________________________________________________________________
 ## Plot P-3 flux profiles for wind components and TKE.
     
@@ -150,7 +157,7 @@ plot_fluxprofiles(flux_prfs, windkeys, axes1)
 ##_____________________________________________________________________________
 fig2, axes2 = plt.subplots(1, 3, figsize=(10, 5)) # Wind components and TKE.
 scalarfluxkeys = ["flux_sh", "flux_lh", "dD_flux"]
-plot_fluxprofiles(flux_prfs, scalarfluxkeys, axes2)
+plot_fluxprofiles(flux_prfs, scalarfluxkeys, axes2, plotmeans=True)
 ##_____________________________________________________________________________
 ## Plot P-3 flux profiles for SHF, LHF, and dD of flux.
    
@@ -222,7 +229,7 @@ fig1.savefig("./fig_fluxprofiles_scalarvars.png")
 fig2.savefig("./fig_fluxprofiles_windvars.png")
 
 
-"""
+
 ## Night flights:
 ## Plot P-3 flux profiles for wind components and TKE.
 ##_____________________________________________________________________________
@@ -230,9 +237,9 @@ keyalts_table = pd.read_csv("./cldmod_keyaltitudes.csv")
 ncld_list = [12,13,16]
 flux_prfs = get_fluxprofiles(ncld_list, keyalts_table, dir_flux)
 
-fig1, axes1 = plt.subplots(1, 4, figsize=(10, 5))
+fig3, axes3 = plt.subplots(1, 4, figsize=(10, 5))
 windkeys = ["u'u'_bar", "v'v'_bar", "w'w'_bar", "TKE"]
-plot_fluxprofiles(flux_prfs, windkeys, axes1)
+plot_fluxprofiles(flux_prfs, windkeys, axes3)
 ##_____________________________________________________________________________
 ## Plot P-3 flux profiles for wind components and TKE.
     
@@ -240,11 +247,11 @@ plot_fluxprofiles(flux_prfs, windkeys, axes1)
     
 ## Plot P-3 flux profiles for SHF, LHF, and dD of flux.
 ##_____________________________________________________________________________
-fig2, axes2 = plt.subplots(1, 3, figsize=(10, 5))
+fig4, axes4 = plt.subplots(1, 3, figsize=(10, 5))
 scalarfluxkeys = ["flux_sh", "flux_lh", "dD_flux"]
-plot_fluxprofiles(flux_prfs, scalarfluxkeys, axes2)
+plot_fluxprofiles(flux_prfs, scalarfluxkeys, axes4)
 ##_____________________________________________________________________________
 ## Plot P-3 flux profiles for SHF, LHF, and dD of flux.
-"""
+
 
 
