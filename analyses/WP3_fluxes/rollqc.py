@@ -42,6 +42,11 @@ def meanimpute(data_df, varkeys_impute, roll_crit=5):
         
     roll_crit: float.
         Critical roll angle above which data will be imputed. Should be >= 0.
+        
+    Returns:
+    data_df: pandas.DataFrame.
+        Input dataframe with chosen columns imputed. Additional imputed 
+        flag column.
     """
     highroll = abs(data_df['roll']) > roll_crit
     mean = data_df.loc[~highroll].mean()
