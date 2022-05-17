@@ -225,8 +225,8 @@ axes2[2].set_xlabel(r"$\delta D_{flux}$ (permil)", fontsize=14)
 
 
 ## Save figure:
-fig1.savefig("./fig_fluxprofiles_scalarvars.png")
-fig2.savefig("./fig_fluxprofiles_windvars.png")
+fig1.savefig("./fig_fluxprofiles_windvars.png")
+fig2.savefig("./fig_fluxprofiles_scalarvars.png")
 
 
 
