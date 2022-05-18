@@ -46,7 +46,7 @@ def create_dropsondefiles(path_drpsnds, path_cldmodtable, dirpath_save):
         ncld = row['num_cld_iop']
         
         dropsnds_cld = dropsnds_cld_single(
-            drpsnds, date, ncld, 
+            drpsnds, date, 
             row['start_datetime'], row['end_datetime'], 
             )
         
