@@ -57,13 +57,21 @@ def create_dropsondefiles(path_drpsnds, path_cldmodtable, dirpath_save):
     
   
 
-def dropsnds_cld_single(dropsnds, date, ncld, t1_cld, t2_cld):
+def dropsnds_cld_single(dropsnds, date, t1_cld, t2_cld):
     """
+    Return all P-3 dropsondes within time bounds t1_cld, t2_cld.
+    
+    Inputs
+    ------
     dropsnds: xarray.Dataset
+        Data file with all dropsondes.
     date: int
-    ncld: int, float
-    t1_cld, t2_cld: Timestamps
-    tab_hlegs: pandas.DataFrame
+        Format yyyymmdd
+    t1_cld, t2_cld: pandas.Timestamp or numpy.datetime64 objects.
+        Start and end time of cloud module.
+        
+    returns:
+        dropsnds_cld: xarray.Dataset.
     """
     dropsnds_cld = dropsnds.where( # P-3 sondes in cld time interval.
         (dropsnds['launch_time']>t1_cld) 
@@ -77,6 +85,8 @@ def dropsnds_cld_single(dropsnds, date, ncld, t1_cld, t2_cld):
 
 def table_cldmodules(path_cldmodtable, datetime_type=True):
     """
+    Returns .csv file of P-3 cloud module time interval data.
+    
     datetime_type: bool.
         Default = True, in which case all datetime columns are converted to 
         datetime-type.
@@ -92,6 +102,11 @@ def table_cldmodules(path_cldmodtable, datetime_type=True):
 
 
 if __name__=="__main__":
+    """
+    Specify paths / directories and call fxn's to get all cloud module 
+    dropsonde files.
+    """
+    
     path_drpsnds = ("../../data/sondes/EUREC4A_JOANNE_Dropsonde-RD41_"
                     "Level_3_v0.7.0+2.g4a878b3.dirty.nc"
                     )
