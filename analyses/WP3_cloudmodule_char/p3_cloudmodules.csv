@@ -1,4 +1,4 @@
-flight_date,module,start_secs_2020Jan01,end_secs_2020Jan01,start_datetime,end_datetime,lat_mean,lon_mean,num_cld_day,num_cld_iop
+﻿flight_date,module,start_secs_2020Jan01,end_secs_2020Jan01,start_datetime,end_datetime,lat_mean,lon_mean,num_cld_day,num_cld_iop
 20200117,CLD,1444633,1449963,1/17/2020 17:17,1/17/2020 18:46,15.43000031,-50,1,1
 20200124,CLD,2047703,2056454,1/24/2020 16:48,1/24/2020 19:14,13.36999989,-56.74000168,1,2
 20200124,CLD,2056454,2063633,1/24/2020 19:14,1/24/2020 21:13,13.31999969,-56.5,2,3
