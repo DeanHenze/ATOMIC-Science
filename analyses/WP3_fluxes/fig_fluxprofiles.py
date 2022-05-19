@@ -74,7 +74,8 @@ def get_fluxprofiles(ncld_list, keyalts_table, dir_flux, scale_altitude=False):
         if scale_altitude:
             alt = rangescaler.piecewise_linscale(
                 fluxes['alt'].values, 
-                (0, keyalts['z_mltop'], keyalts['z_tradeinversion']), 
+                #(0, keyalts['z_mltop'], keyalts['z_tradeinversion']), 
+                (0, keyalts['z_lcl'], keyalts['z_tradeinversion']), 
                 (0,1,2)
                 )
         else:
@@ -141,7 +142,7 @@ def plot_fluxprofiles(flux_prfs_dict, varkeysplot, axset, plotmeans=False):
 
 ## Plot P-3 flux profiles for wind components and TKE.
 ##_____________________________________________________________________________
-keyalts_table = pd.read_csv("./cldmod_keyaltitudes.csv")
+keyalts_table = pd.read_csv("../WP3_cloudmodule_char/cldmod_keyaltitudes.csv")
 ncld_list = list(np.arange(4, 12, 1))
 flux_prfs = get_fluxprofiles(ncld_list, keyalts_table, dir_flux, scale_altitude=True)
 
@@ -233,7 +234,6 @@ fig2.savefig("./fig_fluxprofiles_scalarvars.png")
 ## Night flights:
 ## Plot P-3 flux profiles for wind components and TKE.
 ##_____________________________________________________________________________
-keyalts_table = pd.read_csv("./cldmod_keyaltitudes.csv")
 ncld_list = [12,13,16]
 flux_prfs = get_fluxprofiles(ncld_list, keyalts_table, dir_flux)
 
