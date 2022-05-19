@@ -24,7 +24,7 @@ import rangescaler
 
 
 
-ncld = 8
+ncld = 4
 
 
 # Level leg data filenames:
@@ -51,8 +51,11 @@ for f, ax in zip(fnames_levlegs_ncld, axes.flatten()):
     highroll = abs(data_df['roll']) > roll_crit
     data_dfqc = data_df.loc[~highroll]
     
-    # Histogram of w':
-    ax.hist(data_dfqc["w'"]*data_dfqc["q'"], bins=25, density=True)
+    #x = data_dfqc["w'"]*data_dfqc["q'"]
+    x = data_dfqc["w'"]
+    
+    # Level leg histogram:
+    ax.hist(x, bins=25, density=True)
     
     # Gaussian for reference:
     def plot_gauss(x, ax):
@@ -64,11 +67,14 @@ for f, ax in zip(fnames_levlegs_ncld, axes.flatten()):
         xpdfgauss = norm.pdf(xgauss, loc=0, scale=std)
         ax.plot(xgauss, xpdfgauss)
         
-    plot_gauss(data_dfqc["w'"]*data_dfqc["q'"], ax)
+    plot_gauss(x, ax)
         
     # 
     #ax.set_xlim(-2.5, 2.5)
-    
+    ax.text(
+        0.9, 0.9, "z = %i m" % round(data_dfqc["alt"].mean()), 
+        ha='right', va='top', transform=ax.transAxes
+        )
     
     
     
