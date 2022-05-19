@@ -57,11 +57,11 @@ for n in ncld:
 path_keyaltstab = "./cldmod_keyaltitudes.csv"
 keyalts_tab = pd.read_csv(path_keyaltstab)
 if ((keyalts_tab['ncld'] == ncld).sum()) == len(ncld): # check that cols match
-    keyalts_tab['alt_LCL'] = zlcl_cldmods
+    keyalts_tab['z_lcl'] = np.round(zlcl_cldmods)
     keyalts_tab.to_csv(path_keyaltstab, index=False)
 else:
     keyalts_tab.sort_values('ncld', axis=0, ascending=True, inplace=True)
-    keyalts_tab['alt_LCL'] = zlcl_cldmods
+    keyalts_tab['z_lcl'] = np.round(zlcl_cldmods)
     keyalts_tab.to_csv(path_keyaltstab, index=False)
 
 
