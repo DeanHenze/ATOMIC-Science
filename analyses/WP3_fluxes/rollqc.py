@@ -63,24 +63,22 @@ def meanimpute(data_df, varkeys_impute, roll_crit=5):
 
 
 
-def gaussianimpute(data_df, varkeys_impute):
+def gaussianimpute(data_df, varkeys_impute, roll_crit=5):
     """
     In progress...
     """
     highroll = abs(data_df['roll']) > 5
-    mean = data_df.loc[~highroll].mean()
-    std = data_df.loc[~highroll].std()
     
+    # Random normal impute:
+    mean = data_df.loc[~highroll, varkeys_impute].mean()
+    std = data_df.loc[~highroll, varkeys_impute].std()
+    impvals = np.random.normal(mean, std, (highroll.sum(), len(varkeys_impute)))
+    data_df.loc[highroll, varkeys_impute] = impvals
     
-    # Impute:
-    #vals_impute = mean[varkeys_impute]
-    #for k in varkeys_impute:
-    #    data_df.loc[highroll, k] = vals_impute[k] 
-        
         # Flag for data points which have been imputed:
-    #data_df['imputed'] = highroll
-    
-    #return data_df
+    data_df['imputed'] = highroll
+        
+    return data_df
     
 
 
