@@ -44,6 +44,7 @@ def cospectra(data_df, varkeypairs):
 
     # Aircraft roll QC    
     data_df = rollqc.meanimpute(data_df, varkeys, roll_crit=5) # Impute
+    #data_df = rollqc.gaussianimpute(data_df, varkeys, roll_crit=5) # Impute
 
 
     # Cospectra:
