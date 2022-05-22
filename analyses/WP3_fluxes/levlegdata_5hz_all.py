@@ -26,10 +26,8 @@ import levlegdata_5hz
 
 
 
-# Load level leg time interval data:
+# Load level leg time interval data and onvert start / end times to timestamps:
 time_levlegs = pd.read_csv("p3_cloudmodule_legs.csv").copy()
-
-#
 time_levlegs['tstart_tstamp'] = time_levlegs['tstart_leg'].apply(pd.Timestamp)
 time_levlegs['tend_tstamp'] = time_levlegs['tend_leg'].apply(pd.Timestamp)
 
@@ -39,6 +37,21 @@ path_fastwind = "../../data/WP3/fast_wind_temp/" # High freq wind / temp
 path_fastwater = "../../data/WP3/fast_water_iso/" # high freq water / iso
 path_flightlev1hz = "../../data/WP3/flight_level_1Hz/" # files with roll data
 
+
+# Save results to these directories:
+    # Processed 5Hz files:
+dir_5hzfiles = "./levlegdata_5hz/"
+if not os.path.isdir(dir_5hzfiles): os.makedirs(dir_5hzfiles)
+    
+    # Time sync results:
+dir_tsync = "./other_data/"
+if not os.path.isdir(dir_tsync): os.makedirs(dir_tsync)
+
+
+# Store time synce results in these lists:
+xcormax_list = []
+tshift_list = []
+altleg_list = [] # mean altitude of the level leg.
 
 
 for i, row in time_levlegs.iterrows():
@@ -76,11 +89,36 @@ for i, row in time_levlegs.iterrows():
     roll = flightlev['roll']
     
     
-    # Get processed data and save as new file:
+    # Get processed data and water-wind time sync results:
     t1 = levlegdata_5hz.convert_time(row['tstart_tstamp'].to_datetime64())
     t2 = levlegdata_5hz.convert_time(row['tend_tstamp'].to_datetime64())
-    data_proc = levlegdata_5hz.process_5hz(wind, mr, iso, roll, t1, t2)
-    data_proc.to_netcdf("./levlegdata_5hz/WP3_5hz_%s_cld%i_levleg%i.nc"
+    data_proc, xcormax, tshift = levlegdata_5hz.process_5hz(
+        wind, mr, iso, roll, 
+        t1, t2, timesync_results=True
+        )
+    #data_proc.to_netcdf("./levlegdata_5hz/WP3_5hz_%s_cld%i_levleg%i.nc"
+    #                    % tuple([date, row['num_cld_iop'], row['num_leg']])
+    #                    )
+    
+    # Save processed data as new file:
+    data_proc.to_netcdf(dir_5hzfiles + "WP3_5hz_%s_cld%i_levleg%i.nc"
                         % tuple([date, row['num_cld_iop'], row['num_leg']])
                         )
-
+    
+    
+    # Append time sync results:
+    xcormax_list.append(xcormax)
+    tshift_list.append(tshift)
+    altleg_list.append(data_proc['alt'].mean().values.item())
+    
+    
+    del wind, mr, iso, roll, data_proc
+    
+    
+# Save time sync results:
+tsync_results = pd.DataFrame({
+    'tshift': tshift_list, 
+    'xcormax': xcormax_list,
+    'alt_leg': altleg_list
+    })
+tsync_results.to_csv(dir_tsync + "time_sync_wind-water.csv", index=False)
