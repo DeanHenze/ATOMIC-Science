@@ -40,12 +40,6 @@ path_fastwater = "../../data/WP3/fast_water_iso/" # high freq water / iso
 path_flightlev1hz = "../../data/WP3/flight_level_1Hz/" # files with roll data
 
 
-#row = time_levlegs.iloc[0]
-#fname = "EUREC4A_ATOMIC_P3_Flight-level_20200124_v1.0.nc"
-#roll = xr.load_dataset(path_flightlev1hz + fname)
-#roll = roll[['lat','lon','alt','roll']]
-
-
 
 for i, row in time_levlegs.iterrows():
         
@@ -90,29 +84,3 @@ for i, row in time_levlegs.iterrows():
                         % tuple([date, row['num_cld_iop'], row['num_leg']])
                         )
 
-
-
-
-
-"""
-# Time intervals for two of the horizontal level legs:
-tleg1 = (2667600, 2667913)
-tleg2 = (2671900, 2672633)
-tleg3 = (2670758, 2671573)
-tleg4 = (2664350, 2665134)
-tleg5 = (2663208, 2664007)
-tleg6 = (2662429, 2662987)
-
-
-tleg_list = (tleg1, tleg2, tleg3, tleg4, tleg5, tleg6)
-levleg_str = ['levleg'+str(i) for i in range(1,7)]
-
-for tleg, lls in zip(tleg_list, levleg_str):
-    print(lls)
-    # 5 hz files:
-    data_5hz = levlegdata_5hz.process_5hz(
-        wind, mr, iso,
-        tleg[0], tleg[1]
-        )    
-    data_5hz.to_netcdf('./levlegdata_5hz/P-3_20200131_%s_5Hz.nc' % lls)
-"""
