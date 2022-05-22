@@ -1,3 +1,10 @@
+Grouping ideas:
+	- cloud layer depth
+	- trade inversion strength (or lower tropo stability)
+	- LHF profile, TKE profile.
+
+Try gaussian white noise imputation. Time to start tightening up the QC.
+
 Migrate code / data from old ATOMIC directory to new one. Start organizing code 
 and directories, especially old code to get data within P3 cloud module time 
 intervals.
