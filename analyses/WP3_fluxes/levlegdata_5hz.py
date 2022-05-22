@@ -129,14 +129,14 @@ def process_5hz(wind_50hz, mr_5hz, iso_5hz, roll_1hz, t1, t2):
         time=wind_pro['time'], 
         method='nearest'
         )
-    c, xcor, n = xcorr.correlation(mriso_pro["q'"], wind_pro["w'"], 0, 35)
+    #c, xcor, n = xcorr.correlation(mriso_pro["q'"], wind_pro["w'"], 0, 35)
     #plt.plot(c/5, xcor, label='after shift')
     #plt.legend(fontsize=12)
     ##_________________________________________________________________________            
     ## Process water mixing ratio and isotope data
     
     
-    ## Aircraft roll QC
+    ## Aircraft roll
     ##_________________________________________________________________________            
     print("Processing roll data.")
 
@@ -268,7 +268,51 @@ def convert_time(dt64):
     """
     jan01_2020 = np.datetime64("2020-01-01")
     return (dt64 - jan01_2020).astype(float)/10**9
+
+
+
+def time_sync(ds1, ds2, k1, k2, fs=5, leadmax=0, lagmax=7):
+    """
+    Time shift variables in ds1 to ds2 using max cross-correlation.
     
+    Inputs
+    ------
+    ds1, ds2: xarray.Dataset's.
+        Each should have time as a dimension and the same sampling freqency.
+        
+    k1, k2: strs.
+        Keys for the variables in ds1 and ds2 to cross-correlate.
+        
+    fs: scalar.
+        Sampling frequency in Hz for ds1 and ds2.
+        
+    leadmax, lagmax: scalars.
+        Maximum lead and lag (seconds) time shift to consider.
+
+    Returns
+    -------
+    ds1: xarray.Dataset.
+        ds1 time shifted.
+        
+    xcormax, tshift: scalars
+        Value of maximum cross-correlation and corresponding time shift.
+
+    """
+    # Determine time shift using max cross-correlation:
+    c, xcor, n = xcorr.correlation(ds1[k1], ds2[k2], leadmax*fs, lagmax*fs)
+    imaxcor = np.argmax(xcor)
+    tshift = c[imaxcor]/fs
+    xcormax = xcor[imaxcor]
+    
+    # Apply shift and interpolate to ds2 time values:
+    ds1 = ds1.assign_coords(time=ds1['time']+tshift)  
+    ds1 = ds1.interp(
+        time=ds2['time'], 
+        method='nearest'
+        )
+    
+    return ds1, xcormax, tshift 
+
 
 
 
