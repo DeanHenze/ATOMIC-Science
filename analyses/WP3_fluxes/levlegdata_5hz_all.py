@@ -48,10 +48,12 @@ dir_tsync = "./other_data/"
 if not os.path.isdir(dir_tsync): os.makedirs(dir_tsync)
 
 
-# Store time synce results in these lists:
+# Store data for time synce results .csv file in these lists:
 xcormax_list = []
 tshift_list = []
 altleg_list = [] # mean altitude of the level leg.
+ncld = []
+nleg = []
 
 
 for i, row in time_levlegs.iterrows():
@@ -110,6 +112,8 @@ for i, row in time_levlegs.iterrows():
     xcormax_list.append(xcormax)
     tshift_list.append(tshift)
     altleg_list.append(data_proc['alt'].mean().values.item())
+    ncld.append(row['num_cld_iop'])
+    nleg.append(row['num_leg'])
     
     
     del wind, mr, iso, roll, data_proc
@@ -117,8 +121,7 @@ for i, row in time_levlegs.iterrows():
     
 # Save time sync results:
 tsync_results = pd.DataFrame({
-    'tshift': tshift_list, 
-    'xcormax': xcormax_list,
-    'alt_leg': altleg_list
+    'tshift': tshift_list, 'xcormax': xcormax_list,
+    'alt_leg': altleg_list, 'ncld': ncld, 'nleg': nleg 
     })
-tsync_results.to_csv(dir_tsync + "time_sync_wind-water.csv", index=False)
+tsync_results.to_csv(dir_tsync + "timesync_wind-water_results.csv", index=False)
