@@ -103,4 +103,3 @@ def correlation(ds1, ds2, cmax_plus, cmax_minus):
     # nan samples used in the corr calc for each shift:
     #print('\t# Completed correlation fxn.')
     return c, np.append(corrL,corrR), np.append(N_L,N_R)
-#______________________________________________________________________________
