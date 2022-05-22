@@ -32,11 +32,12 @@ import matplotlib.pyplot as plt
 
 # Local code:
 import xcorr
-import iso_fxns as isofxn
+import iso
 
 
 
-def process_5hz(wind_50hz, mr_5hz, iso_5hz, roll_1hz, t1, t2):
+def process_5hz(wind_50hz, mr_5hz, iso_5hz, roll_1hz, 
+                t1, t2, timesync_results=False):
     """ 
     Returns processed wind, water, and isotope ratio data at 5Hz, collected 
     into a single xarray dataset. Includes total values as well as 
@@ -58,9 +59,17 @@ def process_5hz(wind_50hz, mr_5hz, iso_5hz, roll_1hz, t1, t2):
     t1, t2: floats.
         Start and end times for segment to isolate.
         
+    timesync_results: bool.
+        If True, returns maximum cross correlation value and associate time 
+        shift from syncing the water / iso data to wind.
+        
     Returns
     -------
-    xarray.Dataset
+    data_merged: xarray.Dataset.
+        Combined and processed wind, water, and isotope data.
+        
+    xcormax, tshift (optional): scalars.
+        Returns these if timesync_results=True.
     """
     
     ## Process wind data
@@ -69,7 +78,6 @@ def process_5hz(wind_50hz, mr_5hz, iso_5hz, roll_1hz, t1, t2):
 
     windkeys_new = ["u", "v", "w", "T"]
     wind_pro = varsubset(
-        #wind_leg, t1, t2, # NEW LINE IN TESTING
         wind_50hz, t1, t2, 
         ["lon", "lat", "alt", "eastward_wind", 
          "northward_wind", "vertical_wind", "total_air_temperature"
@@ -96,7 +104,7 @@ def process_5hz(wind_50hz, mr_5hz, iso_5hz, roll_1hz, t1, t2):
     #mriso = mr_leg.merge(iso_leg, join='exact')    
 
     # Compute HDO mixing ratio 
-    mriso['qD'] = isofxn.qD_dD_convert('dD2qD', mriso['mmr'], mriso['dD'])
+    mriso['qD'] = iso.qD_dD_convert('dD2qD', mriso['mmr'], mriso['dD'])
 
     # Process the time dimension:
     tnew = [convert_time(dt64) for dt64 in mriso.time.values]
@@ -104,6 +112,7 @@ def process_5hz(wind_50hz, mr_5hz, iso_5hz, roll_1hz, t1, t2):
     interp_opts = {'bounds_error':None, 'fill_value':np.nan}
     mriso_pro = mriso_pro.interp(time=wind_pro['time'], method='nearest')
     
+    # Variable subset in the cloud leg interval:
     mriso_pro = varsubset(
         mriso_pro, t1, t2, 
         ["mmr","qD"], 
@@ -114,24 +123,11 @@ def process_5hz(wind_50hz, mr_5hz, iso_5hz, roll_1hz, t1, t2):
         ["q'","qD'"]
         )    
     
-    # Time shift:
-        # Determine time shift using max cross-correlation:
-    c, xcor, n = xcorr.correlation(mriso_pro["q'"], wind_pro["w'"], 0, 35)
-    tshift = c[np.argmax(xcor)]/5
-        # Verification plot        
-    #plt.figure(figsize=(6,5))
-    #plt.plot(c/5, xcor, label='before shift')
-    #plt.xlabel("Time lag q' wrt to w' (seconds)", fontsize=14)
-    #plt.ylabel("Cross-correlation", fontsize=14)
-        # Apply shift and realign with wind time:
-    mriso_pro = mriso_pro.assign_coords(time=mriso_pro['time']+tshift)  
-    mriso_pro = mriso_pro.interp(
-        time=wind_pro['time'], 
-        method='nearest'
+    # Time shift to wind data:       
+    mriso_pro, xcormax, tshift = time_sync(
+        mriso_pro, wind_pro, "q'", "w'", 
+        fs=5, leadmax=0, lagmax=7
         )
-    #c, xcor, n = xcorr.correlation(mriso_pro["q'"], wind_pro["w'"], 0, 35)
-    #plt.plot(c/5, xcor, label='after shift')
-    #plt.legend(fontsize=12)
     ##_________________________________________________________________________            
     ## Process water mixing ratio and isotope data
     
@@ -152,11 +148,15 @@ def process_5hz(wind_50hz, mr_5hz, iso_5hz, roll_1hz, t1, t2):
     ## Aircraft roll QC
     
     
-    #data_merged = wind_pro.merge(mriso_pro, join='exact')
+    ## Merge all datasets and return:
     data_merged = xr.merge([wind_pro, mriso_pro, roll_leg], join='exact')
         # Sometimes there are leading or lagging NANs in mriso from time alignment:
     data_merged = data_merged.dropna(dim='time', how='any')
-    return data_merged
+    
+    if timesync_results:
+        return data_merged, xcormax, tshift
+    else:
+        return data_merged
 
 
 
