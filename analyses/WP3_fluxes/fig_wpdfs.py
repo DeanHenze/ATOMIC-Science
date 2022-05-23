@@ -38,7 +38,7 @@ keyalts_table = pd.read_csv("../WP3_cloudmodule_char/cldmod_keyaltitudes.csv")
 keyalts_ncld = keyalts_table.loc[keyalts_table['ncld']==ncld]
 
 n_figrows = int(np.ceil(len(fnames_levlegs_ncld)/3))
-fig, axes = plt.subplots(n_figrows, 3)
+fig, axes = plt.subplots(n_figrows, 3, figsize=(12,8))
 
 for f, ax in zip(fnames_levlegs_ncld, axes.flatten()):
     
