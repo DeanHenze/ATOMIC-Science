@@ -99,22 +99,27 @@ def cld_single(flightlev, iso, remote, date, ncld, t1_cld, t2_cld, tab_hlegs):
     tab_hlegs: pandas.DataFrame
     """
 
-    ## The remote products dataset in not 1 Hz so fix this:
-    t_rem = remote['time'].values
-    tref_1Hz = np.arange(t_rem[0], t_rem[-1], 
-                         dtype='datetime64[s]') # Reference time array @ 1 Hz.
-    remote_fixed = remote.interp(time=tref_1Hz, method='nearest')
+    ## Ensure that each dataset is 1Hz with timestamps at whole seconds:
+    def time1hz(ds):
+        tref_1Hz = np.arange(   # Reference time array @ 1 Hz.
+            ds['time'][0].values, ds['time'][-1].values, 
+            dtype='datetime64[s]'
+            ) 
+        return ds.interp(time=tref_1Hz, method='nearest')
+    flightlev1hz = time1hz(flightlev)       
+    iso1hz = time1hz(iso)       
+    remote1hz = time1hz(remote)       
 
     
-    ## Merge all datasets:
+    ## Merge datasets and pick out data within cloud module time interval:
     cld = xr.merge(
         [
-            iso[['mr', 'dD', 'rh', 'lat', 'lon', 'alt']], 
-            flightlev[['Ta', 'press', 'wvel', 'RH']], 
-            remote_fixed[['alt_CT', 'SST_IR_est']]
+            iso1hz[['mr', 'dD', 'rh', 'lat', 'lon', 'alt']], 
+            flightlev1hz[['Ta', 'press', 'wvel', 'RH']], 
+            remote1hz[['alt_CT', 'SST_IR_est']]
             ], 
         join='left'
-        )           
+        )          
     cld = cld.sel(time = slice(t1_cld, t2_cld))
     
     
