@@ -45,15 +45,19 @@ def create_dropsondefiles(path_drpsnds, path_cldmodtable, dirpath_save):
         date = row['flight_date']
         ncld = row['num_cld_iop']
         
-        dropsnds_cld = dropsnds_cld_single(
+        drpsnds_cld = dropsnds_cld_single(
             drpsnds, date, 
             row['start_datetime'], row['end_datetime'], 
             )
         
+        # One bad sounding to watch for in cloud module #8:
+        if ncld==8:
+            drpsnds_cld = drpsnds_cld.where(drpsnds_cld['sounding']!=950, drop=True)
+        
         # Save:
         ncld_str = str(int(ncld)).zfill(2)
         fname = "/p3cld_dropsondes_%i_ncld%s.nc" % tuple([date, ncld_str])
-        dropsnds_cld.to_netcdf(dirpath_save + fname)
+        drpsnds_cld.to_netcdf(dirpath_save + fname)
     
   
 
@@ -107,9 +111,10 @@ if __name__=="__main__":
     dropsonde files.
     """
     
-    path_drpsnds = ("../../data/sondes/EUREC4A_JOANNE_Dropsonde-RD41_"
-                    "Level_3_v0.7.0+2.g4a878b3.dirty.nc"
-                    )
+    path_drpsnds = ("../../data/sondes/henze_dropsondes_lev3.nc")
+    #path_drpsnds = ("../../data/sondes/EUREC4A_JOANNE_Dropsonde-RD41_"
+    #                "Level_3_v0.7.0+2.g4a878b3.dirty.nc"
+    #                )
     path_cldmodtable = "./p3_cloudmodules.csv"
     dirpath_save = "./cldmod_datafiles/"
     if not os.path.isdir(dirpath_save):
