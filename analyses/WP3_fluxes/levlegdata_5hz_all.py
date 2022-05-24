@@ -103,8 +103,9 @@ for i, row in time_levlegs.iterrows():
     #                    )
     
     # Save processed data as new file:
-    data_proc.to_netcdf(dir_5hzfiles + "WP3_5hz_%s_cld%i_levleg%i.nc"
-                        % tuple([date, row['num_cld_iop'], row['num_leg']])
+    ncld_str = str(int(row['num_cld_iop'])).zfill(2)
+    data_proc.to_netcdf(dir_5hzfiles + "WP3_5hz_%s_cld%s_levleg%i.nc"
+                        % tuple([date, ncld_str, row['num_leg']])
                         )
     
     

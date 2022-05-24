@@ -64,7 +64,7 @@ def get_fluxprofiles(ncld_list, keyalts_table, dir_flux, scale_altitude=False):
         keyalts = keyalts_table.loc[n]
         
         # Load flux data:
-        fname_flux = [f for f in fnames_flux if "_cld%i_" % n in f]
+        fname_flux = [f for f in fnames_flux if "_cld%s_" % str(n).zfill(2) in f]
         if len(fname_flux) == 0: continue
         fname_flux = fname_flux[0]        
         fluxes = xr.load_dataset(dir_flux + fname_flux)
@@ -74,7 +74,7 @@ def get_fluxprofiles(ncld_list, keyalts_table, dir_flux, scale_altitude=False):
         if scale_altitude:
             alt = rangescaler.piecewise_linscale(
                 fluxes['alt'].values, 
-                (0, keyalts['z_mltop'], keyalts['z_tradeinversion']), 
+                (0, keyalts['z_mltop'], keyalts['z_tib']), 
                 #(0, keyalts['z_lcl'], keyalts['z_tradeinversion']), 
                 (0,1,2)
                 )
@@ -145,7 +145,7 @@ def plot_fluxprofiles(fluxprfs_dict, varkeysplot, axset,
 ## Plot P-3 flux profiles for wind components and TKE.
 ##_____________________________________________________________________________
 keyalts_table = pd.read_csv("../WP3_cloudmodule_char/cldmod_keyaltitudes.csv")
-ncld_group1 = [6,7,9,10,11]
+ncld_group1 = [1,6,7,9,10,11]
 ncld_group2 = [4,5,8,13]
 fluxprfs_g1 = get_fluxprofiles(ncld_group1, keyalts_table, dir_flux, scale_altitude=True)
 fluxprfs_g2 = get_fluxprofiles(ncld_group2, keyalts_table, dir_flux, scale_altitude=True)
@@ -242,7 +242,7 @@ fig_scalar.savefig("./fig_fluxprofiles_scalarvars.png")
 ## Plot P-3 flux profiles for wind components and TKE.
 ##_____________________________________________________________________________
 #ncld_list = [2,3,16]
-ncld_list = [2,3]
+ncld_list = [2,3,14,15]
 flux_prfs = get_fluxprofiles(ncld_list, keyalts_table, dir_flux)
 
 fig3, axes3 = plt.subplots(1, 4, figsize=(10, 5))
