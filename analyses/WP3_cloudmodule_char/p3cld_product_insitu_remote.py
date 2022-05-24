@@ -81,7 +81,7 @@ def create_files(path_flightlev_dir, path_iso_dir, path_remote_dir,
 
         # Save:
         ncld_str = str(int(ncld)).zfill(2)
-        fname = r"p3cld_insitu+remote_%i_%s.nc" % tuple([date, ncld_str])
+        fname = r"p3cld_insitu+remote_%i_ncld%s.nc" % tuple([date, ncld_str])
         insituremote_cld.to_netcdf(dirpath_save + fname)
         
         
