@@ -10,6 +10,10 @@ Created on Mon May 23 14:35:59 2022
     - trade inversion top and bottom
     - cloud top height
     
+Saves figure to working directory.
+
+To do
+------
 Also include plot of symbols denoting a few qualitative regimes - e.g. weak 
 trade inversion, multiple inversions, etc.
 """
@@ -69,6 +73,7 @@ legend_elements = [
 ax.legend(handles=legend_elements, loc='lower right', fontsize=9, ncol=5)
 
 
+fig.savefig("./fig_cloudmod_keyalts.png")
 
 
 
