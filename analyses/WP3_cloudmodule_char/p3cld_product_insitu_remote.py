@@ -4,18 +4,21 @@ Created on Wed Feb 16 10:53:38 2022
 
 @author: Dean
 
-In-situ data product for the P-3 cloud modules.
+
+Data product for the P-3 cloud modules which includes select variables from 
+the in-situ and remote sensing instruments. Saves one file per cloud module.
+Variables include:
+    - time, lat, lon, altitude
+    - temperature, pressure, water mass mixing ratio, relative humidity
+    - vertical velocity
+    - isotope ratio dD
+    - cloud top height
+    - SST
 
 
-Current status: 
-Only the iso the flightlevel datasets are merged currently.
-The iso the flightlevel datasets have compatible time 
-dimensions. The remote dataset is not at 1 Hz frequency (> 1 Hz?). The 
-microphysics dataset is only for a subset of the flights.
-
-###############
-Add as attribute 'platform' = which dataset I got each variable from
-#################
+Last things to do:
+-----------------
+Add as attribute 'platform' = which dataset I got each variable from.
 """
 
 
@@ -53,7 +56,7 @@ def create_files(path_flightlev_dir, path_iso_dir, path_remote_dir,
     tab_hlegs = pd.read_csv(path_hlegstable)
     
     
-    for i, row in tab_cldmod.iterrows():
+    for i, row in tab_cldmod.iterrows(): # create a save file for 1 module.
         print(row['flight_date'])
         
         date = row['flight_date']
@@ -74,43 +77,27 @@ def create_files(path_flightlev_dir, path_iso_dir, path_remote_dir,
             date, ncld, row['start_datetime'], row['end_datetime'], 
             tab_hlegs
             )
-            
-            #drpsnds, date, 
-            #row['start_datetime'], row['end_datetime'], 
-            #)
-        
+
+
         # Save:
         ncld_str = str(int(ncld)).zfill(2)
         fname = r"p3cld_insitu+remote_%i_%s.nc" % tuple([date, ncld_str])
         insituremote_cld.to_netcdf(dirpath_save + fname)
         
         
-        verification_plot(insituremote_cld)
-        #fname = "/p3cld_dropsondes_%i_ncld%s.nc" % tuple([date, ncld_str])
-        #insituremote_cld.to_netcdf(dirpath_save + fname)
-        
+        #verification_plot(insituremote_cld)
+
         
 
 def cld_single(flightlev, iso, remote, date, ncld, t1_cld, t2_cld, tab_hlegs):
     """
+    Returns singel xarray.Dataset of combined in-situ and remote variables.
+    
     date: int
     ncld: scalar. Cloud module number for entire IOP.
     t1_cld, t2_cld: Timestamps
     tab_hlegs: pandas.DataFrame
     """
-    
-    ## Load P-3 datasets for the flight date:
-    #mphys = adl.p3_microphys(date) # Microphysics
-    #path_flightlev = ("../../data/WP3/flight_level_1Hz/"
-    #                  "EUREC4A_ATOMIC_P3_Flight-level_%i_v1.0.nc" % date)
-    #flightlev = xr.load_dataset(path_flightlev) # Flight level data (T, P, etc.)
-    #path_iso = ("../../data/WP3/water_iso_1Hz/"
-    #            "EUREC4A_ATOMIC_P3_IsotopeAnalyzer_%i_v0.0.nc" % date)
-    #iso = xr.load_dataset(path_iso) # Isotope ratios
-    #path_remote = ("../../data/WP3/remote_sensing/"
-    #               "EUREC4A_ATOMIC_P3_Remote-sensing_%i_v1.1.nc" % date)
-    #remote = xr.load_dataset(path_remote) # Remote sensing products.
-
 
     ## The remote products dataset in not 1 Hz so fix this:
     t_rem = remote['time'].values
@@ -119,6 +106,7 @@ def cld_single(flightlev, iso, remote, date, ncld, t1_cld, t2_cld, tab_hlegs):
     remote_fixed = remote.interp(time=tref_1Hz, method='nearest')
 
     
+    ## Merge all datasets:
     cld = xr.merge(
         [
             iso[['mr', 'dD', 'rh', 'lat', 'lon', 'alt']], 
@@ -190,44 +178,10 @@ def verification_plot(cld):
    
 
 
-###############################################################################
-# Remainder of script creates a separate data file for each cloud module.
-###############################################################################
-"""
-# Load cloud module info tables:
-tab_cld = pd.read_csv('p3_cloudmodules.csv')
-tab_hlegs = pd.read_csv('p3_cloudmodule_legs.csv')
-
-for i, row in tab_cld.iterrows():
-    print(row['flight_date'])
-    
-    date = row['flight_date']
-    ncld = row['num_cld_iop']
-    
-    data_cld = cld_single(
-        date, ncld, 
-        row['start_datetime'], row['end_datetime'], 
-        tab_hlegs # Needed for the level leg flag.
-        )
-    
-    # Add cloud classification as a dataset attribute:
-    data_cld.attrs['cloud_type'] = row['cloud_type']
-    
-    # Save:
-    ncld_str = str(int(ncld)).zfill(2)
-    fname = r"./cldmod_datafiles/p3cld_insitu+remote_%i_%s.nc" % tuple([date, ncld_str])
-    data_cld.to_netcdf(fname)
-    
-    #fig = verification_plot(data_cld)
-    #fig.savefig(r"../scratch/levleg_altcheck_%i_%s_v2.png" % tuple([date, ncld_int]))
-"""
-
-
-
 if __name__=="__main__":
     """
     Specify paths / directories and call fxn's to get all cloud module 
-    dropsonde files.
+    in-situ + remote sensing files.
     """
     
     # P-3 data file directory paths:
