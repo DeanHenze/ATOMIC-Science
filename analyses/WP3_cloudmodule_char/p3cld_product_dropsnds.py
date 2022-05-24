@@ -26,10 +26,10 @@ def create_dropsondefiles(path_drpsnds, path_cldmodtable, dirpath_save):
     Inputs
     -------
     path_drpsnds: str/path.
-        Path (rel or abs) to table of P-3 cloud module times (.csv file).
-    
-    path_cldmodtable: str/path.
         Path (rel or abs) to dropsondes .nc file.
+        
+    path_cldmodtable: str/path.
+        Path (rel or abs) to table of P-3 cloud module times (.csv file).
 
     dirpath_save: str/path.
         Path (rel or abs) to directory in which to save output.
