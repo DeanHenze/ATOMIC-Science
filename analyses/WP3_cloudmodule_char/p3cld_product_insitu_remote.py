@@ -21,7 +21,7 @@ Add as attribute 'platform' = which dataset I got each variable from
 
 
 # Built in:
-import sys, os
+import os
 
 # Third party:
 import numpy as np
@@ -29,13 +29,69 @@ import pandas as pd
 import xarray as xr
 import matplotlib.pyplot as plt
 
-# My modules:
-#if r'../../' not in sys.path: sys.path.insert(0,r'../../')
-#from henze_python_modules import atomic_data_loader as adl
 
 
+def create_files(path_flightlev_dir, path_iso_dir, path_remote_dir, 
+                 path_cldmodtable, path_hlegstable, dirpath_save):
+    """
+    Create a separate data file for each cloud module.
+    
+    Inputs
+    -------
+    path_drpsnds: str/path.
+        Path (rel or abs) to table of P-3 cloud module times (.csv file).
+    
+    path_cldmodtable: str/path.
+        Path (rel or abs) to dropsondes .nc file.
 
-def cld_single(date, ncld, t1_cld, t2_cld, tab_hlegs):
+    dirpath_save: str/path.
+        Path (rel or abs) to directory in which to save output.
+    """
+        
+    # Load cloud module table and dropsonde dataset:
+    tab_cldmod = table_cldmodules(path_cldmodtable, datetime_type=True)
+    tab_hlegs = pd.read_csv(path_hlegstable)
+    
+    
+    for i, row in tab_cldmod.iterrows():
+        print(row['flight_date'])
+        
+        date = row['flight_date']
+        ncld = row['num_cld_iop']
+        
+        
+        # Load P-3 data sets:
+        fname_flightlev = "EUREC4A_ATOMIC_P3_Flight-level_%i_v1.0.nc" % date
+        flightlev = xr.load_dataset(path_flightlev_dir + fname_flightlev)
+        fname_iso = "EUREC4A_ATOMIC_P3_IsotopeAnalyzer_%i_v0.0.nc" % date
+        iso = xr.load_dataset(path_iso_dir + fname_iso)
+        fname_remote = "EUREC4A_ATOMIC_P3_Remote-sensing_%i_v1.1.nc" % date
+        remote = xr.load_dataset(path_remote_dir + fname_remote)
+
+
+        insituremote_cld = cld_single(
+            flightlev, iso, remote, 
+            date, ncld, row['start_datetime'], row['end_datetime'], 
+            tab_hlegs
+            )
+            
+            #drpsnds, date, 
+            #row['start_datetime'], row['end_datetime'], 
+            #)
+        
+        # Save:
+        ncld_str = str(int(ncld)).zfill(2)
+        fname = r"p3cld_insitu+remote_%i_%s.nc" % tuple([date, ncld_str])
+        insituremote_cld.to_netcdf(dirpath_save + fname)
+        
+        
+        verification_plot(insituremote_cld)
+        #fname = "/p3cld_dropsondes_%i_ncld%s.nc" % tuple([date, ncld_str])
+        #insituremote_cld.to_netcdf(dirpath_save + fname)
+        
+        
+
+def cld_single(flightlev, iso, remote, date, ncld, t1_cld, t2_cld, tab_hlegs):
     """
     date: int
     ncld: scalar. Cloud module number for entire IOP.
@@ -45,20 +101,15 @@ def cld_single(date, ncld, t1_cld, t2_cld, tab_hlegs):
     
     ## Load P-3 datasets for the flight date:
     #mphys = adl.p3_microphys(date) # Microphysics
-    path_flightlev = ("../../data/WP3/flight_level_1Hz/"
-                      "EUREC4A_ATOMIC_P3_Flight-level_%i_v1.0.nc" % date)
-    flightlev = xr.load_dataset(path_flightlev) # Flight level data (T, P, etc.)
-    path_iso = ("../../data/WP3/water_iso_1Hz/"
-                "EUREC4A_ATOMIC_P3_IsotopeAnalyzer_%i_v0.0.nc" % date)
-    iso = xr.load_dataset(path_iso) # Isotope ratios
-    path_remote = ("../../data/WP3/remote_sensing/"
-                   "EUREC4A_ATOMIC_P3_Remote-sensing_%i_v1.1.nc" % date)
-    remote = xr.load_dataset(path_remote) # Remote sensing products.
-
-    
-    #iso = adl.wp3_iso(date) # Isotope ratios
-    #flightlev = adl.wp3_flight_level(date) # Flight level data (T, P, etc.)
-    #remote = adl.p3_remote_sensing_products(date) # Remote sensor products
+    #path_flightlev = ("../../data/WP3/flight_level_1Hz/"
+    #                  "EUREC4A_ATOMIC_P3_Flight-level_%i_v1.0.nc" % date)
+    #flightlev = xr.load_dataset(path_flightlev) # Flight level data (T, P, etc.)
+    #path_iso = ("../../data/WP3/water_iso_1Hz/"
+    #            "EUREC4A_ATOMIC_P3_IsotopeAnalyzer_%i_v0.0.nc" % date)
+    #iso = xr.load_dataset(path_iso) # Isotope ratios
+    #path_remote = ("../../data/WP3/remote_sensing/"
+    #               "EUREC4A_ATOMIC_P3_Remote-sensing_%i_v1.1.nc" % date)
+    #remote = xr.load_dataset(path_remote) # Remote sensing products.
 
 
     ## The remote products dataset in not 1 Hz so fix this:
@@ -107,6 +158,24 @@ def cld_single(date, ncld, t1_cld, t2_cld, tab_hlegs):
 
 
 
+def table_cldmodules(path_cldmodtable, datetime_type=True):
+    """
+    Returns .csv file of P-3 cloud module time interval data.
+    
+    datetime_type: bool.
+        Default = True, in which case all datetime columns are converted to 
+        datetime-type.
+    """
+    cldmods = pd.read_csv(path_cldmodtable)
+    
+    if datetime_type:
+        dtimekeys = ['start_datetime', 'end_datetime']
+        cldmods[dtimekeys] = cldmods[dtimekeys].apply(pd.to_datetime)
+    
+    return cldmods
+
+
+
 def verification_plot(cld):
     """
     cld: xarray.Dataset
@@ -124,7 +193,7 @@ def verification_plot(cld):
 ###############################################################################
 # Remainder of script creates a separate data file for each cloud module.
 ###############################################################################
-
+"""
 # Load cloud module info tables:
 tab_cld = pd.read_csv('p3_cloudmodules.csv')
 tab_hlegs = pd.read_csv('p3_cloudmodule_legs.csv')
@@ -151,23 +220,30 @@ for i, row in tab_cld.iterrows():
     
     #fig = verification_plot(data_cld)
     #fig.savefig(r"../scratch/levleg_altcheck_%i_%s_v2.png" % tuple([date, ncld_int]))
+"""
 
 
 
-
-#if __name__=="__main__":
-#    """
-#    Specify paths / directories and call fxn's to get all cloud module 
-#    dropsonde files.
-#    """
-#    
-#    path_flightlev = ("../../data/WP3/flight_level_1Hz"
-#                      )
-#    path_cldmodtable = "./p3_cloudmodules.csv"
-#    dirpath_save = "./cldmod_datafiles/"
-#    if not os.path.isdir(dirpath_save):
-#        os.mkdir(dirpath_save)
-#    
-#    create_dropsondefiles(path_drpsnds, path_cldmodtable, dirpath_save)
+if __name__=="__main__":
+    """
+    Specify paths / directories and call fxn's to get all cloud module 
+    dropsonde files.
+    """
+    
+    # P-3 data file directory paths:
+    path_flightlev_dir = ("../../data/WP3/flight_level_1Hz/")
+    path_iso_dir = ("../../data/WP3/water_iso_1Hz/")
+    path_remote_dir = ("../../data/WP3/remote_sensing/")
+    
+    # P-3 cloud module table paths:
+    path_cldmodtable = "./p3_cloudmodules.csv"
+    path_hlegstable = "./p3_cloudmodule_legs.csv"
+    
+    dirpath_save = "./cldmod_datafiles/"
+    if not os.path.isdir(dirpath_save):
+        os.mkdir(dirpath_save)
+    
+    create_files(path_flightlev_dir, path_iso_dir, path_remote_dir, 
+                 path_cldmodtable, path_hlegstable, dirpath_save)
 
 
