@@ -24,8 +24,8 @@ import thermo
 
 def cldtop_single(p3data):
     """
-    Returns estimation of cloud top height for passed xarray.dataset with 
-    cloud top key "alt_CT". Cloud top height is estimated as mean of data 
+    Returns estimation of cloud top height (meters) for passed xarray.dataset 
+    with cloud top key "alt_CT". Cloud top height is estimated as mean of data 
     greater than the 3rd quartile.
     """
     
@@ -39,27 +39,41 @@ def cldtop_single(p3data):
     q3 = np.quantile(p3datatop["alt_CT"].dropna(dim='time'), 0.75)
     ct_overq3 = p3datatop["alt_CT"] >= q3
     
-    return p3datatop["alt_CT"].where(ct_overq3).mean().values.item()
+    return p3datatop["alt_CT"].where(ct_overq3).mean().item()*1000 # convert to km.
 
 
 
-ctops = []
-tab_cld = pd.read_csv("./cldmod_keyaltitudes.csv")
-dir_p3clddata = "./cldmod_datafiles/"
-fnames_insitueremote = [f for f in os.listdir(dir_p3clddata)
-                        if "_insitu+remote_" in f
-                        ]
-for i, row in tab_cld.iterrows():
+if __name__=="__main__":
+    """
+    Cloud top heights computed and appended to key altitudes table.
+    """
     
-    ncld = str(int(row['ncld'])).zfill(2)
-
-    # Find P-3 insitue + remote datafile name (should only be one) and load:
-    f = [f for f in fnames_insitueremote if "_ncld%s" % ncld in f]
-    if len(f)==0: continue
-    #fname_insituremote = "p3cld_insitu+remote_%i_ncld%s.nc" % tuple([date, ncld])
-    p3data = xr.load_dataset(dir_p3clddata + f[0])
+    # Cloud module key altitudes table:
+    path_cldtab = "./cldmod_keyaltitudes.csv"
+    tab_cld = pd.read_csv(path_cldtab)
     
-    ctops.append(cldtop_single(p3data))
+    # P-3 filenames for insitu+remote:
+    dir_p3clddata = "./cldmod_datafiles/"
+    fnames_insitueremote = [f for f in os.listdir(dir_p3clddata)
+                            if "_insitu+remote_" in f
+                            ]
+    
+    # Get cloud top heights:
+    ctops = []
+    for i, row in tab_cld.iterrows():
+        
+        ncld = str(int(row['ncld'])).zfill(2)
+    
+        # Find P-3 insitue + remote datafile name (should only be one) and load:
+        f = [f for f in fnames_insitueremote if "_ncld%s" % ncld in f]
+        if len(f)==0: continue
+        p3data = xr.load_dataset(dir_p3clddata + f[0])
+        
+        ctops.append(cldtop_single(p3data))
+        
+    # Append as new column and save:
+    tab_cld['z_ct'] = np.round(ctops)
+    tab_cld.to_csv(path_cldtab)
 
 
 
