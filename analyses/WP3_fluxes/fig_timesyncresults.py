@@ -23,8 +23,8 @@ data = tsyncresults.merge(keyalts_table, on='ncld', how='left')
 #       1) Trade inversion idenifiable and leg is below it.
 #       2) Trade inversion idenifiable and leg is above it.
 #       3) Trade inversion is not idenifiable.
-below_invbottom = data['alt_leg'] < data['z_tradeinversion']
-invbottom_exists = data['z_tradeinversion'].notnull()
+below_invbottom = data['alt_leg'] < data['z_tib']
+invbottom_exists = data['z_tib'].notnull()
 
 data_c1 = data.loc[below_invbottom & invbottom_exists]
 
