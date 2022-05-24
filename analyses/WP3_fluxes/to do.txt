@@ -1,7 +1,18 @@
+Maybe post on mattermost see what literature there is for flux profiles.
+
+Time series plot comparing: LCL, trade inv. bottom, trade inv. depth, cloud top 
+mean, and cloud top highest quartile. Also include table / plot of symbols 
+denoting a few qualitative regimes - e.g. weak trade inversion, 
+multiple inversions, etc.
+
+Get: trade inversion top, inversion strength, lower tropo stability, water gradient accross 
+trade inversion
+
 Grouping ideas:
 	- cloud layer depth
 	- trade inversion strength (or lower tropo stability)
 	- LHF profile, TKE profile.
+	- Moisture above trade inversion
 
 Try gaussian white noise imputation. Time to start tightening up the QC.
 
