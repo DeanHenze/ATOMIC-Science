@@ -1,3 +1,13 @@
+Carol-Ann, Hyodae Seo (WHOI) hseo@whoi.edu
+
+Try scaling altitude for flux profiles in two ways:
+	- by inversion bottom
+	- by cloud top height
+
+Plot / table showing cloud modules time of day.
+
+My time interval for top leg of ncld04 may have been cut short. Redo.
+
 Maybe post on mattermost see what literature there is for flux profiles.
 
 Time series plot comparing: LCL, trade inv. bottom, trade inv. depth, cloud top 
