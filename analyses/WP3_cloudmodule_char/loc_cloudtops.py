@@ -36,16 +36,22 @@ def cldtop_single(p3data):
     #    p3datatop = p3data.where(p3data['levlegflag']==(nlegtop-1), drop=True)
 
     # Mean cloud top:
-    q3 = np.quantile(p3datatop["alt_CT"].dropna(dim='time'), 0.75)
-    ct_overq3 = p3datatop["alt_CT"] >= q3
+    q_50p = np.quantile(p3datatop["alt_CT"].dropna(dim='time'), 0.50)
+    q_95p = np.quantile(p3datatop["alt_CT"].dropna(dim='time'), 0.95)
+    ct_over50p = p3datatop["alt_CT"] >= q_50p
+    ct_under95p = p3datatop["alt_CT"] <= q_95p
     
-    return p3datatop["alt_CT"].where(ct_overq3).mean().item()*1000 # convert to km.
+    ctmean = p3datatop["alt_CT"].where(ct_over50p & ct_under95p).mean().item()
+    return q_50p*1000, q_95p*1000, ctmean*1000 # convert all values to km.
 
 
 
 if __name__=="__main__":
     """
     Cloud top heights computed and appended to key altitudes table.
+    
+    Three quantites computed: cloud top 50th percentile, 95th percentile, 
+    and mean of data in this percentile range.
     """
     
     # Cloud module key altitudes table:
@@ -58,21 +64,29 @@ if __name__=="__main__":
                             if "_insitu+remote_" in f
                             ]
     
-    # Get cloud top heights:
-    ctops = []
+    # Get cloud top height percentiles and means:
+    ct_50p = []
+    ct_95p = []
+    ctmean = [] # Mean of the 50th - 95th percentile of cloud tops.
     for i, row in tab_cld.iterrows():
         
         ncld = str(int(row['ncld'])).zfill(2)
+        print("Working on cloud module %s" % ncld)
     
         # Find P-3 insitue + remote datafile name (should only be one) and load:
         f = [f for f in fnames_insitueremote if "_ncld%s" % ncld in f]
         if len(f)==0: continue
         p3data = xr.load_dataset(dir_p3clddata + f[0])
         
-        ctops.append(cldtop_single(p3data))
+        ctresults = cldtop_single(p3data)
+        ct_50p.append(ctresults[0])
+        ct_95p.append(ctresults[1])
+        ctmean.append(ctresults[2])
         
-    # Append as new column and save:
-    tab_cld['z_ct'] = np.round(ctops)
+    # Append as new columns and save:
+    tab_cld['z_ct50p'] = np.round(ct_50p)
+    tab_cld['z_ct95p'] = np.round(ct_95p)
+    tab_cld['z_ctmean_50p100p'] = np.round(ctmean)
     tab_cld.to_csv(path_cldtab)
 
 
