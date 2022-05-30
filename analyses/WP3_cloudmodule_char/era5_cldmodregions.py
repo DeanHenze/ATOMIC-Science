@@ -80,7 +80,7 @@ if __name__=="__main__":
     
     createfiles(
         path_era5dir, path_cldmodtab, path_savedir,
-        dlat=2, dlon=2, dt=3.1
+        dlat=2, dlon=2, dt=1.5
         )
 
 
