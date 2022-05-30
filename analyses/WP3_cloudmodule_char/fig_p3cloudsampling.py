@@ -27,6 +27,7 @@ ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], projection=ccrs.PlateCarree())
 ax.coastlines()
 ax.set_xlim()
 ax.set_extent([-61, -48, 7.5, 18], crs=None)
+ax.gridlines(draw_labels=True, dms=True, x_inline=False, y_inline=False)
 
 
 # Plot P-3 cloud module locations:
@@ -46,7 +47,7 @@ for ncld in ncld_list:
     ax.scatter(p3mean['lon'], p3mean['lat'], marker='^', color='black')
     
     
-    
+"""   
 # Plot mean surface winds during P-3 sampling period:
 path_era5dir = "../../data/reanalysis/ECMWF_ERA5/"
 
@@ -55,10 +56,10 @@ p3daterange = [dt.strftime('%Y%m%d') for dt in p3daterange]
 for date in p3daterange:
     fname_era5 = "ECMWF_ERA5_plevs_hourly_ATOMIC-region_%i.nc" % date
     era5 = xr.load_dataset(path_era5dir + fname_era5)
+"""
 
 
-
-
+fig.savefig("./fig_p3samplingmap.png")
 
 
 
