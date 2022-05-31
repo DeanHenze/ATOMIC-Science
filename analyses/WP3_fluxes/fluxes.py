@@ -58,7 +58,7 @@ for n in ncldmod_unique:
     fluxkeys = ["%s_bar" % k for k in covarkeys]
     fluxes = dict(zip(fluxkeys, [[] for e in fluxkeys]))
     frac_imputed = [] # Fraction of imputed data points for each leg.
-    addvar_keys = ['T_mean', 'P_mean', 'reftime'] # Additional variables
+    addvar_keys = ['T_mean', 'P_mean', 'q_mean', 'reftime'] # Additional variables
     addvars = dict(zip(addvar_keys, [[] for e in addvar_keys]))
     coord_keys = ['n_levleg', 'alt_mean'] # Coordinates for the xr.Dataset
     coords = dict(zip(coord_keys, [[] for e in coord_keys]))
@@ -121,7 +121,8 @@ for n in ncldmod_unique:
         )
     buoyflx = thermo_deSzoeke.buoyancy_flux(
         flux_ds['flux_sh'], flux_ds['flux_lh'], 
-        T=25.0, p=1.0e5, q=0
+        T=flux_ds["T_mean"]-thermo_deSzoeke.CtoK, p=flux_ds["P_mean"]*100, 
+        q=flux_ds["q_mean"]/1000
         )
     flux_ds['flux_b'] = buoyflx[0]
     

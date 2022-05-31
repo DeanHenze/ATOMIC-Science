@@ -121,6 +121,7 @@ if __name__=="__main__":
         alt_mean = data['alt'].mean().round(decimals=0).values
         T_mean = data['T'].mean().round(decimals=0).values 
         P_mean = thermo.P_est(alt_mean/1000)
+        q_mean = data['q'].mean().round(decimals=3).values
         reftime = data['time'].mean().values
         
         
@@ -133,8 +134,8 @@ if __name__=="__main__":
         cospec_xr = cospec_xr.assign_coords({'n_levleg':n_levleg})
         
             # Vars:
-        addvar_keys = ['alt_mean', 'T_mean', 'P_mean', 'reftime']
-        addvars = [alt_mean, T_mean, P_mean, reftime]
+        addvar_keys = ['alt_mean', 'T_mean', 'P_mean', 'q_mean', 'reftime']
+        addvars = [alt_mean, T_mean, P_mean, q_mean, reftime]
         for k, v in zip(addvar_keys, addvars):
             da = xr.DataArray(
                 data=[v],
