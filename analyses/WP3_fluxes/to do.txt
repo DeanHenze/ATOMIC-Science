@@ -1,3 +1,15 @@
+Control idea for high turbulence near inversion base: horizontal level leg around 
+1500 m that isn't part of a cloud module and had clear skies.
+
+Try ordering cloud key altitudes plot by something. Then in the background can 
+have an e.g. theta contour plot. How do theta contours with height change for 
+cloud modules ordered on the x-axis?
+
+Group synoptic states using a clustering algorithm? Or nodal analysis? 
+
+Can get cloud classifications and figures for P-3 from the really nice tools Hauke 
+shared. See references folder, 'cloud_classification_references.txt'.
+
 Carol-Ann, Hyodae Seo (WHOI) hseo@whoi.edu
 
 Try scaling altitude for flux profiles in two ways:
