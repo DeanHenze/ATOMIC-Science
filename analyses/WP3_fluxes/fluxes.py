@@ -21,6 +21,7 @@ from scipy.integrate import trapz
 
 # Local code
 import thermo
+import thermo_deSzoeke
 import iso
 
 
@@ -69,12 +70,7 @@ for n in ncldmod_unique:
         
         # Fluxes from integral of power spectra:
         for vk, fk in zip(covarkeys, fluxkeys):
-            flux_vk = trapz(wcospec[vk], x=wcospec['freq'])            
-            # Correct for imputed data points before appending:
-            #N_tot = wcospec.attrs['Ntot_ts']
-            #N_imputed = wcospec.attrs['Nimputed_ts']
-            #flux_vk = flux_vk*(N_tot/(N_tot-N_imputed))
-            
+            flux_vk = trapz(wcospec[vk], x=wcospec['freq'])                        
             fluxes[fk].append(flux_vk)
 
         # Additional vars:
