@@ -87,7 +87,7 @@ if __name__=="__main__":
     tab_cld['z_ct50p'] = np.round(ct_50p)
     tab_cld['z_ct95p'] = np.round(ct_95p)
     tab_cld['z_ctmean_50p95p'] = np.round(ctmean)
-    tab_cld.to_csv(path_cldtab)
+    tab_cld.to_csv(path_cldtab, index=False)
 
 
 
