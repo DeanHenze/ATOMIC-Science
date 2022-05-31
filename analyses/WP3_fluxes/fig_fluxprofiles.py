@@ -190,11 +190,12 @@ def plot_RHBmeanfluxes(path_rhbflux, ax_sh, ax_lh):
         marker='o', markersize=5, markerfacecolor='red', ecolor='red'
         )
 
+
+
 ## Plot P-3 flux profiles for wind components and TKE.
 ##_____________________________________________________________________________
 keyalts_table = pd.read_csv("../WP3_cloudmodule_char/cldmod_keyaltitudes.csv")
-#ncld_group1 = [1,6,7,9,10,11]
-#ncld_group2 = [4,5,8,13]
+
 ncld_group1 = [1, 7, 5, 9, 4, 11, 10, 12, 6]
 ncld_group2 = [8, 15, 3, 2, 13, 16, 14]
 scale_altkeys = ["z_lcl", "z_ctmean_50p95p"]
@@ -272,30 +273,5 @@ axes_scalar[3].set_xlabel(r"$\delta D_{flux}$ (permil)", fontsize=14)
 fig_wind.savefig("./fig_fluxprofiles_windvars.png")
 fig_scalar.savefig("./fig_fluxprofiles_scalarvars.png")
 
-
-"""
-## Night flights:
-## Plot P-3 flux profiles for wind components and TKE.
-##_____________________________________________________________________________
-#ncld_list = [2,3,16]
-ncld_list = [2,3,14,15]
-flux_prfs = get_fluxprofiles(ncld_list, keyalts_table, dir_flux)
-
-fig3, axes3 = plt.subplots(1, 4, figsize=(10, 5))
-windkeys = ["u'u'_bar", "v'v'_bar", "w'w'_bar", "TKE"]
-plot_fluxprofiles(flux_prfs, windkeys, axes3)
-##_____________________________________________________________________________
-## Plot P-3 flux profiles for wind components and TKE.
-    
-   
-    
-## Plot P-3 flux profiles for SHF, LHF, and dD of flux.
-##_____________________________________________________________________________
-fig4, axes4 = plt.subplots(1, 3, figsize=(10, 5))
-scalarfluxkeys = ["flux_sh", "flux_lh", "dD_flux"]
-plot_fluxprofiles(flux_prfs, scalarfluxkeys, axes4)
-##_____________________________________________________________________________
-## Plot P-3 flux profiles for SHF, LHF, and dD of flux.
-"""
 
 
