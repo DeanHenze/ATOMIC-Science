@@ -112,13 +112,18 @@ for n in ncldmod_unique:
         )
            
     
-    # Add sensible and latent heat fluxes:
+    # Add sensible heat, latent heat, and buoyancy fluxes:
     flux_ds['flux_sh'] = thermo.flux_sh(
         flux_ds["T'w'_bar"], flux_ds["T_mean"], flux_ds["P_mean"]
         )
     flux_ds['flux_lh'] = thermo.flux_lh(
         flux_ds["q'w'_bar"]/1000, flux_ds["T_mean"], flux_ds["P_mean"]
         )
+    buoyflx = thermo_deSzoeke.buoyancy_flux(
+        flux_ds['flux_sh'], flux_ds['flux_lh'], 
+        T=25.0, p=1.0e5, q=0
+        )
+    flux_ds['flux_b'] = buoyflx[0]
     
     
     # Add total kinetic energy:
