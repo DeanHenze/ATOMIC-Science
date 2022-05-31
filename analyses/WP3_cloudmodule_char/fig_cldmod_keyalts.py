@@ -72,7 +72,7 @@ def plot_keyalts(keyalts, ax, xplot):
     
     # Figure limits, labels:
     ax.set_xlim(np.min(xplot)-1, np.max(xplot)+1)
-    ax.set_xticks(xplot)
+    #ax.set_xticks(xplot)
     ax.set_xlabel("cloud module #", fontsize=12)
     ax.set_xticklabels([str(n).zfill(2) for n in keyalts['ncld']])
     
@@ -102,7 +102,7 @@ def plot_keyalts(keyalts, ax, xplot):
 
 
 
-def addthetacontours(dir_drpsnd, ncld, varkey, fig, ax):
+def addthetacontours(dir_drpsnd, ncld, varkey, fig, ax, xplot):
     """
     """
     fnames_drpsnd = [
@@ -115,7 +115,7 @@ def addthetacontours(dir_drpsnd, ncld, varkey, fig, ax):
     meanvarprfs = []
     altvals = []
     xvals = []
-    xplot = ax.get_xticks()
+    #xplot = ax.get_xticks()
     
     for i in range(len(ncld)):
         nstr = str(ncld[i]).zfill(2)
@@ -125,7 +125,7 @@ def addthetacontours(dir_drpsnd, ncld, varkey, fig, ax):
         prf = drpsnds[varkey].mean(dim='sounding').dropna(dim='alt')
         meanvarprfs.append(prf.values)
         altvals.append(prf['alt'].values)
-        xvals.append([xplot[i] for e in prf])
+        xvals.append([xplot[i] for e in prf.values])
 
     
     # Get smoothed map via oversampling:
@@ -151,13 +151,14 @@ def addthetacontours(dir_drpsnd, ncld, varkey, fig, ax):
         )
     c = ax.contour(
         xplot, yplot, varmap['mean'],
-        levels=levels[1:4], colors='black', linewidths=0
+        levels=levels, colors='black', linewidths=0
         )
     fmt = dict(zip(levels, [r"$\theta=%i K$" % l for l in levels]))
     manuallocs=[(11, 500), (13, 1300), (12, 2000)]
     ax.clabel(
         c, levels=levels[1:4], fmt=fmt, 
-        inline=True, manual=manuallocs, fontsize=8
+        inline=True, fontsize=8, 
+        manual=manuallocs
         )
     #fig.colorbar(c, ax=ax)
 
@@ -174,7 +175,7 @@ if __name__=="__main__":
     ax = fig.add_axes([0.15, 0.15, 0.8, 0.8])
     xplot = np.arange(len(keyalts.index)) # x-axis values for plotting
     ax.set_xticks(xplot)
-    addthetacontours(dir_drpsnd, keyalts['ncld'], 'theta', fig, ax)
+    addthetacontours(dir_drpsnd, keyalts['ncld'], 'theta', fig, ax, xplot)
     plot_keyalts(keyalts, ax, xplot)
 
     fig.savefig("./fig_cloudmod_keyalts.png")
