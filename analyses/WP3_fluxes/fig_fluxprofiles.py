@@ -161,6 +161,35 @@ def plot_fluxprofiles(fluxprfs_dict, varkeysplot, axset,
         
 
 
+def plot_RHBmeanfluxes(path_rhbflux, ax_sh, ax_lh):
+    """
+    Plot mean, std of RHB surface fluxes during IOP portion with P-3 flights. 
+    Plot SHF and LHF on ax_sh and ax_lh repspectively.
+    """    
+    rhb_metflux = xr.load_dataset(path_rhbflux)
+    
+    # Remove measurements for dates before the P-3 started sampling:
+    dts_wp3start = np.datetime64("2020-01-17")
+    rhb_metflux = rhb_metflux.where(rhb_metflux['time'] > dts_wp3start, drop=True)
+
+    # Means and std's:
+    rhbfluxkeys = ["hs_bulk", "hl_bulk", "ustar", "gust"]
+    flux_P3iopmean = rhb_metflux[rhbfluxkeys].mean(dim='obs')
+    flux_P3iopstd = rhb_metflux[rhbfluxkeys].std(dim='obs')
+    
+    # Error bar plot:
+    rhb_altsamp = 20/500 # height of RHB instruments, roughly normalized by z_ML.
+    ax_sh.errorbar(
+        -1*flux_P3iopmean['hs_bulk'], rhb_altsamp, 
+        xerr = flux_P3iopstd['hs_bulk'], 
+        marker='o', markersize=5, markerfacecolor='red', ecolor='red'
+        )
+    ax_lh.errorbar(
+        -1*flux_P3iopmean['hl_bulk'], rhb_altsamp, 
+        xerr = flux_P3iopstd['hl_bulk'], 
+        marker='o', markersize=5, markerfacecolor='red', ecolor='red'
+        )
+
 ## Plot P-3 flux profiles for wind components and TKE.
 ##_____________________________________________________________________________
 keyalts_table = pd.read_csv("../WP3_cloudmodule_char/cldmod_keyaltitudes.csv")
@@ -195,33 +224,14 @@ plot_fluxprofiles(fluxprfs_g2, scalarfluxkeys, axes_scalar, plotmeans=True, pcol
 ## Plot P-3 flux profiles for SHF, LHF, and dD of flux.
    
 
-    
 ## Add surface flux mean +/- std for RHB measurements for the time period 
 ## 2020-01-17 to 2020-02-12.
 ##_____________________________________________________________________________
-dir_rhbflux = "../../data/RHB/metflux/"
-fname = "EUREC4A_ATOMIC_RonBrown_10min_nav_met_sea_flux_20200109-20200212_v1.3.nc"
+path_rhbflux = ("../../data/RHB/metflux/EUREC4A_ATOMIC_RonBrown_10min"
+                "_nav_met_sea_flux_20200109-20200212_v1.3.nc"
+                )
 
-rhb_metflux = xr.load_dataset(dir_rhbflux+fname)
-dts_wp3start = np.datetime64("2020-01-17")
-    # Remove measurements for dates before the P-3 started sampling:
-rhb_metflux = rhb_metflux.where(rhb_metflux['time'] > dts_wp3start, drop=True)
-
-rhbfluxkeys = ["hs_bulk", "hl_bulk", "ustar", "gust"]
-flux_P3iopmean = rhb_metflux[rhbfluxkeys].mean(dim='obs')
-flux_P3iopstd = rhb_metflux[rhbfluxkeys].std(dim='obs')
-
-rhb_samplingalt = 20/500 # height of RHB instruments, roughly normalized by z_ML.
-axes_scalar[0].errorbar(
-    -1*flux_P3iopmean['hs_bulk'], rhb_samplingalt, 
-    xerr = flux_P3iopstd['hs_bulk'], 
-    marker='o', markersize=5, markerfacecolor='red', ecolor='red'
-    )
-axes_scalar[1].errorbar(
-    -1*flux_P3iopmean['hl_bulk'], rhb_samplingalt, 
-    xerr = flux_P3iopstd['hl_bulk'], 
-    marker='o', markersize=5, markerfacecolor='red', ecolor='red'
-    )
+plot_RHBmeanfluxes(path_rhbflux, axes_scalar[0], axes_scalar[1])
 ##_____________________________________________________________________________
   ## Add surface flux mean +/- std for RHB measurements.
     
