@@ -25,9 +25,10 @@ import rangescaler
 
 ## Data directories and filenames.
 ##_____________________________________________________________________________    
+path_keyaltstable = "../WP3_cloudmodule_char/cldmod_keyaltitudes.csv"
+
 dir_flux = "./fluxes_levlegs/"
 fnames_flux = [f for f in os.listdir(dir_flux) if f.endswith('.nc')]
-
 
 dir_prf = "../../data/WP3/cloud_modules/"
 fnames_prf = [f for f in os.listdir(dir_prf) if f.endswith('.nc')]
@@ -144,7 +145,7 @@ def plot_fluxprofiles(fluxprfs_dict, varkeysplot, axset,
         for k in fluxprfs_dict[varkey].columns:
             colplot = fluxprfs_dict[varkey][k].dropna()
             ax.plot(colplot, colplot.index, c=pcolor, alpha=0.5)
-            ax.scatter(colplot, colplot.index, c=pcolor, s=10, alpha=0.5)  
+            ax.scatter(colplot, colplot.index, c=pcolor, s=10, alpha=0.3)  
         
         # Optional compute and plot mean profile:
         if plotmeans:
@@ -153,10 +154,12 @@ def plot_fluxprofiles(fluxprfs_dict, varkeysplot, axset,
             altgrouped[altgrouped % 2 == 0] += 1
             altgrouped = altgrouped*0.25
             fluxvar_grouped = fluxprfs_dict[varkey].groupby(altgrouped, axis=0, as_index=True)
+            #morethan2points = fluxvar_grouped.count() > 2
             meanprf = fluxvar_grouped.mean().mean(axis=1)
+            #meanprf.loc[~morethan2points] = np.nan
             ax.plot(
                 meanprf.values, meanprf.index, 
-                color=pcolor, linestyle='-', linewidth=4
+                color=pcolor, linestyle='-', linewidth=4, zorder=10
                 )
         
 
@@ -199,19 +202,20 @@ def xaxes_cleanup(axset_wind, axset_scalar):
 
     ## Limits, labels, etc for wind / turbulence axes:    
     for ax in axset_wind[0:3]: ax.set_xlim(0, 0.8)    
-    axset_wind[0].set_xlabel(r"u'u' (m/s)$^2$", fontsize=14)
-    axset_wind[1].set_xlabel(r"v'v' (m/s)$^2$", fontsize=14)
-    axset_wind[2].set_xlabel(r"w'w' (m/s)$^2$", fontsize=14)
-    axset_wind[3].set_xlabel(r"TKE (m/s)$^2$", fontsize=14)
+    axset_wind[0].set_xlabel(r"u'u' (m/s)$^2$", fontsize=12)
+    axset_wind[1].set_xlabel(r"v'v' (m/s)$^2$", fontsize=12)
+    axset_wind[2].set_xlabel(r"w'w' (m/s)$^2$", fontsize=12)
+    axset_wind[3].set_xlabel(r"TKE (m/s)$^2$", fontsize=12)
 
     ## Limits, labels, etc for flux axes:    
+    axset_scalar[0].set_xlim(-30, 35)
     axset_scalar[1].set_xlim(-100, 650)
-    axset_scalar[2].set_xlim(-1e-3, 1.7e-3)
+    axset_scalar[2].set_xlim(-5e-4, 1.7e-3)
     axset_scalar[3].set_xlim(-160, -30)
-    axset_scalar[0].set_xlabel(r"$F_{sh}$ (W/m$^2$)", fontsize=14)
-    axset_scalar[1].set_xlabel(r"$F_{lh}$ (W/m$^2$)", fontsize=14)
-    axset_scalar[2].set_xlabel(r"$F_{b}$ (W/m$^2$)", fontsize=14)
-    axset_scalar[3].set_xlabel(r"$\delta D_{flux}$ (permil)", fontsize=14)
+    axset_scalar[0].set_xlabel(r"$F_{sh}$ (W/m$^2$)", fontsize=12)
+    axset_scalar[1].set_xlabel(r"$F_{lh}$ (W/m$^2$)", fontsize=12)
+    axset_scalar[2].set_xlabel(r"$F_{b}$ ($m^2/s^3$)", fontsize=12)
+    axset_scalar[3].set_xlabel(r"$\delta D_{flux}$ (permil)", fontsize=12)
 
 
 
@@ -242,17 +246,19 @@ def fig_LCLCTscaling():
     """
     
     ## P-3 flux profiles:
-    keyalts_table = pd.read_csv("../WP3_cloudmodule_char/cldmod_keyaltitudes.csv")
+    keyalts_table = pd.read_csv(path_keyaltstable)
     
     ncld_group1 = [1, 7, 5, 9, 4, 11, 10, 12, 6]
     ncld_group2 = [8, 15, 3, 2, 13, 16, 14]
+    ncld_group3 = [1]
     scale_altkeys = ["z_lcl", "z_ctmean_50p95p"]
     
     fluxprfs_g1 = get_fluxprofiles(
         ncld_group1, keyalts_table, dir_flux, scale_altkeys=scale_altkeys)
     fluxprfs_g2 = get_fluxprofiles(
         ncld_group2, keyalts_table, dir_flux, scale_altkeys=scale_altkeys)
-    
+    #fluxprfs_g3 = get_fluxprofiles(
+    #    ncld_group3, keyalts_table, dir_flux, scale_altkeys=scale_altkeys)    
 
     ## Plot profiles for wind components and TKE.
     fig_wind, axset_wind = plt.subplots(1, 4, figsize=(10, 5))
@@ -260,13 +266,15 @@ def fig_LCLCTscaling():
     plot_fluxprofiles(fluxprfs_g1, windkeys, axset_wind, plotmeans=True, pcolor='grey')
     plot_fluxprofiles(
         fluxprfs_g2, windkeys, axset_wind, plotmeans=True, pcolor='blue')
-        
+    #plot_fluxprofiles(
+    #    fluxprfs_g3, windkeys, axset_wind, plotmeans=True, pcolor='red')   
         
     ## Plot profiles for SHF, LHF, buoyancy flux, and dD of flux.
     fig_scalar, axset_scalar = plt.subplots(1, 4, figsize=(10, 5))
     scalarfluxkeys = ["flux_sh", "flux_lh", "flux_b", "dD_flux"]
     plot_fluxprofiles(fluxprfs_g1, scalarfluxkeys, axset_scalar, plotmeans=True, pcolor='grey')
     plot_fluxprofiles(fluxprfs_g2, scalarfluxkeys, axset_scalar, plotmeans=True, pcolor='blue')
+    #plot_fluxprofiles(fluxprfs_g3, scalarfluxkeys, axset_scalar, plotmeans=True, pcolor='red')
 
     
     ## Add RHB surface flux means, stds for the P-3 sampling time period:
@@ -281,7 +289,7 @@ def fig_LCLCTscaling():
 
     yticks = [0,1,2,3]
     yticklabels = [
-        "0", r"$z_{LCL}$", r"$z_{CT}$", r"$z_{LCL} + 2\Delta z_{(CT-LCL)}$"
+        "0", r"$z_{LCL}$", r"$z_{CT}$", r"$z_{LCL}$+2$\Delta z_{(CT-LCL)}$"
         ]  
     yaxes_cleanup(axset_wind, axset_scalar, yticks, yticklabels)       
       
@@ -299,7 +307,7 @@ def fig_LCLTIBscaling():
     """
     
     ## P-3 flux profiles:
-    keyalts_table = pd.read_csv("../WP3_cloudmodule_char/cldmod_keyaltitudes.csv")
+    keyalts_table = pd.read_csv(path_keyaltstable)
     
     ncld_group1 = [1, 7, 5, 9, 4, 11, 10, 12, 6]
     ncld_group2 = [8, 15, 3, 2, 13, 16, 14]
@@ -352,4 +360,4 @@ def fig_LCLTIBscaling():
 
 if __name__=="__main__":
     fig_LCLCTscaling()
-    fig_LCLTIBscaling()
+    #fig_LCLTIBscaling()
