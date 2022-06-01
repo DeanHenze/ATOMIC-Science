@@ -41,13 +41,20 @@ winddirection = lambda u, v: np.arctan(u/v)*(180/np.pi)
 winddiff = lambda u1, u2, v1, v2: ((u2-u1)**2 + (v2-v1)**2)**0.5
 
 
-ncld_list = [str(i).zfill(2) for i in np.arange(1, 17, 1)]
+ncld_g1 = [7, 9, 11, 10, 12, 6]
+ncld_g2 = [8, 15, 3, 2, 13, 16, 14]
+ncld_g3 = [1, 5, 4]
+#ncld_list = np.arange(1, 17, 1)
+ncld_list = list(np.arange(1, 17, 1))
+
+#ncld_list = [str(i).zfill(2) for i in np.arange(1, 17, 1)]
 for ncld in ncld_list:
     
     # Load data:
-    fname_era5 = "p3cld_ECMWF_ERA5_plevs_hourly_ncld%s.nc" % ncld
+    ncld_str = str(ncld).zfill(2)
+    fname_era5 = "p3cld_ECMWF_ERA5_plevs_hourly_ncld%s.nc" % ncld_str
     era5 = xr.load_dataset(path_era5dir + fname_era5)
-    fname_p3 = [f for f in fnames_p3insitu if "ncld%s" % ncld in f][0]
+    fname_p3 = [f for f in fnames_p3insitu if "ncld%s" % ncld_str in f][0]
     p3 = xr.load_dataset(path_p3insitu + fname_p3)
     
     # Compute additional vars for ERA5:
@@ -74,6 +81,9 @@ for ncld in ncld_list:
         mesostd[k].append(era5std[k].item())
         nearp3[k].append(era5_nearp3[k].item())
     
+    
+for k in nearp3.keys():
+    nearp3[k] = np.array(nearp3[k])
 
 #for dc in mesoscalemean
 
@@ -84,16 +94,24 @@ def mesoscale_shading(x, mesomean_dict, mesostd_dict, varkey, ax):
     ystd = np.array(mesostd_dict[varkey])
     y1 = ymean-ystd
     y2 = ymean+ystd
-    ax.fill_between(x, y1, y2, color='grey')
+    ax.fill_between(x, y1, y2, color='grey', alpha=0.25)
 
 
 fig_stab = plt.figure(figsize=(6.5, 4))
 ax_lts = fig_stab.add_axes([0.15, 0.15, 0.7, 0.8])
 mesoscale_shading(ncld_list, mesomean, mesostd, 'LTS', ax_lts)
-ax_lts.scatter(
-    ncld_list, nearp3['LTS'], marker='o', 
-    color='black', label='near p3'
-    )
+colors=['grey', 'blue', 'red']
+for nlist, c in zip([ncld_g1, ncld_g2, ncld_g3], colors):
+    i_group = [ncld_list.index(i) for i in nlist]
+    ax_lts.scatter(
+        nlist, nearp3['LTS'][i_group], marker='o', 
+        color=c, label='near p3'
+        )
+
+#ax_lts.scatter(
+#    ncld_list, nearp3['LTS'], marker='o', 
+#    color='black', label='near p3'
+#    )
 
 
 fig_wdir = plt.figure(figsize=(6.5, 4))
@@ -108,10 +126,6 @@ ax_wdir.scatter(
 fig_div = plt.figure(figsize=(6.5, 4))
 ax_div = fig_div.add_axes([0.15, 0.15, 0.7, 0.8])
 mesoscale_shading(ncld_list, mesomean, mesostd, 'wdiv_sfc', ax_div)
-ax_wdir.scatter(
-    ncld_list, nearp3['wdiv_sfc'], marker='o', 
-    color='black', label='near p3'
-    )
 ax_div.scatter(
     ncld_list, nearp3['wdiv_sfc'], marker='o', 
     color='black', label='near p3'
