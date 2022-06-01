@@ -148,17 +148,33 @@ def plot_fluxprofiles(fluxprfs_dict, varkeysplot, axset,
         
         # Optional compute and plot mean profile:
         if plotmeans:
-            altgrouped = np.round(fluxprfs_dict[varkey].index/0.5)*0.5 # vertical binning.
+            # Group by altitude bins with pandas:
             #altgrouped = np.round(fluxprfs_dict[varkey].index/0.25)*0.25 # vertical binning.
+            altgrouped = np.round(fluxprfs_dict[varkey].index/0.33)*0.33 # vertical binning.
             #altgrouped = fluxprfs_dict[varkey].index.values//0.25
             #altgrouped[altgrouped % 2 == 0] += 1
             #altgrouped = altgrouped*0.25
             fluxvar_grouped = fluxprfs_dict[varkey].groupby(altgrouped, axis=0, as_index=True)
-            meanprf = fluxvar_grouped.mean().mean(axis=1)
-            ###morethan2points = fluxvar_grouped.count() > 2
-            ###meanprf.loc[~morethan2points] = np.nan
+            
+            # For each group, get mean and median:
+            meanprf = []
+            medianprf = []
+            levs = []
+            for lev, grp in fluxvar_grouped:
+                meanprf.append(np.nanmean(grp.values.flatten()))
+                medianprf.append(np.nanmedian(grp.values.flatten()))
+                levs.append(lev)
+            meanprf = np.array(meanprf)
+            levs = np.array(levs)
+
+            # Remove and levels with less than 2 data points:            
+            lessthan2points = (fluxvar_grouped.count().sum(axis=1) < 2).values
+            meanprf = meanprf[~lessthan2points]
+            levs = levs[~lessthan2points]
+
+            # Plot:
             ax.plot(
-                meanprf.values, meanprf.index, 
+                meanprf, levs, 
                 color=pcolor, linestyle='-', linewidth=4, zorder=10
                 )
         
@@ -284,6 +300,7 @@ def fig_LCLCTscaling():
     ncld_g1 = [7, 9, 11, 10, 12, 6]
     ncld_g2 = [8, 15, 3, 2, 13, 16, 14]
     ncld_g3 = [1, 5, 4]
+    ncld_groups = [ncld_g1, ncld_g2, ncld_g3]
     
     scale_altkeys = ["z_lcl", "z_ctmean_50p95p"] # scale altitude by these quantities.
 
@@ -291,7 +308,7 @@ def fig_LCLCTscaling():
     fig_scalar, axset_scalar = plt.subplots(1, 4, figsize=(10, 5))
     
     analyzeplotgroupings(
-        [ncld_g1, ncld_g2, ncld_g3], ['grey', 'blue', 'red'], 
+        ncld_groups, ['grey', 'blue', 'red'], 
         scale_altkeys, keyalts_table, 
         axset_wind, axset_scalar
         )
