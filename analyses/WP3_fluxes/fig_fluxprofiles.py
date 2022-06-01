@@ -32,6 +32,10 @@ fnames_flux = [f for f in os.listdir(dir_flux) if f.endswith('.nc')]
 
 dir_prf = "../../data/WP3/cloud_modules/"
 fnames_prf = [f for f in os.listdir(dir_prf) if f.endswith('.nc')]
+
+path_rhbflux = ("../../data/RHB/metflux/EUREC4A_ATOMIC_RonBrown_10min"
+                "_nav_met_sea_flux_20200109-20200212_v1.3.nc"
+                )
 ##_____________________________________________________________________________
 ## Data directories and filenames.
 
@@ -88,11 +92,6 @@ def get_fluxprofiles(ncld_list, keyalts_table, dir_flux,
         # 0=sea level.
         if len(scale_altkeys) != 0:
             alt_scalepoints = [0] + [keyalts[k] for k in scale_altkeys]
-            #alt = rangescaler.piecewise_linscale(
-            #    fluxes['alt'].values, 
-            #    (0, keyalts['z_lcl'], keyalts['z_ctmean_50p95p']), 
-            #    (0,1,2)
-            #    )
             alt = rangescaler.piecewise_linscale(
                 fluxes['alt'].values, 
                 alt_scalepoints, np.arange(len(alt_scalepoints))
@@ -149,14 +148,15 @@ def plot_fluxprofiles(fluxprfs_dict, varkeysplot, axset,
         
         # Optional compute and plot mean profile:
         if plotmeans:
-            #altgrouped = np.round(fluxprfs_dict[varkey].index/0.5)*0.5 # vertical binning.
-            altgrouped = fluxprfs_dict[varkey].index.values//0.25
-            altgrouped[altgrouped % 2 == 0] += 1
-            altgrouped = altgrouped*0.25
+            altgrouped = np.round(fluxprfs_dict[varkey].index/0.5)*0.5 # vertical binning.
+            #altgrouped = np.round(fluxprfs_dict[varkey].index/0.25)*0.25 # vertical binning.
+            #altgrouped = fluxprfs_dict[varkey].index.values//0.25
+            #altgrouped[altgrouped % 2 == 0] += 1
+            #altgrouped = altgrouped*0.25
             fluxvar_grouped = fluxprfs_dict[varkey].groupby(altgrouped, axis=0, as_index=True)
-            #morethan2points = fluxvar_grouped.count() > 2
             meanprf = fluxvar_grouped.mean().mean(axis=1)
-            #meanprf.loc[~morethan2points] = np.nan
+            ###morethan2points = fluxvar_grouped.count() > 2
+            ###meanprf.loc[~morethan2points] = np.nan
             ax.plot(
                 meanprf.values, meanprf.index, 
                 color=pcolor, linestyle='-', linewidth=4, zorder=10
@@ -239,48 +239,65 @@ def yaxes_cleanup(axset_wind, axset_scalar, yticks, yticklabels):
 
 
 
+def analyzeplotgroupings(ncld_groups, colors, scale_altkeys, keyalts_table, 
+                         axset_wind, axset_scalar):
+    """
+    """
+    # Get flux profiles grouped; groups are elements of a list:
+    fluxprfs_grouped = []
+    for cg in ncld_groups:
+        fluxprfs_grouped.append(
+            get_fluxprofiles(       # Returns flux profiles as a dictionary of 
+                cg, keyalts_table,  # pandas.DataFrame's. 
+                dir_flux, scale_altkeys=scale_altkeys
+                )
+            )
+        
+    # Plot wind / turbulence profiles with means overlain:
+    windkeys = ["u'u'_bar", "v'v'_bar", "w'w'_bar", "TKE"] # vars to plot.   
+    for fpgroup, c in zip(fluxprfs_grouped, colors):
+        plot_fluxprofiles(
+            fpgroup, windkeys, axset_wind, 
+            plotmeans=True, pcolor=c
+            )
+
+    # Plot scalar flux profiles with means overlain:
+    scalarfluxkeys = ["flux_sh", "flux_lh", "flux_b", "dD_flux"]
+    for fpgroup, c in zip(fluxprfs_grouped, colors):
+        plot_fluxprofiles(
+            fpgroup, scalarfluxkeys, axset_scalar, 
+            plotmeans=True, pcolor=c
+            )
+
+
 def fig_LCLCTscaling():
     """
     Create and save figures for turbulence and flux profiles where altitude 
     is scaled by LCL and cloud top height.
     """
     
-    ## P-3 flux profiles:
-    keyalts_table = pd.read_csv(path_keyaltstable)
+    keyalts_table = pd.read_csv(path_keyaltstable) # key altitudes for each cld mod.
     
-    ncld_group1 = [1, 7, 5, 9, 4, 11, 10, 12, 6]
-    ncld_group2 = [8, 15, 3, 2, 13, 16, 14]
-    ncld_group3 = [1]
-    scale_altkeys = ["z_lcl", "z_ctmean_50p95p"]
+    # Cloud module number groupings:
+    #ncld_g1 = [1, 7, 5, 9, 4, 11, 10, 12, 6]
+    #ncld_g2 = [8, 15, 3, 2, 13, 16, 14]
+    ncld_g1 = [7, 9, 11, 10, 12, 6]
+    ncld_g2 = [8, 15, 3, 2, 13, 16, 14]
+    ncld_g3 = [1, 5, 4]
     
-    fluxprfs_g1 = get_fluxprofiles(
-        ncld_group1, keyalts_table, dir_flux, scale_altkeys=scale_altkeys)
-    fluxprfs_g2 = get_fluxprofiles(
-        ncld_group2, keyalts_table, dir_flux, scale_altkeys=scale_altkeys)
-    #fluxprfs_g3 = get_fluxprofiles(
-    #    ncld_group3, keyalts_table, dir_flux, scale_altkeys=scale_altkeys)    
+    scale_altkeys = ["z_lcl", "z_ctmean_50p95p"] # scale altitude by these quantities.
 
-    ## Plot profiles for wind components and TKE.
     fig_wind, axset_wind = plt.subplots(1, 4, figsize=(10, 5))
-    windkeys = ["u'u'_bar", "v'v'_bar", "w'w'_bar", "TKE"]    
-    plot_fluxprofiles(fluxprfs_g1, windkeys, axset_wind, plotmeans=True, pcolor='grey')
-    plot_fluxprofiles(
-        fluxprfs_g2, windkeys, axset_wind, plotmeans=True, pcolor='blue')
-    #plot_fluxprofiles(
-    #    fluxprfs_g3, windkeys, axset_wind, plotmeans=True, pcolor='red')   
-        
-    ## Plot profiles for SHF, LHF, buoyancy flux, and dD of flux.
     fig_scalar, axset_scalar = plt.subplots(1, 4, figsize=(10, 5))
-    scalarfluxkeys = ["flux_sh", "flux_lh", "flux_b", "dD_flux"]
-    plot_fluxprofiles(fluxprfs_g1, scalarfluxkeys, axset_scalar, plotmeans=True, pcolor='grey')
-    plot_fluxprofiles(fluxprfs_g2, scalarfluxkeys, axset_scalar, plotmeans=True, pcolor='blue')
-    #plot_fluxprofiles(fluxprfs_g3, scalarfluxkeys, axset_scalar, plotmeans=True, pcolor='red')
-
+    
+    analyzeplotgroupings(
+        [ncld_g1, ncld_g2, ncld_g3], ['grey', 'blue', 'red'], 
+        scale_altkeys, keyalts_table, 
+        axset_wind, axset_scalar
+        )
+    
     
     ## Add RHB surface flux means, stds for the P-3 sampling time period:
-    path_rhbflux = ("../../data/RHB/metflux/EUREC4A_ATOMIC_RonBrown_10min"
-                    "_nav_met_sea_flux_20200109-20200212_v1.3.nc"
-                    )
     plot_RHBmeanfluxes(path_rhbflux, axset_scalar[0], axset_scalar[1])
 
     
@@ -288,9 +305,9 @@ def fig_LCLCTscaling():
     xaxes_cleanup(axset_wind, axset_scalar)
 
     yticks = [0,1,2,3]
-    yticklabels = [
-        "0", r"$z_{LCL}$", r"$z_{CT}$", r"$z_{LCL}$+2$\Delta z_{(CT-LCL)}$"
-        ]  
+    yticklabels = ["0", r"$z_{LCL}$", r"$z_{CT}$", 
+                   r"$z_{LCL}$+2$\Delta z_{(CT-LCL)}$"
+                   ]  
     yaxes_cleanup(axset_wind, axset_scalar, yticks, yticklabels)       
       
 
