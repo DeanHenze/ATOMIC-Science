@@ -140,42 +140,59 @@ def plot_fluxprofiles(fluxprfs_dict, varkeysplot, axset,
     """
     for varkey, ax in zip(varkeysplot, axset):
 
+        """
         # Individual profiles:
         for k in fluxprfs_dict[varkey].columns:
             colplot = fluxprfs_dict[varkey][k].dropna()
             ax.plot(colplot, colplot.index, c=pcolor, alpha=0.5)
             ax.scatter(colplot, colplot.index, c=pcolor, s=10, alpha=0.3)  
+        """
         
         # Optional compute and plot mean profile:
         if plotmeans:
             # Group by altitude bins with pandas:
             #altgrouped = np.round(fluxprfs_dict[varkey].index/0.25)*0.25 # vertical binning.
             altgrouped = np.round(fluxprfs_dict[varkey].index/0.33)*0.33 # vertical binning.
-            #altgrouped = fluxprfs_dict[varkey].index.values//0.25
-            #altgrouped[altgrouped % 2 == 0] += 1
-            #altgrouped = altgrouped*0.25
             fluxvar_grouped = fluxprfs_dict[varkey].groupby(altgrouped, axis=0, as_index=True)
             
-            # For each group, get mean and median:
+            # For each group get mean, median, max, min:
+            alt_bincenter = []
             meanprf = []
             medianprf = []
-            levs = []
-            for lev, grp in fluxvar_grouped:
-                meanprf.append(np.nanmean(grp.values.flatten()))
-                medianprf.append(np.nanmedian(grp.values.flatten()))
-                levs.append(lev)
+            minvals, maxvals = [], []
+            for altbc, grp in fluxvar_grouped:
+                alt_bincenter.append(altbc)
+                grpvals_1d = grp.values.flatten()
+                meanprf.append(np.nanmean(grpvals_1d))
+                medianprf.append(np.nanmedian(grpvals_1d))
+                minvals.append(np.nanmin(grpvals_1d))
+                maxvals.append(np.nanmax(grpvals_1d))
             meanprf = np.array(meanprf)
-            levs = np.array(levs)
+            medianprf = np.array(medianprf)
+            minvals = np.array(minvals)
+            maxvals = np.array(maxvals)
+            alt_bincenter = np.array(alt_bincenter)
 
             # Remove and levels with less than 2 data points:            
             lessthan2points = (fluxvar_grouped.count().sum(axis=1) < 2).values
+            alt_bincenter = alt_bincenter[~lessthan2points]
             meanprf = meanprf[~lessthan2points]
-            levs = levs[~lessthan2points]
+            medianprf = medianprf[~lessthan2points]
+            minvals = minvals[~lessthan2points]
+            maxvals = maxvals[~lessthan2points]
 
             # Plot:
+            ax.fill_betweenx(
+                alt_bincenter, minvals, x2=maxvals, 
+                color=pcolor, edgecolor='none', alpha=0.3
+                )
             ax.plot(
-                meanprf, levs, 
-                color=pcolor, linestyle='-', linewidth=4, zorder=10
+                meanprf, alt_bincenter, 
+                color=pcolor, linestyle='-', linewidth=3, zorder=10
+                )
+            ax.plot(
+                medianprf, alt_bincenter, 
+                color=pcolor, linestyle='--', linewidth=2, zorder=10
                 )
         
 
@@ -201,12 +218,12 @@ def plot_RHBmeanfluxes(path_rhbflux, ax_sh, ax_lh):
     ax_sh.errorbar(
         -1*flux_P3iopmean['hs_bulk'], rhb_altsamp, 
         xerr = flux_P3iopstd['hs_bulk'], 
-        marker='o', markersize=5, markerfacecolor='red', ecolor='red'
+        marker='s', markersize=8, mfc='orange', mec='black', ecolor='black'
         )
     ax_lh.errorbar(
         -1*flux_P3iopmean['hl_bulk'], rhb_altsamp, 
         xerr = flux_P3iopstd['hl_bulk'], 
-        marker='o', markersize=5, markerfacecolor='red', ecolor='red'
+        marker='s', markersize=8, mfc='orange', mec='black', ecolor='black'
         )
 
 
