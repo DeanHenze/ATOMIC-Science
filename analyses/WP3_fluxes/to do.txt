@@ -1,9 +1,16 @@
+Kurtosis
+
+PDF anomalies for T'w'
+
+Color w'w'w' by the cloud groupings.
+
+are w'w' PDFs different with statistical signifance?
+
+comparison of CAM fluxes to obs. Straightforward comparison with immediate 
+science benefits.
+
 Control idea for high turbulence near inversion base: horizontal level leg around 
 1500 m that isn't part of a cloud module and had clear skies.
-
-Try ordering cloud key altitudes plot by something. Then in the background can 
-have an e.g. theta contour plot. How do theta contours with height change for 
-cloud modules ordered on the x-axis?
 
 Group synoptic states using a clustering algorithm? Or nodal analysis? 
 
