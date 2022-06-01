@@ -321,23 +321,20 @@ def fig_LCLCTscaling():
     
     scale_altkeys = ["z_lcl", "z_ctmean_50p95p"] # scale altitude by these quantities.
 
+
+    # Plot:
     fig_wind, axset_wind = plt.subplots(1, 4, figsize=(10, 5))
     fig_scalar, axset_scalar = plt.subplots(1, 4, figsize=(10, 5))
-    
+        # Profiles:
     analyzeplotgroupings(
         ncld_groups, ['grey', 'blue', 'red'], 
         scale_altkeys, keyalts_table, 
         axset_wind, axset_scalar
         )
-    
-    
-    ## Add RHB surface flux means, stds for the P-3 sampling time period:
+        # RHB surface flux means, stds for the P-3 sampling time period:
     plot_RHBmeanfluxes(path_rhbflux, axset_scalar[0], axset_scalar[1])
-
-    
-    ## Axes limits, labels, etc.
+        # Axes limits, labels, etc.
     xaxes_cleanup(axset_wind, axset_scalar)
-
     yticks = [0,1,2,3]
     yticklabels = ["0", r"$z_{LCL}$", r"$z_{CT}$", 
                    r"$z_{LCL}$+2$\Delta z_{(CT-LCL)}$"
@@ -357,49 +354,36 @@ def fig_LCLTIBscaling():
     is scaled by LCL and trade inversion bottom.
     """
     
-    ## P-3 flux profiles:
-    keyalts_table = pd.read_csv(path_keyaltstable)
+    keyalts_table = pd.read_csv(path_keyaltstable) # key altitudes for each cld mod.
     
-    ncld_group1 = [1, 7, 5, 9, 4, 11, 10, 12, 6]
-    ncld_group2 = [8, 15, 3, 2, 13, 16, 14]
-    scale_altkeys = ["z_lcl", "z_tib"]
+    # Cloud module number groupings:
+    #ncld_g1 = [1, 7, 5, 9, 4, 11, 10, 12, 6]
+    #ncld_g2 = [8, 15, 3, 2, 13, 16, 14]
+    ncld_g1 = [7, 9, 11, 10, 12, 6]
+    ncld_g2 = [8, 15, 3, 2, 13, 16, 14]
+    ncld_g3 = [1, 5, 4]
+    ncld_groups = [ncld_g1, ncld_g2, ncld_g3]
     
-    fluxprfs_g1 = get_fluxprofiles(
-        ncld_group1, keyalts_table, dir_flux, scale_altkeys=scale_altkeys)
-    fluxprfs_g2 = get_fluxprofiles(
-        ncld_group2, keyalts_table, dir_flux, scale_altkeys=scale_altkeys)
-    
+    scale_altkeys = ["z_lcl", "z_tib"] # scale altitude by these quantities.
 
-    ## Plot profiles for wind components and TKE.
+
+    # Plot:
     fig_wind, axset_wind = plt.subplots(1, 4, figsize=(10, 5))
-    windkeys = ["u'u'_bar", "v'v'_bar", "w'w'_bar", "TKE"]    
-    plot_fluxprofiles(fluxprfs_g1, windkeys, axset_wind, plotmeans=True, pcolor='grey')
-    plot_fluxprofiles(
-        fluxprfs_g2, windkeys, axset_wind, plotmeans=True, pcolor='blue')
-        
-        
-    ## Plot profiles for SHF, LHF, buoyancy flux, and dD of flux.
     fig_scalar, axset_scalar = plt.subplots(1, 4, figsize=(10, 5))
-    scalarfluxkeys = ["flux_sh", "flux_lh", "flux_b", "dD_flux"]
-    plot_fluxprofiles(fluxprfs_g1, scalarfluxkeys, axset_scalar, plotmeans=True, pcolor='grey')
-    plot_fluxprofiles(fluxprfs_g2, scalarfluxkeys, axset_scalar, plotmeans=True, pcolor='blue')
-
-    
-    ## Add RHB surface flux means, stds for the P-3 sampling time period:
-    path_rhbflux = ("../../data/RHB/metflux/EUREC4A_ATOMIC_RonBrown_10min"
-                    "_nav_met_sea_flux_20200109-20200212_v1.3.nc"
-                    )
+        # Profiles:
+    analyzeplotgroupings(
+        ncld_groups, ['grey', 'blue', 'red'], 
+        scale_altkeys, keyalts_table, 
+        axset_wind, axset_scalar
+        )
+        # RHB surface flux means, stds for the P-3 sampling time period:
     plot_RHBmeanfluxes(path_rhbflux, axset_scalar[0], axset_scalar[1])
-
-    
-    ## Axes limits, labels, etc.
+        # Axes limits, labels, etc.
     xaxes_cleanup(axset_wind, axset_scalar)
-
-    yticks = [0,1,2,3,4]
-    yticklabels = [
-        "0", r"$z_{LCL}$", r"$z_{IB}$", r"$z_{LCL} + 2\Delta z_{(IB-LCL)}$", 
-        r"$z_{LCL} + 3\Delta z_{(IB-LCL)}$"
-        ]  
+    yticks = [0,1,2,3]
+    yticklabels = ["0", r"$z_{LCL}$", r"$z_{IB}$", 
+                   r"$z_{LCL} + 2\Delta z_{(IB-LCL)}$", 
+                   ]  
     yaxes_cleanup(axset_wind, axset_scalar, yticks, yticklabels)       
       
 
@@ -411,4 +395,4 @@ def fig_LCLTIBscaling():
 
 if __name__=="__main__":
     fig_LCLCTscaling()
-    #fig_LCLTIBscaling()
+    fig_LCLTIBscaling()
