@@ -30,9 +30,6 @@ path_keyaltstable = "../WP3_cloudmodule_char/cldmod_keyaltitudes.csv"
 dir_flux = "./fluxes_levlegs/"
 fnames_flux = [f for f in os.listdir(dir_flux) if f.endswith('.nc')]
 
-dir_prf = "../../data/WP3/cloud_modules/"
-fnames_prf = [f for f in os.listdir(dir_prf) if f.endswith('.nc')]
-
 path_rhbflux = ("../../data/RHB/metflux/EUREC4A_ATOMIC_RonBrown_10min"
                 "_nav_met_sea_flux_20200109-20200212_v1.3.nc"
                 )
