@@ -309,11 +309,11 @@ def fig_LCLCTscaling():
     keyalts_table = pd.read_csv(path_keyaltstable) # key altitudes for each cld mod.
     
     # Cloud module number groupings:
-    #ncld_g1 = [1, 7, 5, 9, 4, 11, 10, 12, 6]
-    #ncld_g2 = [8, 15, 3, 2, 13, 16, 14]
     ncld_g1 = [7, 9, 11, 10, 12, 6]
-    ncld_g2 = [8, 15, 3, 2, 13, 16, 14]
-    ncld_g3 = [1, 5, 4]
+    ncld_g2 = [15, 3, 2, 13, 16, 14]
+    #ncld_g1 = [7, 9, 11, 10, 12, 6]
+    #ncld_g2 = [8, 15, 3, 2, 13, 16, 14]
+    ncld_g3 = [1, 5, 4, 8]
     ncld_groups = [ncld_g1, ncld_g2, ncld_g3]
     
     scale_altkeys = ["z_lcl", "z_ctmean_50p95p"] # scale altitude by these quantities.
@@ -354,11 +354,11 @@ def fig_LCLTIBscaling():
     keyalts_table = pd.read_csv(path_keyaltstable) # key altitudes for each cld mod.
     
     # Cloud module number groupings:
-    #ncld_g1 = [1, 7, 5, 9, 4, 11, 10, 12, 6]
-    #ncld_g2 = [8, 15, 3, 2, 13, 16, 14]
     ncld_g1 = [7, 9, 11, 10, 12, 6]
-    ncld_g2 = [8, 15, 3, 2, 13, 16, 14]
-    ncld_g3 = [1, 5, 4]
+    ncld_g2 = [15, 3, 2, 13, 16, 14]
+    #ncld_g1 = [7, 9, 11, 10, 12, 6]
+    #ncld_g2 = [8, 15, 3, 2, 13, 16, 14]
+    ncld_g3 = [1, 5, 4, 8]
     ncld_groups = [ncld_g1, ncld_g2, ncld_g3]
     
     scale_altkeys = ["z_lcl", "z_tib"] # scale altitude by these quantities.
