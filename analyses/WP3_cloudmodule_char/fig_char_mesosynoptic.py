@@ -30,7 +30,9 @@ fnames_p3insitu = [f for f in os.listdir(path_p3insitu)
                    if '_insitu+remote_' in f]
 
 
-varkeys = ['LTS', 'wspd_sfc', 'wdir_sfc', 'wdiv_sfc']
+varkeys = ['LTS', 'wspd_sfc', 'wdir_sfc', 
+           'wdiv_950hPa', 'wdiv_850hPa', 'wdiv_750hPa'
+           ]
 mesomean = dict(zip(varkeys, [[] for e in varkeys]))
 mesostd = dict(zip(varkeys, [[] for e in varkeys]))
 nearp3 = dict(zip(varkeys, [[] for e in varkeys]))
@@ -60,7 +62,9 @@ for ncld in ncld_list:
     # Compute additional vars for ERA5:
     era5['theta'] = thermo.theta(era5['t'], era5['level']*100)
     era5_ns = era5.sel(level=1000) # near surface
-    era5['wdiv_sfc'] = era5_ns['d']
+    era5['wdiv_950hPa'] = era5['d'].sel(level=950)
+    era5['wdiv_850hPa'] = era5['d'].sel(level=850)
+    era5['wdiv_750hPa'] = era5['d'].sel(level=750)
     era5['LTS'] = era5['theta'].sel(level=700) - era5_ns['theta']
     era5['wspd_sfc'] = windspeed(era5_ns['u'], era5_ns['v'])
     era5['wdir_sfc'] = winddirection(era5_ns['u'], era5_ns['v'])
@@ -107,11 +111,36 @@ for nlist, c in zip([ncld_g1, ncld_g2, ncld_g3], colors):
         nlist, nearp3['LTS'][i_group], marker='o', 
         color=c, label='near p3'
         )
+    
+ax_sfcwspd = ax_lts.twinx()
+mesoscale_shading(ncld_list, mesomean, mesostd, 'wspd_sfc', ax_sfcwspd)
+for nlist, c in zip([ncld_g1, ncld_g2, ncld_g3], colors):
+    i_group = [ncld_list.index(i) for i in nlist]
+    ax_sfcwspd.scatter(
+        nlist, nearp3['wspd_sfc'][i_group], marker='^', 
+        color=c, label='near p3'
+        )
+ax_lts.set_xticks(ncld_list)
+ax_lts.set_xlabel("cloud module", fontsize=12)
+ax_lts.set_ylabel("LTS (K)", fontsize=12)
+ax_sfcwspd.set_ylabel(r"$U_{sfc}$ (m/s)", fontsize=12)
 
-#ax_lts.scatter(
-#    ncld_list, nearp3['LTS'], marker='o', 
-#    color='black', label='near p3'
-#    )
+
+
+fig_div = plt.figure(figsize=(6.5, 4))
+ax_div = fig_div.add_axes([0.15, 0.15, 0.7, 0.8])
+mesoscale_shading(ncld_list, mesomean, mesostd, 'wdiv_950hPa', ax_div)
+
+for nlist, c in zip([ncld_g1, ncld_g2, ncld_g3], colors):
+    i_group = [ncld_list.index(i) for i in nlist]
+    ax_div.scatter(
+        nlist, nearp3['wdiv_950hPa'][i_group], marker='o', 
+        color=c, label='near p3'
+        )
+ax_div.set_xticks(ncld_list)
+ax_div.hlines(0, 1, 16, colors='black', linestyles='--')
+ax_div.set_xlabel("cloud module", fontsize=12)
+ax_div.set_ylabel(r"$D_{950}$ ($s^{-1}$)", fontsize=12)
 
 
 fig_wdir = plt.figure(figsize=(6.5, 4))
@@ -121,15 +150,17 @@ ax_wdir.scatter(
     ncld_list, nearp3['wdir_sfc'], marker='o', 
     color='black', label='near p3'
     )
+for nlist, c in zip([ncld_g1, ncld_g2, ncld_g3], colors):
+    i_group = [ncld_list.index(i) for i in nlist]
+    ax_wdir.scatter(
+        nlist, nearp3['wdir_sfc'][i_group], marker='o', 
+        color=c, label='near p3'
+        )
+ax_wdir.set_xticks(ncld_list)
+ax_wdir.hlines(0, 1, 16, colors='black', linestyles='--')
+ax_wdir.set_xlabel("cloud module", fontsize=12)
+ax_wdir.set_ylabel(r"$wdir_{sfc}$ (deg)", fontsize=12)
 
-
-fig_div = plt.figure(figsize=(6.5, 4))
-ax_div = fig_div.add_axes([0.15, 0.15, 0.7, 0.8])
-mesoscale_shading(ncld_list, mesomean, mesostd, 'wdiv_sfc', ax_div)
-ax_div.scatter(
-    ncld_list, nearp3['wdiv_sfc'], marker='o', 
-    color='black', label='near p3'
-    )
 
 
 """
