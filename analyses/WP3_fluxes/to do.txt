@@ -1,3 +1,7 @@
+Climate path to CAM runs: /data/DATASETS/cesm/EUREC4A_branch/EUREC4A_branch/atm/hist
+h0 files should have SST.
+
+
 Kurtosis
 
 PDF anomalies for T'w'
@@ -48,16 +52,6 @@ Try gaussian white noise imputation. Time to start tightening up the QC.
 Migrate code / data from old ATOMIC directory to new one. Start organizing code 
 and directories, especially old code to get data within P3 cloud module time 
 intervals.
-
-Compute LCL for each cloud module. Use this to determine which horizontal leg 
-was the cloud base one. Maybe trade out mixed layer top for LCL as altitude 
-normalizing criterion.
-
-Were there in cloud legs?
-
-Use say upper quartile of radar cloud top heights as estimate of mean cloud top 
-height. Maybe trade out inversion bottom for cloud top height as altitude 
-normalizing criterion.
 
 Fourier transform of the covariance.
 
