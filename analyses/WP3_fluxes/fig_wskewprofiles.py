@@ -21,6 +21,12 @@ import thermo
 import rangescaler
 
 
+# Cloud groups
+ncld_g1 = [7, 9, 11, 10, 12, 6]
+ncld_g2 = [15, 3, 2, 13, 16, 14]
+ncld_g3 = [1, 5, 4, 8]
+
+
 
 ## Load and merge data tables:
 wskew = pd.read_csv("./wskew_levlegs/WP3_wskewness_levlegs.csv")
@@ -44,7 +50,7 @@ def restruct_wksewprofiles(data, ncld_list):
             
             # Scale altitude.
             # 0=sea level, 1=LCL, 2=trade inversion bottom or cloud top.
-            z1 = data_cld['z_mltop'].iloc[0]
+            z1 = data_cld['z_lcl'].iloc[0]
             z2 = data_cld['z_tib'].iloc[0]
             data_cld['altleg_scaled'] = rangescaler.piecewise_linscale(
                     data_cld['altleg'].values, 
@@ -65,32 +71,32 @@ def restruct_wksewprofiles(data, ncld_list):
         
 
 
-def plot_wskewprfs(wskew_prfs, ax):
+def plot_wskewprfs(wskew_prfs, ax, color):
     """
     """
     # Plot individual profiles:
     for k in wskew_prfs.columns:
         colplot = wskew_prfs[k].dropna()
-        ax.plot(colplot, colplot.index, c='grey', alpha=0.5)
-        ax.scatter(colplot, colplot.index, c='grey', s=10, alpha=0.5)  
+        ax.plot(colplot, colplot.index, c=color, alpha=0.5)
+        ax.scatter(colplot, colplot.index, c=color, s=10, alpha=0.5)  
         
     # Plot mean profile:
     altgrouped = np.round(wskew_prfs.index/0.5)*0.5 # vertical binning.
     wskew_grouped = wskew_prfs.groupby(altgrouped, axis=0, as_index=True)
     meanprf = wskew_grouped.mean().mean(axis=1)
-    ax.plot(meanprf.values, meanprf.index, 'b-', linewidth=5)
-    ax.scatter(meanprf.values, meanprf.index, c='b', s=10)
+    ax.plot(meanprf.values, meanprf.index, c=color, linewidth=5)
+    ax.scatter(meanprf.values, meanprf.index, c=color, s=10)
     
     
-
-ncld_list = (np.arange(4, 12, 1))
-wskew_prfs = restruct_wksewprofiles(data, ncld_list)      
-        
-
+    
+# Get wskew profiles for each cloud group and plot:
 fig = plt.figure(figsize=(4,8))
 ax = fig.add_axes([0.3, 0.1, 0.65, 0.8])
-plot_wskewprfs(wskew_prfs, ax)
 
+pltcolors = ['grey', 'blue', 'red']
+for ncld_list, c in zip([ncld_g1, ncld_g2, ncld_g3], pltcolors):
+    wskew_prfs = restruct_wksewprofiles(data, ncld_list)      
+    plot_wskewprfs(wskew_prfs, ax, c)
 
 # Vertical line at wskew=0 for visual reference:
 ax.plot([0,0], [0,4], 'k-', linewidth=1)
