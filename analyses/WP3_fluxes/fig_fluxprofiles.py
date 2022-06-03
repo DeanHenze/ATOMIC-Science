@@ -114,8 +114,7 @@ def get_fluxprofiles(ncld_list, keyalts_table, dir_flux,
 
 
 
-def plot_fluxprofiles(fluxprfs_dict, varkeysplot, axset, 
-                      plotmeans=False, pcolor='grey'):
+def plot_fluxprofiles(fluxprfs_dict, varkeysplot, axset, pcolor='grey'):
     """
     Plot both individual profiles and mean profile for passed data.
     
@@ -131,9 +130,6 @@ def plot_fluxprofiles(fluxprfs_dict, varkeysplot, axset,
         
     axset: list of matplotlib.pyplot.Axes.
         Same length as varkeysplot. Axes to plot on.
-        
-    plotmeans: bool.
-        If set to True, plot the average proifiles as well as individuals.
     """
     for varkey, ax in zip(varkeysplot, axset):
 
@@ -145,52 +141,53 @@ def plot_fluxprofiles(fluxprfs_dict, varkeysplot, axset,
             ax.scatter(colplot, colplot.index, c=pcolor, s=10, alpha=0.3)  
         """
         
-        # Optional compute and plot mean profile:
-        if plotmeans:
-            # Group by altitude bins with pandas:
-            #altgrouped = np.round(fluxprfs_dict[varkey].index/0.25)*0.25 # vertical binning.
-            altgrouped = np.round(fluxprfs_dict[varkey].index/0.33)*0.33 # vertical binning.
-            fluxvar_grouped = fluxprfs_dict[varkey].groupby(altgrouped, axis=0, as_index=True)
-            
-            # For each group get mean, median, max, min:
-            alt_bincenter = []
-            meanprf = []
-            medianprf = []
-            minvals, maxvals = [], []
-            for altbc, grp in fluxvar_grouped:
-                alt_bincenter.append(altbc)
-                grpvals_1d = grp.values.flatten()
-                meanprf.append(np.nanmean(grpvals_1d))
-                medianprf.append(np.nanmedian(grpvals_1d))
-                minvals.append(np.nanmin(grpvals_1d))
-                maxvals.append(np.nanmax(grpvals_1d))
-            meanprf = np.array(meanprf)
-            medianprf = np.array(medianprf)
-            minvals = np.array(minvals)
-            maxvals = np.array(maxvals)
-            alt_bincenter = np.array(alt_bincenter)
+        # Group by altitude bins with pandas:
+        #altgrouped = np.round(fluxprfs_dict[varkey].index/0.25)*0.25 # vertical binning.
+        altgrouped = np.round(fluxprfs_dict[varkey].index/0.33)*0.33 # vertical binning.
+        fluxvar_grouped = fluxprfs_dict[varkey].groupby(altgrouped, axis=0, as_index=True)
+        
+        
+        # For each group get mean, median, max, min:
+        alt_bincenter = []
+        meanprf = []
+        medianprf = []
+        minvals, maxvals = [], []
+        for altbc, grp in fluxvar_grouped:
+            alt_bincenter.append(altbc)
+            grpvals_1d = grp.values.flatten()
+            meanprf.append(np.nanmean(grpvals_1d))
+            medianprf.append(np.nanmedian(grpvals_1d))
+            minvals.append(np.nanmin(grpvals_1d))
+            maxvals.append(np.nanmax(grpvals_1d))
+        meanprf = np.array(meanprf)
+        medianprf = np.array(medianprf)
+        minvals = np.array(minvals)
+        maxvals = np.array(maxvals)
+        alt_bincenter = np.array(alt_bincenter)
 
-            # Remove and levels with less than 2 data points:            
-            lessthan2points = (fluxvar_grouped.count().sum(axis=1) < 2).values
-            alt_bincenter = alt_bincenter[~lessthan2points]
-            meanprf = meanprf[~lessthan2points]
-            medianprf = medianprf[~lessthan2points]
-            minvals = minvals[~lessthan2points]
-            maxvals = maxvals[~lessthan2points]
 
-            # Plot:
-            ax.fill_betweenx(
-                alt_bincenter, minvals, x2=maxvals, 
-                color=pcolor, edgecolor='none', alpha=0.3
-                )
-            ax.plot(
-                meanprf, alt_bincenter, 
-                color=pcolor, linestyle='-', linewidth=3, zorder=10
-                )
-            ax.plot(
-                medianprf, alt_bincenter, 
-                color=pcolor, linestyle='--', linewidth=2, zorder=10
-                )
+        # Remove and levels with less than 2 data points:            
+        lessthan2points = (fluxvar_grouped.count().sum(axis=1) < 2).values
+        alt_bincenter = alt_bincenter[~lessthan2points]
+        meanprf = meanprf[~lessthan2points]
+        medianprf = medianprf[~lessthan2points]
+        minvals = minvals[~lessthan2points]
+        maxvals = maxvals[~lessthan2points]
+
+
+        # Plot:
+        ax.fill_betweenx(
+            alt_bincenter, minvals, x2=maxvals, 
+            color=pcolor, edgecolor='none', alpha=0.3
+            )
+        ax.plot(
+            meanprf, alt_bincenter, 
+            color=pcolor, linestyle='-', linewidth=3, zorder=10
+            )
+        ax.plot(
+            medianprf, alt_bincenter, 
+            color=pcolor, linestyle='--', linewidth=2, zorder=10
+            )
         
 
 
@@ -286,18 +283,13 @@ def analyzeplotgroupings(ncld_groups, colors, scale_altkeys, keyalts_table,
     # Plot wind / turbulence profiles with means overlain:
     windkeys = ["u'u'_bar", "v'v'_bar", "w'w'_bar", "TKE"] # vars to plot.   
     for fpgroup, c in zip(fluxprfs_grouped, colors):
-        plot_fluxprofiles(
-            fpgroup, windkeys, axset_wind, 
-            plotmeans=True, pcolor=c
-            )
+        plot_fluxprofiles(fpgroup, windkeys, axset_wind, pcolor=c)
 
     # Plot scalar flux profiles with means overlain:
     scalarfluxkeys = ["flux_sh", "flux_lh", "flux_b", "dD_flux"]
     for fpgroup, c in zip(fluxprfs_grouped, colors):
         plot_fluxprofiles(
-            fpgroup, scalarfluxkeys, axset_scalar, 
-            plotmeans=True, pcolor=c
-            )
+            fpgroup, scalarfluxkeys, axset_scalar, pcolor=c)
 
 
 def fig_LCLCTscaling():
