@@ -44,8 +44,8 @@ winddiff = lambda u1, u2, v1, v2: ((u2-u1)**2 + (v2-v1)**2)**0.5
 
 
 ncld_g1 = [7, 9, 11, 10, 12, 6]
-ncld_g2 = [8, 15, 3, 2, 13, 16, 14]
-ncld_g3 = [1, 5, 4]
+ncld_g2 = [15, 3, 2, 13, 16, 14]
+ncld_g3 = [1, 5, 4, 8]
 #ncld_list = np.arange(1, 17, 1)
 ncld_list = list(np.arange(1, 17, 1))
 
