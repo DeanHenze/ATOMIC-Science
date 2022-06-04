@@ -27,20 +27,22 @@ import rangescaler
 
 def plotprf_singlevar(data, ax, pcolor='grey'):
     """
-    Plot both individual profiles and mean profile for passed data.
+    Plot a summary profile for a collection of individual profiles. Plot:
+        - mean (solid line)
+        - median (dashed)
+        - min / max values at each altitude (shaded region)
     
     Inputs
     ------
-    flux_prfs_dict: dictionary of pandas.DataFrame's.
-        Each DataFrame contains profile data for one of the variables. The 
-        index of the DataFrames is altitude and each column corresponds to one 
-        of the profiles.
+    data: pandas.DataFrame.
+        Profile data for one of the variables. The index is the altitude and 
+        each column corresponds to one of the individual profiles.
+                
+    ax: matplotlib.pyplot.Axes.
+        Axes to plot on.
         
-    varkeysplot: list of str's.
-        Keys in flux_prfs_dict to plot.
-        
-    axset: list of matplotlib.pyplot.Axes.
-        Same length as varkeysplot. Axes to plot on.
+    pcolor: str.
+        Color to pass to matplotlib.
     """
     
     # Group by altitude bins with pandas:
