@@ -6,13 +6,13 @@ Created on Wed Mar 16 10:04:03 2022
 """
 
 
-# Built in:
+# Built in
 import sys
 import os
 from os import listdir
 from os.path import join
 
-# Third party:
+# Third party
 import numpy as np
 import pandas as pd
 import xarray as xr
@@ -21,11 +21,8 @@ from matplotlib.collections import LineCollection
 from matplotlib.colors import ListedColormap, BoundaryNorm
 import seaborn as sns
 
-# My modules:
-if r'../../' not in sys.path: sys.path.insert(0,r'../../')
-from henze_python_modules import atomic_data_loader as adl
-from henze_python_modules import iso_fxns
-from henze_python_modules import atms_physics as ap
+# Local code
+import rangescaler
 
 
 
@@ -46,43 +43,79 @@ fnames_cldinsituremote = [f for f in os.listdir(path_cldinsituremote_dir)
 
 # Cloud module number groupings:
 ncld_g1 = [7, 9, 11, 10, 12, 6]
-ncld_g2 = [8, 15, 3, 2, 13, 16, 14]
-ncld_g3 = [1, 5, 4]
+ncld_g2 = [15, 3, 2, 13, 16, 14]
+ncld_g3 = [1, 5, 4, 8]
+
+ncld_g1.sort()
+ncld_g2.sort()
+ncld_g3.sort()
 
 
-"""
-    # Filenames for all P-3 cloud module in-situ data:
-datadir = r"../output/"
-fnames_insitremote = [
-    join(datadir, f) for f in listdir(datadir) 
-    if f.startswith("p3cld_insitu+remote") and f.endswith(".nc")
-    ]
-dates_dayconv = ['20200124']
-dates_nightconv = ['20200209','20200210','20200211']
-fnames_dayconv = [f for f in fnames_insitremote if f[-14:-6] in dates_dayconv]
-fnames_nightconv = [f for f in fnames_insitremote if f[-14:-6] in dates_nightconv]
-fnames_other = [f for f in fnames_insitremote 
-                if f[-14:-6] not in dates_dayconv + dates_nightconv]
-"""
 
-def collect_p3data(fpaths):
+def drpsnd_meanprfs(ncld_list, fpaths, keyalts_table, scale_altkeys):
     """
     """
-    p3all = None
-    for f in fpaths:
+
+    # Averaged sounding for each cloud module, with scaled altitude:
+    drpsndmeans_list = []
+    for ncld, f in zip(ncld_list, fpaths):
         print(f[-14:-3])
- 
-        p3 = xr.load_dataset(f)
-        p3_binned = p3.groupby(100*np.round(p3['alt']/100)).mean()
-        if p3all is not None:
-            p3all = xr.concat([p3all, p3_binned], 'cloud_module', data_vars='all', 
-                              coords='all', compat='identical', join='outer', 
-                              combine_attrs='override')
-        else:
-            p3all = p3_binned
+        drpsnds = xr.load_dataset(f)
+        drpsndmean = drpsnds.mean(dim='sounding')
+    
+        # Scale altitude and append to dataset:
+        keyalts = keyalts_table.loc[keyalts_table['ncld']==ncld]
+        alt_scalepoints = [0] + [keyalts[k].item() for k in scale_altkeys]
+        altscaled = rangescaler.piecewise_linscale(
+            drpsndmean['alt'].values, 
+            alt_scalepoints, np.arange(len(alt_scalepoints))
+            )
+        drpsndmean = drpsndmean.assign(
+            alt_scaled = xr.DataArray(
+                data=altscaled,
+                dims=["alt"],
+                coords=dict(alt=drpsndmean['alt']),
+                )
+            )
+    
+        
+        drpsndmeans_list.append(drpsndmean)
+        
+        
+    # Collect into an xr dataset:    
+    ncld_sorted = ncld_list.copy()
+    ncld_sorted.sort()
+    ncld_idx = pd.Index(ncld_sorted, name='ncld')
+    drpsndmeans_xr = xr.concat(drpsndmeans_list, ncld_idx, data_vars='all', 
+                      coords='all', compat='identical', join='outer', 
+                      combine_attrs='override')
             
-    return p3all
+    return drpsndmeans_xr
       
+
+for ncld_list in [ncld_g1, ncld_g2, ncld_g3]:
+    keyalts_table = pd.read_csv(path_keyaltstable)
+    scale_altkeys = ['z_lcl', 'z_tib']
+    #scale_altkeys = ['z_lcl', 'z_ctmean_50p95p']
+    #ncld_list = ncld_g2
+    fnames_cldgroup = [f for f in fnames_clddrpsnds if int(f[-5:-3]) in ncld_list]
+    fpaths = [path_clddrpsnds_dir+f for f in fnames_cldgroup]
+    drpsnds = drpsnd_meanprfs(ncld_list, fpaths, keyalts_table, scale_altkeys)
+    
+    
+    plt.figure()
+    for n in ncld_list:
+        test = drpsnds.sel(ncld=n)
+        plt.plot(test.theta, test.alt_scaled, label=n)
+    plt.legend()
+   
+""" 
+plt.figure()
+for n in ncld_list:
+    test = drpsnds.sel(ncld=n)
+    plt.plot(test.theta, test.alt, label=n)
+plt.legend()
+"""
 
 
 def prf_cldgroup(ncldgroup):
@@ -91,12 +124,12 @@ def prf_cldgroup(ncldgroup):
     """
     
     fnames_cldgroup = [f for f in fnames_clddrpsnds if int(f[-5:-3]) in ncldgroup]
-    drpsnds = collect_p3data([path_clddrpsnds_dir+f for f in fnames_cldgroup])
+    drpsnds = drpsnd_meanprfs([path_clddrpsnds_dir+f for f in fnames_cldgroup])
     mean_drpsnd = drpsnds.mean(dim=['cloud_module', 'sounding'])
     std_drpsnd = drpsnds.std(dim=['cloud_module', 'sounding'])
     return mean_drpsnd, std_drpsnd
     
-    
+"""    
 drpsndresults = []
 for ncldgroup in [ncld_g1, ncld_g2, ncld_g3]:
         drpsndresults.append(prf_cldgroup(ncldgroup))
@@ -113,7 +146,7 @@ for results, c in zip(drpsndresults, colors):
         mean['alt'], mean['theta']-std['theta'], x2=mean['theta']+std['theta'], 
         alpha=0.25, color=c, edgecolor='none'
         )
-
+"""
 
 
 def plot_prf_envelop(data_xr, axset, varset, color):
