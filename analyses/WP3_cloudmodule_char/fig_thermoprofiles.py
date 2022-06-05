@@ -23,6 +23,7 @@ import seaborn as sns
 
 # Local code
 import rangescaler
+import profileplotter
 
 
 
@@ -70,13 +71,22 @@ def drpsnd_meanprfs(ncld_list, fpaths, keyalts_table, scale_altkeys):
             drpsndmean['alt'].values, 
             alt_scalepoints, np.arange(len(alt_scalepoints))
             )
-        drpsndmean = drpsndmean.assign(
+        drpsndmean = drpsndmean.assign_coords(
             alt_scaled = xr.DataArray(
                 data=altscaled,
                 dims=["alt"],
                 coords=dict(alt=drpsndmean['alt']),
                 )
             )
+        drpsndmean = drpsndmean.swap_dims({'alt':'alt_scaled'})
+
+        #drpsndmean = drpsndmean.assign(
+        #    alt_scaled = xr.DataArray(
+        #        data=altscaled,
+        #        dims=["alt"],
+        #        coords=dict(alt=drpsndmean['alt']),
+        #        )
+        #    )
     
         
         drpsndmeans_list.append(drpsndmean)
@@ -91,23 +101,63 @@ def drpsnd_meanprfs(ncld_list, fpaths, keyalts_table, scale_altkeys):
                       combine_attrs='override')
             
     return drpsndmeans_xr
-      
+    
 
-for ncld_list in [ncld_g1, ncld_g2, ncld_g3]:
-    keyalts_table = pd.read_csv(path_keyaltstable)
-    scale_altkeys = ['z_lcl', 'z_tib']
-    #scale_altkeys = ['z_lcl', 'z_ctmean_50p95p']
-    #ncld_list = ncld_g2
+
+keyalts_table = pd.read_csv(path_keyaltstable)
+scale_altkeys = ['z_lcl', 'z_tib']    
+drpsnds_grouped = []
+for ncld_list in [ncld_g2, ncld_g3, ncld_g1]:
     fnames_cldgroup = [f for f in fnames_clddrpsnds if int(f[-5:-3]) in ncld_list]
     fpaths = [path_clddrpsnds_dir+f for f in fnames_cldgroup]
-    drpsnds = drpsnd_meanprfs(ncld_list, fpaths, keyalts_table, scale_altkeys)
+    drpsnds_grouped.append(
+        drpsnd_meanprfs(
+            ncld_list, fpaths, 
+            keyalts_table, scale_altkeys
+            )
+        )
     
+
+
+fig = plt.figure(figsize=(6.5, 2.5))
+w = 0.215
+lmarge = 0.1
+axset = [
+    fig.add_axes([x, 0.2, w, 0.78]) 
+    for x in [lmarge, lmarge + w + 0.01, lmarge + 2*w + 2*0.01, lmarge + 3*w + 3*0.01]
+    ]
+#plt.figure()
+#ax = plt.axes()
+pltcolors=['blue','red','grey']
+#for ncld_list, c in zip([ncld_g2, ncld_g3, ncld_g1], pltcolors):
+for drpsnds, c in zip(drpsnds_grouped, pltcolors):
+    #keyalts_table = pd.read_csv(path_keyaltstable)
+    #scale_altkeys = ['z_lcl', 'z_tib']
+    #scale_altkeys = ['z_lcl', 'z_ctmean_50p95p']
+    #ncld_list = ncld_g2
+    #fnames_cldgroup = [f for f in fnames_clddrpsnds if int(f[-5:-3]) in ncld_list]
+    #fpaths = [path_clddrpsnds_dir+f for f in fnames_cldgroup]
+    #drpsnds = drpsnd_meanprfs(ncld_list, fpaths, keyalts_table, scale_altkeys)
     
-    plt.figure()
-    for n in ncld_list:
-        test = drpsnds.sel(ncld=n)
-        plt.plot(test.theta, test.alt_scaled, label=n)
-    plt.legend()
+    for ax, varkey in zip(axset, ['theta','q','rh']):
+
+        profileplotter.plotprf_singlevar(
+            drpsnds[varkey].to_pandas().T, 
+            ax, 
+            #alt_binwidth=100, pcolor=c
+            alt_binwidth=0.25, pcolor=c
+            )
+        
+    
+    #plt.figure()
+    #for n in ncld_list:
+    #    test = drpsnds.sel(ncld=n)
+    #    plt.plot(test.theta, test.alt_scaled, label=n)
+    #plt.legend()
+   
+    
+
+
    
 """ 
 plt.figure()
