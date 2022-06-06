@@ -3,6 +3,13 @@
 Created on Wed Mar 16 10:04:03 2022
 
 @author: Dean
+
+Figure of mean profiles for potential temperature, humidity, relative humidity 
+and water isotope ratio dD for P-3 cloud modules. Cloud modules are 
+grouped by cloud properties.
+
+Use in-situ measurements for dD profiles and dropsonde data for the other 
+three variables.
 """
 
 
@@ -14,10 +21,12 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 
 # Local code
 import rangescaler
 import profileplotter
+import thermo
 
 
 
@@ -49,6 +58,8 @@ ncld_g3.sort()
 
 def drpsnd_meanprfs(ncld_list, fpaths, keyalts_table, scale_altkeys):
     """
+    Returns mean profiles derived from dropsondes for a subset of the P-3 cloud 
+    modules. Returned as an xarray Dataset.
     """
 
     # Averaged sounding for each cloud module, with scaled altitude:
@@ -73,15 +84,6 @@ def drpsnd_meanprfs(ncld_list, fpaths, keyalts_table, scale_altkeys):
                 )
             )
         #drpsndmean = drpsndmean.swap_dims({'alt':'alt_scaled'})
-
-        #drpsndmean = drpsndmean.assign(
-        #    alt_scaled = xr.DataArray(
-        #        data=altscaled,
-        #        dims=["alt"],
-        #        coords=dict(alt=drpsndmean['alt']),
-        #        )
-        #    )
-    
         
         drpsndmeans_list.append(drpsndmean)
         
@@ -90,18 +92,70 @@ def drpsnd_meanprfs(ncld_list, fpaths, keyalts_table, scale_altkeys):
     ncld_sorted = ncld_list.copy()
     ncld_sorted.sort()
     ncld_idx = pd.Index(ncld_sorted, name='ncld')
-    drpsndmeans_xr = xr.concat(drpsndmeans_list, ncld_idx, data_vars='all', 
-                      coords='all', compat='identical', join='outer', 
-                      combine_attrs='override')
+    drpsndmeans_xr = xr.concat(
+        drpsndmeans_list, ncld_idx, data_vars='all', 
+        coords='all', compat='identical', join='outer', 
+        combine_attrs='override'
+        )
             
     return drpsndmeans_xr
+
+
+
+def insitu_meanprfs(ncld_list, fpaths, keyalts_table, scale_altkeys):
+    """
+    Returns mean profiles derived from insitu for a subset of the cloud P-3
+    modules. Returned as an xarray Dataset.
+    """
+
+    # Averaged profile for each cloud module and append to a list:
+    insitumeans_list = []
+    for ncld, f in zip(ncld_list, fpaths):
+        print(f[-14:-3])
+        insitu = xr.load_dataset(f)
+        
+        # Append potential temperature:
+        insitu['theta'] = thermo.theta(insitu['Ta'], insitu['press'], qv=0)
+        
+        # Get mean profile and append to list:
+        insitumeans_list.append(
+            insitu.groupby(100*np.round(insitu['alt']/100)).mean())
+        
+    # Collect into an xr dataset:    
+    ncld_sorted = ncld_list.copy()
+    ncld_sorted.sort()
+    ncld_idx = pd.Index(ncld_sorted, name='ncld')
+    insitumeans_xr = xr.concat(
+        insitumeans_list, ncld_idx, data_vars='all', 
+        coords='all', compat='identical', join='outer', 
+        combine_attrs='override'
+        )
+                             
+    return insitumeans_xr
+     
+
+
+## For scaling altitude by e.g. LCL, trade-inversion, if needed:
+keyalts_table = pd.read_csv(path_keyaltstable)
+scale_altkeys = ['z_lcl', 'z_tib']   
+
+
+
+## Get insitu mean profiles as a list of xr.Datasets, one for each cloud group: 
+insitu_grouped = [] # Will be list of xr.Datasets:
+for ncld_list in [ncld_g2, ncld_g3, ncld_g1]:
+    fnames_cldgroup = [f for f in fnames_cldinsituremote if int(f[-5:-3]) in ncld_list]
+    fpaths = [path_clddrpsnds_dir+f for f in fnames_cldgroup]
+    insitu_grouped.append(
+        insitu_meanprfs(
+            ncld_list, fpaths, 
+            keyalts_table, scale_altkeys
+            )
+        )
+    
     
 
-
-# Get dropsondes grouped by cloud characteristics. Each group is a dataset 
-# and all datasets are collected in a list:
-keyalts_table = pd.read_csv(path_keyaltstable)
-scale_altkeys = ['z_lcl', 'z_tib']    
+## Get dropsonde mean profiles as a list of xr.Datasets, one for each cloud group:  
 drpsnds_grouped = [] # Will be list of xr.Datasets:
 for ncld_list in [ncld_g2, ncld_g3, ncld_g1]:
     fnames_cldgroup = [f for f in fnames_clddrpsnds if int(f[-5:-3]) in ncld_list]
@@ -116,9 +170,9 @@ for ncld_list in [ncld_g2, ncld_g3, ncld_g1]:
 
 
 ## Plot:
-fig = plt.figure(figsize=(6.5, 2.5))
-w = 0.215
-lmarge = 0.1
+fig = plt.figure(figsize=(6.5, 3))
+w = 0.21
+lmarge = 0.12
 axset = [
     fig.add_axes([x, 0.2, w, 0.78]) 
     for x in [lmarge, lmarge + w + 0.01, lmarge + 2*w + 2*0.01, lmarge + 3*w + 3*0.01]
@@ -136,26 +190,61 @@ for drpsnds, c in zip(drpsnds_grouped, pltcolors):
             #alt_binwidth=0.25, pcolor=c
             )
         
+        
+for insitu, c in zip(insitu_grouped, pltcolors):
+
+        profileplotter.plotprf_singlevar(
+            insitu['dD'].to_pandas().T, 
+            axset[3], 
+            alt_binwidth=100, pcolor=c
+            #alt_binwidth=0.25, pcolor=c
+            )
 
 
+## Axes limits, labels, legend, and save:
+axset[0].set_xlim(294, 315)
+axset[0].set_xticks(np.arange(295, 315, 5))
+axset[0].set_xticklabels(axset[0].get_xticks().astype(str), fontsize=9)
+axset[0].set_xlabel(r'$\theta$ (K)', fontsize=12)
 
 
+axset[1].set_xlim(-0.0006, 0.02)
+axset[1].set_xticks(np.arange(0, 0.02, 0.005))
+axset[1].set_xticklabels(
+    [(1000*t).astype(int).astype(str) for t in axset[1].get_xticks()],
+    fontsize=9
+    ) # factor of 1000 to convert to g/kg.
+axset[1].set_xlabel(r'$q$ (g/kg)', fontsize=12)
 
 
+axset[2].set_xlim(-0.02, 1.05)
+axset[2].set_xticks(np.arange(0, 1.01, 0.25))
+axset[2].set_xticklabels(
+    [(100*t).astype(int).astype(str) for t in axset[2].get_xticks()],
+    fontsize=9
+    ) # factor of 100 to convert to %.
+axset[2].set_xlabel(r'$RH$ (%)', fontsize=12)
 
 
+axset[3].set_xlim(-285, -40)
+axset[3].set_xticks(np.arange(-250, -49, 50))
+axset[3].set_xticklabels(axset[3].get_xticks().astype(str), fontsize=9)
+axset[3].set_xlabel(r'$\delta D$ '+u'(\u2030)', fontsize=12)
 
 
+for ax in axset: 
+    ax.set_ylim(-100, 3200)
+    ax.set_yticks(np.arange(0, 3001, 500))   
+axset[0].set_yticklabels(axset[0].get_yticks().astype(str), fontsize=9)        
+for ax in axset[1:]: 
+    ax.set_yticklabels(['' for e in ax.get_yticks()], fontsize=9)
+axset[0].set_ylabel('altitude (m)', fontsize=12)
 
 
+legend_lines = [Line2D([0], [0], color='red', lw=4),
+                Line2D([0], [0], color='grey', lw=4),
+                Line2D([0], [0], color='blue', lw=4)]
+ax.legend(legend_lines, ['cg1', 'cg2', 'cg3'])
 
 
-
-
-
-
-
-
-
-
-
+fig.savefig("./fig_thermoprofiles.png")
