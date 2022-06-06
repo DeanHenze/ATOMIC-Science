@@ -251,6 +251,10 @@ def fig_LCLCTscaling():
     #ncld_g1 = [7, 9, 11, 10, 12, 6]
     #ncld_g2 = [8, 15, 3, 2, 13, 16, 14]
     ncld_g3 = [1, 5, 4, 8]
+    
+    ncld_g1.sort()
+    ncld_g2.sort()
+    ncld_g3.sort()
     ncld_groups = [ncld_g1, ncld_g2, ncld_g3]
     
     scale_altkeys = ["z_lcl", "z_ctmean_50p95p"] # scale altitude by these quantities.
@@ -296,6 +300,10 @@ def fig_LCLTIBscaling():
     #ncld_g1 = [7, 9, 11, 10, 12, 6]
     #ncld_g2 = [8, 15, 3, 2, 13, 16, 14]
     ncld_g3 = [1, 5, 4, 8]
+    
+    ncld_g1.sort()
+    ncld_g2.sort()
+    ncld_g3.sort()
     ncld_groups = [ncld_g1, ncld_g2, ncld_g3]
     
     scale_altkeys = ["z_lcl", "z_tib"] # scale altitude by these quantities.
