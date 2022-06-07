@@ -30,6 +30,7 @@ import xarray as xr
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import gaussian_kde
+import seaborn as sns
 
 # Local code
 import iso
@@ -43,7 +44,8 @@ fnames_levlegs = [f for f in os.listdir(dir_5hzdata) if f.endswith(".nc")]
 
 def plots(ncld):
     
-    fnames_levlegs_cld = [f for f in fnames_levlegs if "_cld%i"%ncld in f]
+    ncld_str = str(ncld).zfill(2)
+    fnames_levlegs_cld = [f for f in fnames_levlegs if "_cld%s"%ncld_str in f]
    
     for f in fnames_levlegs_cld:
         
@@ -63,8 +65,13 @@ def plots(ncld):
         datadown = data_dfqc.loc[data_dfqc["w'"]<0]
         
         # Plots:
-        #plt.figure()
-        #plt.scatter(data_dfqc["w'"], data_dfqc["q"])
+        plt.figure()
+        ax = plt.axes()
+        plt.scatter(data_dfqc["w"], data_dfqc["q"])
+        sns.kdeplot(
+            data=data_dfqc, x="w", y="q", ax=ax, 
+            levels=[0.01] + list(np.arange(0.05, 1, 0.1)), color='red'
+            )
         
         #plt.figure()
         #plt.scatter(data_dfqc["w'"], data_dfqc["q'"], s=1)
@@ -88,16 +95,18 @@ def plots(ncld):
         
         
         # Same as above execpt for data above / below the upper / lower quartile:
-        q1, q3 = np.nanquantile(data_dfqc["w'"], [0.25, 0.75])
-        dataup = data_dfqc.loc[data_dfqc["w'"]>q3]
-        datadown = data_dfqc.loc[data_dfqc["w'"]<q1]
-        #ax2 = plt.subplot(1,2,2)
-        #qdD_pdf(dataup, 'blue', ax2)
-        #qdD_pdf(datadown, 'red', ax2)
+        #q1, q3 = np.nanquantile(data_dfqc["w'"], [0.25, 0.75])
+        #dataup = data_dfqc.loc[data_dfqc["w'"]>q3]
+        #datadown = data_dfqc.loc[data_dfqc["w'"]<q1]
         
-        plt.figure()
-        plt.hist(dataup["dD"], bins=20, histtype='step')
-        plt.hist(datadown["dD"], bins=20, histtype='step')
+        #plt.figure()
+        #plt.hist(dataup["dD"], bins=20, histtype='step')
+        #plt.hist(datadown["dD"], bins=20, histtype='step')
+        
+        ax.text(
+            0.95, 0.95, "z = %i m" % round(data_dfqc["alt"].mean()), 
+            ha='right', va='top', transform=ax.transAxes, fontsize=14
+            )
         
         
         
@@ -116,7 +125,8 @@ def qdD_pdf(data, color, ax, scatter=False):
 
 
 
-plots(6)
+#plots(6)
+plots(2)
 
  
     
