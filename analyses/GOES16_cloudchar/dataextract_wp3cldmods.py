@@ -5,21 +5,21 @@ Created on Thu Oct 14 12:55:39 2021
 @author: Dean
 
 
-Produces one representative GOES-16 images for each P-3 cloud module. 
-The GOES images are taken at the nearest 20 minute timestamp to the mean 
-time of the P-3 cloud modules. Plot either reflectance for daytime or IR 
-temperature for night (in progress). Overlays P-3 flight track during cloud 
-module.
+Save one representative GOES-16 image for each P-3 cloud module. 
+
+For each cloud module, the GOES image taken is the nearest 20 minute timestamp 
+to the mean time of the module, and in a 2 deg x 2 deg lat, lon region about 
+the P-3's mean location.
 """
 
 
-# Built in:
+# Built in
 import sys
 import os
 #from os import listdir
 #from os.path import join
 
-# Third party:
+# Third party
 import numpy as np
 import pandas as pd
 import xarray as xr
@@ -30,128 +30,141 @@ from matplotlib.legend import Legend
 import matplotlib.lines as mlines
 import seaborn as sns
 
+# Local code
+import datetimeconverter as dtconv
 
 
+
+## I/O paths
+##_____________________________________________________________________________
 path_cldmodtab = "../WP3_cloudmodule_char/p3_cloudmodules.csv"
-cldmodtab = pd.read_csv(path_cldmodtab)
 path_goesdir = "../../data/GOES-16/GOES16_for_cloudmodules/"
-fnames_goes = os.listdir(path_goesdir)
+path_savedir = "./goes16_WP3cldmods/"
+##_____________________________________________________________________________
+## I/O paths
 
 
-def plt_goes16(goesdata, p3data_cld, ax, radtype='vis'):
-    """ pcolor plot of GOES-16 visible reflectance or IR. Overlay P-3 flight 
-    track. radtype can be 'vis' or 'ir'.
+
+def goesfile_neartime(path_goesdir, t1, t2, varsubset=None):
     """
-    latmean = p3data_cld['lat'].mean()
-    lonmean = p3data_cld['lon'].mean()
-    goesdata = goesdata.where((goesdata['longitude']>(lonmean-2.5)) 
-                              & (goesdata['longitude']<(lonmean+2.5)), 
-                              drop=True)
-    goesdata = goesdata.where((goesdata['latitude']>(latmean-2.5)) 
-                              & (goesdata['latitude']<(latmean+2.5)), 
-                              drop=True)
+    Get a single GOES .nc data file for the mean time of t1 and t2 rounded to 
+    the nearest 20 minutes.
     
-    if radtype=='vis': 
-        varkey = 'reflectance_vis'
-        vmin = 0; vmax = 0.8
-        cmap = 'gray'
-    if radtype=='ir': 
-        varkey = 'temperature_ir'
-        vmin = 272; vmax = 300
-        cmap = 'gist_yarg'
-   
-    pc = ax.pcolor(goesdata['longitude'], goesdata['latitude'], goesdata[varkey], 
-                   cmap = cmap, vmin=vmin, vmax=vmax)
-    ax.plot(p3data_cld['lon'], p3data_cld['lat'], 'r-')
+    Inputs
+    ------
+    path_goesdir: str or path.
+        Path to directory containing GOES data files.
     
-    return pc
-
-
-
-def get_goes(t1_cld, t2_cld):
-    """
-    Get a single GOES .nc data file for the mean time of t1_cld and t2_cld
-    (pd.Timestamp objects), to the nearest 20 minutes.
+    t1, t2: pd.Timestamp objects.
+        t2 should be greater than t1.
+        
+    varsubset: iterables of str's.
+        Optional to return only these variables keys. 
 
     Returns
     -------
     xarray.dataset
-
     """    
-    # Make sure times are pd.Timestamps:
-    t1_cld = pd.Timestamp(t1_cld)
-    t2_cld = pd.Timestamp(t2_cld)
-    
+    t1 = pd.Timestamp(t1)
+    t2 = pd.Timestamp(t2)
+        
     # Mean datetime of cloud module rounded to nearest 20 min:
-    dtime_cld = (t1_cld + (t2_cld - t1_cld)/2).round('min')
-    dtime_cld += pd.Timedelta(10, 'min') # Add 10 min so next line floors instead of rounds.
-    dtime_cld -= pd.Timedelta(dtime_cld.minute % 20, 'min') # nearest 20 min.
+    dtime = (t1 + (t2 - t1)/2).round('min')
+    dtime += pd.Timedelta(10, 'min') # Add 10 min so next line floors instead of rounds.
+    dtime -= pd.Timedelta(dtime.minute % 20, 'min') # nearest 20 min.    
     
     # Load corresponding GOES-16 file and isolate a few variables:
-    goes16 = adl.goes16_p3cld(dtime_cld)
-    goes16 = goes16[['reflectance_vis', 'temperature_ir', 'cloud_top_height']]
-    
-    return goes16, dtime_cld
+    goesdata, fname = goesfile(path_goesdir, dtime)
+    if varsubset is not None:
+        goesdata = goesdata[varsubset]
+
+    return goesdata, fname
 
 
 
-###############################################################################
-# Rest of script loops through cloud modules datetimes and calls above fxns 
-# make make figures.
-###############################################################################
+def goesfile(path_goesdir, dtime):
+    """
+    Return GOES16 data file for specified date and time.
+    
+    dtime: str or pandas Timestamp object.
+        If str, it should be in the format 'yyyymmddHHMM' (y=year, m=month, 
+        d=day, H=hour, M = minute).
+    """
+    
+    if type(dtime) == pd._libs.tslibs.timestamps.Timestamp:
+        dtime = dtime.strftime("%Y%m%d%H%M")
+        
+    date = dtime[0:8]
+    time = dtime[8:12]
+    
+    nday = dtconv.yyyymmdd_to_ndays(date, with_year=True) # day num since Jan1, 2020.
+    fname = "G16V04.0.ATOMIC.%s.%s.PX.02K.nc" % tuple([nday, time])
+    return xr.load_dataset(path_goesdir + fname), fname
 
-"""
-## P-3 data filenames each cloud module:
-datadir = r"../output/"
-fnames = [os.path.join(datadir, f) for f in os.listdir(datadir) 
-          if f.startswith("p3cld_") and f.endswith(".nc")
-          ]
 
-for f in fnames:
-    
-    # Load P-3 data during cloud module:
-    p3data = xr.load_dataset(f) 
-    
-    fig = plt.figure(figsize=(4, 4))
-    ax = fig.add_axes([0.2, 0.2, 0.7, 0.7])
 
-    # Get GOES data and plot image with P-3 flight track:
-    t1_cld = p3data.time.values[0]
-    t2_cld = p3data.time.values[-1]
-    goes, dtime_cld_20min = get_goes(t1_cld, t2_cld)
-    radtype = 'ir'
-    pc = plt_goes16(goes, p3data, ax, radtype=radtype)
+def clip_region(data, latcen, loncen, dlat, dlon, 
+                latkey='latitude', lonkey='longitude'):
+    """
+    Return subset of passed geospatial dataset in specified lat / lon region.
     
-    #fig.colorbar(pc, ax=ax)
+    Inputs
+    ------
+    data: xr.Dataset
     
-    # Figure aesthetics:
-    ax.tick_params(axis='both', labelsize=8.5)
+    latcen, loncen: scalars.
+        Center latitude, longitude of subset region.
+        
+    dlat, dlon: scalars.
+        Half widths of desired latitude, longitude region.
+        
+    latkey, lonkey:
+        Keys in 'data' for latitude and longitude.
+    """
+    data_subset = data.where(
+        (data[lonkey]>(loncen-dlon)) & (data[lonkey]<(loncen+dlon)), 
+        drop=True
+        )
+    data_subset = data_subset.where(
+        (data_subset[latkey]>(latcen-dlat)) & (data_subset[latkey]<(latcen+dlat)), 
+        drop=True
+        )
     
-    date = f[-14:-6]; n_cld = f[-5:-3] # Date and cloud module number
-    ax.set_title(str(dtime_cld_20min), fontsize=12)
+    return data_subset
+
+
+
+if __name__=="__main__":
+
+    # P-3 cloud modules table (info on lat, lon, time of each module):    
+    cldmodtab = pd.read_csv(path_cldmodtab)
     
     
-    figsdir = r"../figures/goes16/"
-    if not os.path.isdir(figsdir):
-        os.makedirs(figsdir)
-    fname_fig = "goes16%s_%s_cld%s" % tuple([radtype, date, n_cld])
-    fig.savefig(figsdir + fname_fig)
-"""    
+    # Things that may want to be modified:
+    dlat = 2 # half-width of latitude for desired GOES region.
+    dlon = 2 # half-width of longitude for desired region.
+    varsubset = [ # subset of GOES variables to save.
+        'reflectance_vis', 'temperature_ir', 
+        'cloud_top_height'
+        ]
     
+
+    if not os.path.isdir(path_savedir): os.mkdir(path_savedir)   
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-     
-    
+    for i, row in cldmodtab.iterrows():
+        
+        ncld = str(row['num_cld_iop']).zfill(2)
+        print("Getting goes image data for P-3 cloud module %s" % ncld)
+        
+        # Data nearest P-3 cloud module time:
+        t1 = row['start_datetime']
+        t2 = row['end_datetime']
+        goesdata, fname_goes = goesfile_neartime(path_goesdir, t1, t2, varsubset)
+        
+        # Subset of data near cloud module sampling lat / lon:
+        latcen = row['lat_mean']
+        loncen = row['lon_mean']
+        goesdata_sub = clip_region(goesdata, latcen, loncen, dlat, dlon)
+        
+        fname_save = fname_goes[:-3] + "_ncld" + ncld + ".NC"
+        goesdata_sub.to_netcdf(path_savedir + fname_save)
