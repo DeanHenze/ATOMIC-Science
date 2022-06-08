@@ -5,9 +5,14 @@ Created on Thu Oct 14 12:55:39 2021
 @author: Dean
 
 
-Plot and save one representative GOES-16 image for each P-3 cloud module. GOES 
-image timestamp is near the P-3 mean sampling time and lat, lon window is 
-centered on mean P-3 sampling location. 
+Plot and save GOES-16 images for each P-3 cloud module. 
+Image data saved:
+    - Visual reflectance
+    - IR temperature
+    - IR threshold mask (binary)
+
+Timestamp of GOES image data is near the P-3 mean sampling time and lat, lon 
+window is centered on mean P-3 sampling location. 
 """
 
 
@@ -31,7 +36,7 @@ path_savedir = "./images/"
     
 
  
-def createimages(path_goescldmoddir, path_savedir, varkey='temperature_ir'):  
+def createimages(path_goescldmoddir, path_savedir):
  
     fnames_goescldmod = os.listdir(path_goescldmoddir)    
  
@@ -39,32 +44,49 @@ def createimages(path_goescldmoddir, path_savedir, varkey='temperature_ir'):
         
         goesdata = xr.load_dataset(os.path.join(path_goescldmoddir, f)) 
         
-        fig = plt.figure(figsize=(4, 4))
-        ax = fig.add_axes([0.2, 0.2, 0.7, 0.7])
-        
-        if varkey=='reflectance_vis': 
-            vmin = 0; vmax = 0.8
-            cmap = 'gray'
-        if varkey=='temperature_ir': 
-            vmin = 272; vmax = 300
-            cmap = 'gist_yarg'
- 
-        pc = ax.pcolor(
-            goesdata['longitude'], goesdata['latitude'], 
-            goesdata[varkey], 
-            cmap = cmap, vmin=vmin, vmax=vmax
-            )
-        
         ncld_str = f[-9:-3]
-        fnamesave = "G16V04.0.ATOMIC.PX.02K_%s_%s.png" % tuple([ncld_str, varkey])
-        fig.savefig(os.path.join(path_savedir, fnamesave))
-            
+
+                
+        fig_ir = plt.figure(figsize=(4, 4))
+        ax_ir = fig_ir.add_axes([0.2, 0.2, 0.7, 0.7])
+        ax_ir.pcolor(
+            goesdata['longitude'], goesdata['latitude'], 
+            goesdata['temperature_ir'], 
+            cmap = 'gist_yarg', vmin=272, vmax=300
+            )
+        fnameir_save = "G16V04.0.ATOMIC.PX.02K_IRtemp_%s.png" % ncld_str
+        fig_ir.savefig(os.path.join(path_savedir, fnameir_save))        
+        plt.close(fig=fig_ir)
+        
+        
+        fig_vis = plt.figure(figsize=(4, 4))
+        ax_vis = fig_vis.add_axes([0.2, 0.2, 0.7, 0.7])
+        ax_vis.pcolor(
+            goesdata['longitude'], goesdata['latitude'], 
+            goesdata['reflectance_vis'], 
+            cmap = 'gray', vmin=0, vmax=0.8
+            )
+        fnamevis_save = "G16V04.0.ATOMIC.PX.02K_vis-reflectance_%s.png" % ncld_str
+        fig_vis.savefig(os.path.join(path_savedir, fnamevis_save))
+        plt.close(fig=fig_vis)
+        
+        
+        fig_irmask = plt.figure(figsize=(4, 4))
+        ax_irmask = fig_irmask.add_axes([0.2, 0.2, 0.7, 0.7])
+        ax_irmask.pcolor(
+            goesdata['longitude'], goesdata['latitude'], 
+            goesdata['ir_mask'], cmap='gist_yarg'
+            )
+        fnameirmask_save = "G16V04.0.ATOMIC.PX.02K_IRmask_%s.png" % ncld_str
+        fig_irmask.savefig(os.path.join(path_savedir, fnameirmask_save))   
+        plt.close(fig=fig_irmask)
+    
 
 
 if __name__=="__main__":
     
     if not os.path.isdir(path_savedir): os.mkdir(path_savedir)   
-    createimages(path_goescldmoddir, path_savedir, varkey='temperature_ir')
+    createimages(path_goescldmoddir, path_savedir)
 
     
     
