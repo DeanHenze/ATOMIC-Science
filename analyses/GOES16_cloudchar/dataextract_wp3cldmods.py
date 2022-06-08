@@ -5,33 +5,27 @@ Created on Thu Oct 14 12:55:39 2021
 @author: Dean
 
 
-Save one representative GOES-16 image for each P-3 cloud module. 
+Get GOES-16 image data each P-3 cloud module. 
 
 For each cloud module, the GOES image taken is the nearest 20 minute timestamp 
 to the mean time of the module, and in a 2 deg x 2 deg lat, lon region about 
 the P-3's mean location.
+
+Reflectance, IR temperature, and cloud top data are taken. Also, an IR 
+threshold mask is appended to the dataset.
 """
 
 
 # Built in
-import sys
 import os
-#from os import listdir
-#from os.path import join
 
 # Third party
-import numpy as np
 import pandas as pd
 import xarray as xr
-import matplotlib.pyplot as plt
-from matplotlib.patches import Rectangle
-from matplotlib.collections import PatchCollection
-from matplotlib.legend import Legend
-import matplotlib.lines as mlines
-import seaborn as sns
 
 # Local code
 import datetimeconverter as dtconv
+import threshmask
 
 
 
@@ -166,5 +160,17 @@ if __name__=="__main__":
         loncen = row['lon_mean']
         goesdata_sub = clip_region(goesdata, latcen, loncen, dlat, dlon)
         
+        # IR threhold mask:
+        lowT = 275 # IR temperature in K
+        highT = 292
+        goesdata_sub['ir_mask'] = threshmask.threshmask(
+            goesdata_sub['temperature_ir'], low_thresh=lowT, high_thresh=highT)
+        goesdata_sub['ir_mask'].attrs['long_name'] = (
+            "Mask = 1 if IR temperature is between the low and high thresholds."
+            )
+        goesdata_sub['ir_mask'].attrs['low_threshold'] = lowT
+        goesdata_sub['ir_mask'].attrs['high_threshold'] = highT
+        
+        # Save file:
         fname_save = fname_goes[:-3] + "_ncld" + ncld + ".NC"
         goesdata_sub.to_netcdf(path_savedir + fname_save)
