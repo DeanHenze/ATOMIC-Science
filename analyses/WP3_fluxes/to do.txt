@@ -5,6 +5,7 @@ scipy and sklearn for feature size:
 	e.g. check out:  
 		from scipy.ndimage import measurements
     		from scipy.ndimage import label
+		sklearn.feature_extraction.image.extract_patches_2d
 
 
 Allison Wing for Iorg
