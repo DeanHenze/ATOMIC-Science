@@ -1,3 +1,17 @@
+possibly plot thermo profile anomalies - e.g. deviation of each cloud group by the 
+mean of all cloud modules.
+
+scipy and sklearn for feature size:
+	e.g. check out:  
+		from scipy.ndimage import measurements
+    		from scipy.ndimage import label
+
+
+Allison Wing for Iorg
+
+More robust definition of trade inversion altitude. Something to do with deviation from a
+moist adiabat.
+
 Climate path to CAM runs: /data/DATASETS/cesm/EUREC4A_branch/EUREC4A_branch/atm/hist
 h0 files should have SST.
 
