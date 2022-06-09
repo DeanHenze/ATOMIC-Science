@@ -59,7 +59,7 @@ levlegalt_tab.loc[in_cg3, 'cldgroup'] = 3
 alt_thresh1 = 300
 alt_thresh2 = 800
 alt_thresh3 = 1500
-alt_thresh4 = 2000
+alt_thresh4 = 2500
 
 altgroup = []
 for x in levlegalt_tab['altmean']:
@@ -94,7 +94,7 @@ def multincdata_todf(pathdir, fnames, varkeys):
 
 
 
-def get_fnames(fnames_levlegs, ncld_list, nlevleg_list):
+def fnamesubset(fnames_levlegs, ncld_list, nlevleg_list):
     """
     Return subset of level leg filenames for each pair of (cloud module, level 
     leg number) in lists (ncld_list, nlevleg_list).
@@ -111,61 +111,97 @@ def get_fnames(fnames_levlegs, ncld_list, nlevleg_list):
 
 
 
-def plotpdf(data, v1, v2, ax):
-    """
-    Plot joint-PDF of variables v1 vs v2 in data (DataFrame).
-    """
-
-
-
 varkeys = ["w'","q'","roll"]
-"""
-p3data_grouped = []
-for altgroup, data_altgrp in levlegalt_tab.groupby(by='altgroup'):
-    
-    fnames_group = []
-    for i, row in data_altgrp.iterrows():
-        
-        ncld_str = str(row['ncld']).zfill(2)
-        fname = [f for f in fnames_levlegs 
-                 if "_cld%s" % ncld_str in f 
-                 and "_levleg%i" % row['nlevleg'] in f]
-        fnames_group.append(fname[0]) # Should only find one filename.
-        
-    p3data_grouped.append(multincdata_todf(dir_5hzdata, fnames_group, varkeys))
-"""    
+ 
    
-def plotkde_cldaltgroup(fnames_levlegs, n_cldgroup, n_altgroup):
+def plotkde_cldaltgroup(dir_5hzdata, fnames_levlegs, 
+                        ncld_list, nlevleg_list, 
+                        ax, plt_kwargs={}):
     """
     Plot PDF (using KDE method) for all P-3 level leg data in a specific 
     cloud group + altidue group combination.
     """
-    data_group1 = levlegalt_tab.loc[
-        (levlegalt_tab['altgroup']==n_altgroup)
-        & levlegalt_tab['in_cg1']
-        ]
-    fnames_g1 = get_fnames(fnames_levlegs, data_group1['ncld'], data_group1['nlevleg'])    
-    data_group1 = multincdata_todf(dir_5hzdata, fnames_g1, varkeys)
-    # Remove data where the roll was greater than 5 degrees:
-    roll_crit = 5
-    highroll = abs(data_group1['roll']) > roll_crit
-    data_group1qc = data_group1.loc[~highroll]
+    # All level leg data for cloud + altitude group:
+    fnames_grp = fnamesubset(fnames_levlegs, ncld_list, nlevleg_list)    
+    data_grp = multincdata_todf(dir_5hzdata, fnames_grp, varkeys)
     
-    plt.figure()
-    ax = plt.axes()
-    sns.kdeplot(
-        data=data_group1qc, x="w'", y="q'", ax=ax, 
-        levels=[0.01] + list(np.arange(0.05, 1, 0.1)), color='grey'
+    if len(data_grp.index) !=0:
+        
+        # Remove data where the roll was greater than 5 degrees:
+        roll_crit = 5
+        highroll = abs(data_grp['roll']) > roll_crit
+        data_grpqc = data_grp.loc[~highroll]
+        
+        # KDE plot:
+        sns.kdeplot(
+            data=data_grpqc, x="w'", y="q'", ax=ax, 
+            levels=[0.01] + list(np.arange(0.05, 1, 0.2)), 
+            **plt_kwargs
+            )
+    
+    
+pltcolors = ["grey", "blue", "red"]
+cldgrps = [1,2,3]
+
+    
+plt.figure()
+ax = plt.axes()
+for ncldgrp, pltc in zip(cldgrps, pltcolors):
+    tableinfo_grp = levlegalt_tab.loc[
+        (levlegalt_tab['altgroup']==1)
+        & (levlegalt_tab['cldgroup']==ncldgrp)
+        ]
+    plotkde_cldaltgroup(
+        dir_5hzdata, fnames_levlegs, 
+        tableinfo_grp['ncld'], tableinfo_grp['nlevleg'], 
+        ax, {'color':pltc}
         )
     
     
+plt.figure()
+ax = plt.axes()
+for ncldgrp, pltc in zip(cldgrps, pltcolors):
+    tableinfo_grp = levlegalt_tab.loc[
+        (levlegalt_tab['altgroup']==2)
+        & (levlegalt_tab['cldgroup']==ncldgrp)
+        ]
+    plotkde_cldaltgroup(
+        dir_5hzdata, fnames_levlegs, 
+        tableinfo_grp['ncld'], tableinfo_grp['nlevleg'], 
+        ax, {'color':pltc}
+        )
     
-
-data_group1 = levlegalt_tab.loc[
-    (levlegalt_tab['altgroup']==1)
-    & levlegalt_tab['in_cg1']
-    ]
-fnames_g1 = get_fnames(fnames_levlegs, data_group1['ncld'], data_group1['nlevleg'])    
+    
+plt.figure()
+ax = plt.axes()
+for ncldgrp, pltc in zip(cldgrps, pltcolors):
+    tableinfo_grp = levlegalt_tab.loc[
+        (levlegalt_tab['altgroup']==3)
+        & (levlegalt_tab['cldgroup']==ncldgrp)
+        ]
+    plotkde_cldaltgroup(
+        dir_5hzdata, fnames_levlegs, 
+        tableinfo_grp['ncld'], tableinfo_grp['nlevleg'], 
+        ax, {'color':pltc}
+        )
+    
+    
+plt.figure()
+ax = plt.axes()
+for ncldgrp, pltc in zip(cldgrps, pltcolors):
+    tableinfo_grp = levlegalt_tab.loc[
+        (levlegalt_tab['altgroup']==4)
+        & (levlegalt_tab['cldgroup']==ncldgrp)
+        ]
+    plotkde_cldaltgroup(
+        dir_5hzdata, fnames_levlegs, 
+        tableinfo_grp['ncld'], tableinfo_grp['nlevleg'], 
+        ax, {'color':pltc}
+        )
+    
+    
+"""
+fnames_g1 = fnamesubset(fnames_levlegs, data_group1['ncld'], data_group1['nlevleg'])    
 data_group1 = multincdata_todf(dir_5hzdata, fnames_g1, varkeys)
 # Remove data where the roll was greater than 5 degrees:
 roll_crit = 5
@@ -178,7 +214,7 @@ sns.kdeplot(
     data=data_group1qc, x="w'", y="q'", ax=ax, 
     levels=[0.01] + list(np.arange(0.05, 1, 0.1)), color='grey'
     )
-
+"""
 
 
 def plots(ncld):
