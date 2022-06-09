@@ -1,0 +1,270 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Sat May 14 16:49:36 2022
+
+@author: Dean
+
+PDFs of q' vs w' for cloud groupings and altitude groupings.
+"""
+
+
+
+# Built in
+import os
+
+# Third party
+import numpy as np
+import pandas as pd
+import xarray as xr
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.stats import gaussian_kde
+import seaborn as sns
+
+# Local code
+import iso
+
+
+
+# Cloud groups:
+ncld_g1 = [7, 9, 11, 10, 12, 6]
+ncld_g2 = [15, 3, 2, 13, 16, 14]
+ncld_g3 = [1, 5, 4, 8]
+
+ncld_g1.sort()
+ncld_g2.sort()
+ncld_g3.sort()
+
+
+
+# Level leg data filenames:
+dir_5hzdata = "./levlegdata_5hz/"
+fnames_levlegs = [f for f in os.listdir(dir_5hzdata) if f.endswith(".nc")]
+
+
+# Level leg altitude table:
+levlegalt_tab = pd.read_csv("./p3cld_levleg_altitudes.csv")
+
+
+# Group level legs by cloud group and altitude:
+in_cg1 = [x in ncld_g1 for x in levlegalt_tab['ncld']]
+in_cg2 = [x in ncld_g2 for x in levlegalt_tab['ncld']]
+in_cg3 = [x in ncld_g3 for x in levlegalt_tab['ncld']]
+levlegalt_tab['cldgroup'] = np.zeros(len(levlegalt_tab.index))
+levlegalt_tab.loc[in_cg1, 'cldgroup'] = 1
+levlegalt_tab.loc[in_cg2, 'cldgroup'] = 2
+levlegalt_tab.loc[in_cg3, 'cldgroup'] = 3
+
+
+alt_thresh1 = 300
+alt_thresh2 = 800
+alt_thresh3 = 1500
+alt_thresh4 = 2000
+
+altgroup = []
+for x in levlegalt_tab['altmean']:
+    if x < alt_thresh1:
+        altgroup.append(1); continue
+    elif x < alt_thresh2:
+        altgroup.append(2); continue
+    elif x < alt_thresh3:
+        altgroup.append(3); continue
+    elif x < alt_thresh4:
+        altgroup.append(4); continue
+    else:
+        altgroup.append(5)
+levlegalt_tab['altgroup'] = altgroup
+
+
+
+def multincdata_todf(pathdir, fnames, varkeys):
+    """
+    Get all .nc file data for fnames located in directory pathdir. Return as 
+    a single pandas df where columns correspond to varkeys (subset of keys in 
+    the .nc files).
+    
+    Assumes that the .nc dataset is in a format convertable to a 
+    pandas DataFrame.
+    """
+    data_alldf = pd.DataFrame({})
+    for f in fnames:
+        data_nc = xr.load_dataset(pathdir + f)
+        data_alldf = data_alldf.append(data_nc[varkeys].to_dataframe())
+    return data_alldf
+
+
+
+def get_fnames(fnames_levlegs, ncld_list, nlevleg_list):
+    """
+    Return subset of level leg filenames for each pair of (cloud module, level 
+    leg number) in lists (ncld_list, nlevleg_list).
+    """
+    fnames = []
+    for ncld, nlevleg in zip(ncld_list, nlevleg_list):
+        
+        ncld_str = str(ncld).zfill(2)
+        fname = [f for f in fnames_levlegs 
+                 if "_cld%s" % ncld_str in f 
+                 and "_levleg%i" % nlevleg in f]
+        fnames.append(fname[0]) # Should only find one filename per pair.    
+    return fnames
+
+
+
+def plotpdf(data, v1, v2, ax):
+    """
+    Plot joint-PDF of variables v1 vs v2 in data (DataFrame).
+    """
+
+
+
+varkeys = ["w'","q'","roll"]
+"""
+p3data_grouped = []
+for altgroup, data_altgrp in levlegalt_tab.groupby(by='altgroup'):
+    
+    fnames_group = []
+    for i, row in data_altgrp.iterrows():
+        
+        ncld_str = str(row['ncld']).zfill(2)
+        fname = [f for f in fnames_levlegs 
+                 if "_cld%s" % ncld_str in f 
+                 and "_levleg%i" % row['nlevleg'] in f]
+        fnames_group.append(fname[0]) # Should only find one filename.
+        
+    p3data_grouped.append(multincdata_todf(dir_5hzdata, fnames_group, varkeys))
+"""    
+   
+def plotkde_cldaltgroup(fnames_levlegs, n_cldgroup, n_altgroup):
+    """
+    Plot PDF (using KDE method) for all P-3 level leg data in a specific 
+    cloud group + altidue group combination.
+    """
+    data_group1 = levlegalt_tab.loc[
+        (levlegalt_tab['altgroup']==n_altgroup)
+        & levlegalt_tab['in_cg1']
+        ]
+    fnames_g1 = get_fnames(fnames_levlegs, data_group1['ncld'], data_group1['nlevleg'])    
+    data_group1 = multincdata_todf(dir_5hzdata, fnames_g1, varkeys)
+    # Remove data where the roll was greater than 5 degrees:
+    roll_crit = 5
+    highroll = abs(data_group1['roll']) > roll_crit
+    data_group1qc = data_group1.loc[~highroll]
+    
+    plt.figure()
+    ax = plt.axes()
+    sns.kdeplot(
+        data=data_group1qc, x="w'", y="q'", ax=ax, 
+        levels=[0.01] + list(np.arange(0.05, 1, 0.1)), color='grey'
+        )
+    
+    
+    
+
+data_group1 = levlegalt_tab.loc[
+    (levlegalt_tab['altgroup']==1)
+    & levlegalt_tab['in_cg1']
+    ]
+fnames_g1 = get_fnames(fnames_levlegs, data_group1['ncld'], data_group1['nlevleg'])    
+data_group1 = multincdata_todf(dir_5hzdata, fnames_g1, varkeys)
+# Remove data where the roll was greater than 5 degrees:
+roll_crit = 5
+highroll = abs(data_group1['roll']) > roll_crit
+data_group1qc = data_group1.loc[~highroll]
+
+plt.figure()
+ax = plt.axes()
+sns.kdeplot(
+    data=data_group1qc, x="w'", y="q'", ax=ax, 
+    levels=[0.01] + list(np.arange(0.05, 1, 0.1)), color='grey'
+    )
+
+
+
+def plots(ncld):
+    
+    ncld_str = str(ncld).zfill(2)
+    fnames_levlegs_cld = [f for f in fnames_levlegs if "_cld%s"%ncld_str in f]
+   
+    for f in fnames_levlegs_cld:
+        
+        data = xr.load_dataset(dir_5hzdata + f)
+        data_df = data.to_dataframe() # Easier / faster to work with pandas.
+        
+        # Add dD column:
+        data_df["dD"] = iso.qD_dD_convert('qD2dD', data_df["q"], data_df["qD"])
+        
+        # Remove data where the roll was greater than 5 degrees:
+        roll_crit = 5
+        highroll = abs(data_df['roll']) > roll_crit
+        data_dfqc = data_df.loc[~highroll]
+        
+        # Split into rows of upward vs downward velocities:
+        dataup = data_dfqc.loc[data_dfqc["w'"]>0]
+        datadown = data_dfqc.loc[data_dfqc["w'"]<0]
+        
+        # Plots:
+        plt.figure()
+        ax = plt.axes()
+        plt.scatter(data_dfqc["w"], data_dfqc["q"])
+        sns.kdeplot(
+            data=data_dfqc, x="w", y="q", ax=ax, 
+            levels=[0.01] + list(np.arange(0.05, 1, 0.1)), color='red'
+            )
+        
+        #plt.figure()
+        #plt.scatter(data_dfqc["w'"], data_dfqc["q'"], s=1)
+        
+        #plt.figure()
+        #plt.hist(dataup['q'], bins=20, histtype='step')
+        #plt.hist(datadown['q'], bins=20, histtype='step')
+        
+        #plt.figure()
+        #plt.hist(dataup["w'"], bins=20, histtype='step')
+        #plt.hist(datadown["w'"], bins=20, histtype='step')
+    
+        print("percentage upward = %0.2f" % (100*len(dataup)/len(data_dfqc)))
+        print("percentage downward = %0.2f" % (100*len(datadown)/len(data_dfqc)))
+        
+        
+        #plt.figure()
+        #ax1 = plt.subplot(1,2,1)
+        #qdD_pdf(dataup, 'blue', ax1)
+        #qdD_pdf(datadown, 'red', ax1)
+        
+        
+        # Same as above execpt for data above / below the upper / lower quartile:
+        #q1, q3 = np.nanquantile(data_dfqc["w'"], [0.25, 0.75])
+        #dataup = data_dfqc.loc[data_dfqc["w'"]>q3]
+        #datadown = data_dfqc.loc[data_dfqc["w'"]<q1]
+        
+        #plt.figure()
+        #plt.hist(dataup["dD"], bins=20, histtype='step')
+        #plt.hist(datadown["dD"], bins=20, histtype='step')
+        
+        ax.text(
+            0.95, 0.95, "z = %i m" % round(data_dfqc["alt"].mean()), 
+            ha='right', va='top', transform=ax.transAxes, fontsize=14
+            )
+        
+        
+        
+def qdD_pdf(data, color, ax, scatter=False):
+        
+    
+        if scatter: ax.scatter(data["q"], data["dD"], s=1, c=color)
+        kernel = gaussian_kde([data["q"].values, data["dD"].values])
+        qq, dDdD = np.meshgrid(
+            np.linspace(np.min(data["q"]), np.max(data["q"])),
+            np.linspace(np.min(data["dD"]), np.max(data["dD"]))
+            )
+        prob = np.reshape(kernel([qq.ravel(), dDdD.ravel()]).T, qq.shape)
+        ax.contour(qq, dDdD, prob, colors=color)
+        
+
+
+
+#plots(6)
+#plots(13)
+
+
