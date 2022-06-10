@@ -25,12 +25,13 @@ import rangescaler
 
 
 ncld = 4
+ncld_str = str(ncld).zfill(2)
 
 
 # Level leg data filenames:
 dir_5hzdata = "./levlegdata_5hz/"
 fnames_levlegs = [f for f in os.listdir(dir_5hzdata) if f.endswith(".nc")]
-fnames_levlegs_ncld = [f for f in fnames_levlegs if "_cld%i"%ncld in f]
+fnames_levlegs_ncld = [f for f in fnames_levlegs if "_cld%s"%ncld_str in f]
 
 
 # Key altitude info:
