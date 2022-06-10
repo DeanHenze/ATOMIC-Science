@@ -4,13 +4,14 @@ Created on Sat May 14 16:49:36 2022
 
 @author: Dean
 
-PDFs of q' vs w' for cloud groupings and altitude groupings.
+Save PDFs of q' vs w' for cloud groupings and altitude groupings.
 """
 
 
 
 # Built in
 import os
+import itertools
 
 # Third party
 import numpy as np
@@ -27,55 +28,148 @@ import cdf
 
 
 
-# Cloud groups:
-ncld_g1 = [7, 9, 11, 10, 12, 6]
-ncld_g2 = [15, 3, 2, 13, 16, 14]
-ncld_g3 = [1, 5, 4, 8]
-
-ncld_g1.sort()
-ncld_g2.sort()
-ncld_g3.sort()
-
-
-
+## I/O paths / fnames
+##_____________________________________________________________________________
 # Level leg data filenames:
 dir_5hzdata = "./levlegdata_5hz/"
 fnames_levlegs = [f for f in os.listdir(dir_5hzdata) if f.endswith(".nc")]
 
-
 # Level leg altitude table:
-levlegalt_tab = pd.read_csv("./p3cld_levleg_altitudes.csv")
+path_levlegalt = "./p3cld_levleg_altitudes.csv"
+
+# Save directory:
+path_savedir = "./levelleg_PDFs"
+##_____________________________________________________________________________
+## I/O paths / fnames
 
 
-# Group level legs by cloud group and altitude:
-in_cg1 = [x in ncld_g1 for x in levlegalt_tab['ncld']]
-in_cg2 = [x in ncld_g2 for x in levlegalt_tab['ncld']]
-in_cg3 = [x in ncld_g3 for x in levlegalt_tab['ncld']]
-levlegalt_tab['cldgroup'] = np.zeros(len(levlegalt_tab.index))
-levlegalt_tab.loc[in_cg1, 'cldgroup'] = 1
-levlegalt_tab.loc[in_cg2, 'cldgroup'] = 2
-levlegalt_tab.loc[in_cg3, 'cldgroup'] = 3
+
+def create_qwPDFfiles(dir_5hzdata, fnames_levlegs, path_levlegalt, path_savedir):
+    """
+    Create and save joint w', q' PDFs for each cloud and altitude group.
+    """
+    
+    # Load level leg altitude table:
+    levlegalts = pd.read_csv(path_levlegalt)
+    
+    
+    # Append column for cloud group flag to table:
+    ncld_g1 = [1, 5, 4, 8]
+    ncld_g2 = [7, 9, 11, 10, 12, 6]
+    ncld_g3 = [15, 3, 2, 13, 16, 14]
+    ncld_g1.sort()
+    ncld_g2.sort()
+    ncld_g3.sort()
+    
+    flag_cldgroup = [1, 2, 3]
+    in_cg1 = [x in ncld_g1 for x in levlegalts['ncld']]
+    in_cg2 = [x in ncld_g2 for x in levlegalts['ncld']]
+    in_cg3 = [x in ncld_g3 for x in levlegalts['ncld']]
+    levlegalts['cldgroup'] = np.zeros(len(levlegalts.index))
+    levlegalts.loc[in_cg1, 'cldgroup'] = flag_cldgroup[0]
+    levlegalts.loc[in_cg2, 'cldgroup'] = flag_cldgroup[1]
+    levlegalts.loc[in_cg3, 'cldgroup'] = flag_cldgroup[2]
+    
+    
+    # Append column for altitude group flag to table:
+    alt_thresh1 = 300
+    alt_thresh2 = 800
+    alt_thresh3 = 1600
+    alt_thresh4 = 2500
+    
+    flag_altgroup = [1, 2, 3, 4, 5]
+    altgroup = []
+    for x in levlegalts['altmean']:
+        if x < alt_thresh1:
+            altgroup.append(flag_altgroup[0]); continue
+        elif x < alt_thresh2:
+            altgroup.append(flag_altgroup[1]); continue
+        elif x < alt_thresh3:
+            altgroup.append(flag_altgroup[2]); continue
+        elif x < alt_thresh4:
+            altgroup.append(flag_altgroup[3]); continue
+        else:
+            altgroup.append(flag_altgroup[4])
+    levlegalts['altgroup'] = altgroup
+    
+    
+    varkeys = ["w'","q'","roll"]
+
+    
+    # Create and save files:
+    if not os.path.isdir(path_savedir): os.mkdir(path_savedir)
+    for pair in itertools.product(flag_altgroup, flag_cldgroup):
+        
+        print("Working on PDF for altitude group %i, cloud group %i" % pair)
+        
+        tableinfo_pair = levlegalts.loc[
+            (levlegalts['altgroup']==pair[0])
+            & (levlegalts['cldgroup']==pair[1])
+            ]
+        pdf = kde_levleggroup(
+            dir_5hzdata, fnames_levlegs, 
+            tableinfo_pair['ncld'], tableinfo_pair['nlevleg'], 
+            varkeys
+            )
+        
+        fname_save = "jointPDF_wprimeqprime_altgrp%i_cldgrp%i.csv" % pair
+        pdf.to_csv(os.path.join(path_savedir, fname_save))
 
 
-alt_thresh1 = 300
-alt_thresh2 = 800
-alt_thresh3 = 1600
-alt_thresh4 = 2500
 
-altgroup = []
-for x in levlegalt_tab['altmean']:
-    if x < alt_thresh1:
-        altgroup.append(1); continue
-    elif x < alt_thresh2:
-        altgroup.append(2); continue
-    elif x < alt_thresh3:
-        altgroup.append(3); continue
-    elif x < alt_thresh4:
-        altgroup.append(4); continue
-    else:
-        altgroup.append(5)
-levlegalt_tab['altgroup'] = altgroup
+def kde_levleggroup(dir_5hzdata, fnames_levlegs, 
+                    ncld_list, nlevleg_list, varkeys):
+    """
+    Generate PDF (using KDE method) for all P-3 level leg data for a subset of 
+    cloud module and level leg numbers.
+    
+    Returns
+    -------
+    Joint-PDF as a pd.DataFrame with q' as index and w' as columns.
+    If no data available for the set of level legs passed, returns an empty 
+    DataFrame.
+    """
+    # All level leg data for cloud + altitude group:
+    fnames_grp = fnamesubset(fnames_levlegs, ncld_list, nlevleg_list)    
+    data_grp = multincdata_todf(dir_5hzdata, fnames_grp, varkeys)
+    
+    
+    if len(data_grp.index) == 0: return pd.DataFrame({}) # No data for this group.
+        
+    
+    # Remove data where the roll was greater than 5 degrees:
+    roll_crit = 5
+    highroll = abs(data_grp['roll']) > roll_crit
+    data_grpqc = data_grp.loc[~highroll]
+    
+    # 2D grid points to get PDF at:
+    dw = 0.04
+    dq = 0.1
+    wmin = data_grpqc["w'"].min() - 4*dw # Extra cushion for PDF domain.
+    wmax = data_grpqc["w'"].max() + 4*dw
+    qmin = data_grpqc["q'"].min() - 4*dq
+    qmax = data_grpqc["q'"].max() + 4*dq
+    w_1dgrid = np.arange(wmin, wmax, dw)
+    q_1dgrid = np.arange(qmin, qmax, dw)
+    w_2dgrid, q_2dgrid = np.meshgrid(w_1dgrid, q_1dgrid)
 
+    # KDE bandwidth:
+    neff = len(data_grpqc.index) # effective number of data points
+    d = 2 # number of dims.
+    bw_silv = (neff * (d + 2) / 4.)**(-1. / (d + 4)) # Silverman's method.    
+    fact = 1.4 # multiplicative factor for bandwith (higher -> more smooth)
+    bw = bw_silv*fact
+    
+    # KDE estimation and evaluation at gridpoints:
+    kernel = gaussian_kde(data_grpqc[["w'","q'"]].values.T, bw_method=bw)
+    pdf = kernel(np.vstack([w_2dgrid.ravel(), q_2dgrid.ravel()]))
+    pdf = pdf.reshape(w_2dgrid.shape)
+    
+    # Collect into a pandas df and return:
+    return pd.DataFrame(
+        pdf, index=q_1dgrid, columns=w_1dgrid
+        )
+    
 
 
 def multincdata_todf(pathdir, fnames, varkeys):
@@ -110,264 +204,70 @@ def fnamesubset(fnames_levlegs, ncld_list, nlevleg_list):
         fnames.append(fname[0]) # Should only find one filename per pair.    
     return fnames
 
-
-
-varkeys = ["w'","q'","roll"]
- 
+    
    
-def plotkde_cldaltgroup(dir_5hzdata, fnames_levlegs, 
-                        ncld_list, nlevleg_list, 
-                        ax, plt_kwargs={}):
-    """
-    Plot PDF (using KDE method) for all P-3 level leg data in a specific 
-    cloud group + altidue group combination.
-    """
-    # All level leg data for cloud + altitude group:
-    fnames_grp = fnamesubset(fnames_levlegs, ncld_list, nlevleg_list)    
-    data_grp = multincdata_todf(dir_5hzdata, fnames_grp, varkeys)
-    
-    if len(data_grp.index) !=0:
-        
-        # Remove data where the roll was greater than 5 degrees:
-        roll_crit = 5
-        highroll = abs(data_grp['roll']) > roll_crit
-        data_grpqc = data_grp.loc[~highroll]
-        
-        # KDE plot:
-        dw = 0.04
-        dq = 0.1
-        wmin = data_grpqc["w'"].min() - 4*dw
-        wmax = data_grpqc["w'"].max() + 4*dw
-        qmin = data_grpqc["q'"].min() - 4*dq
-        qmax = data_grpqc["q'"].max() + 4*dq
-        #wmin, qmin = data_grpqc[["w'","q'"]].min()
-        #wmax, qmax = data_grpqc[["w'","q'"]].max()
-        ww, qq = np.meshgrid(
-            np.arange(wmin, wmax, dw), np.arange(qmin, qmax, dq))
-        neff = len(data_grpqc.index) # effective number of data points
-        d = 2 # number of dims.
-        fact = 1.4 # multiplicative factor for bandwith (higher -> more smooth)
-        bw_silv = (neff * (d + 2) / 4.)**(-1. / (d + 4))
-        kernel = gaussian_kde(data_grpqc[["w'","q'"]].values.T, bw_method=bw_silv*fact)
-        pdf = kernel(np.vstack([ww.ravel(), qq.ravel()]))
-        pdf = pdf.reshape(ww.shape)
-        ccdf_levs = [1-0.001, 1-0.01] + list(1 - np.arange(0.05, 1, 0.2))
-        pvals_cdf = cdf.pvals_ccdflevs(pdf, ccdf_levs, dx=dw, dy=dq)
+if __name__=="__main__":
+    create_qwPDFfiles(dir_5hzdata, fnames_levlegs, path_levlegalt, path_savedir)
 
-        
-        #plt.contour(ww, qq, pdf, levels=pvals_cdf, **plt_kwargs)
-        sns.kdeplot(
-            data=data_grpqc, x="w'", y="q'", ax=ax, 
-            levels=[0.001, 0.01] + list(np.arange(0.05, 1, 0.2)), 
-            bw_adjust=1.25, 
-            **plt_kwargs
-            )
-        
         
     
-pltcolors = ["grey", "blue", "red"]
-cldgrps = [1,2,3]
-#pltchars = [
-#    {'cmap':'binary', 'fill':True, 'extend':'max', 'linewidths':1}, 
-#    {'color':'blue', 'fill':False, 'linewidths':1}, 
-#    {'color':'red', 'fill':False, 'linewidths':1}
-#    ]
-pltchars = [
-    {'colors':'grey', 'fill':True, 'extend':'max', 'linewidths':1}, 
-    {'colors':'blue', 'fill':False, 'linewidths':1}, 
-    {'colors':'red', 'fill':False, 'linewidths':1}
-    ]
+    
+
+        
 
 
-plt.figure()
-ax = plt.axes()
+"""
+
 for ncldgrp, pltc in zip(cldgrps, pltchars):
     tableinfo_grp = levlegalt_tab.loc[
         (levlegalt_tab['altgroup']==1)
         & (levlegalt_tab['cldgroup']==ncldgrp)
         ]
-    plotkde_cldaltgroup(
+    test = kde_levleggroup(
         dir_5hzdata, fnames_levlegs, 
         tableinfo_grp['ncld'], tableinfo_grp['nlevleg'], 
         ax, pltc
         )
-    
-    
-plt.figure()
-ax = plt.axes()
-for ncldgrp, pltc in zip(cldgrps, pltchars):
-    tableinfo_grp = levlegalt_tab.loc[
-        (levlegalt_tab['altgroup']==2)
-        & (levlegalt_tab['cldgroup']==ncldgrp)
-        ]
-    plotkde_cldaltgroup(
-        dir_5hzdata, fnames_levlegs, 
-        tableinfo_grp['ncld'], tableinfo_grp['nlevleg'], 
-        ax, pltc
-        )
-    
-    
-plt.figure()
-ax = plt.axes()
-for ncldgrp, pltc in zip(cldgrps, pltcolors):
-    tableinfo_grp = levlegalt_tab.loc[
-        (levlegalt_tab['altgroup']==2)
-        & (levlegalt_tab['cldgroup']==ncldgrp)
-        ]
-    plotkde_cldaltgroup(
-        dir_5hzdata, fnames_levlegs, 
-        tableinfo_grp['ncld'], tableinfo_grp['nlevleg'], 
-        ax, {'color':pltc}
-        )
-    
-    
-plt.figure()
-ax = plt.axes()
-for ncldgrp, pltc in zip(cldgrps, pltcolors):
-    tableinfo_grp = levlegalt_tab.loc[
-        (levlegalt_tab['altgroup']==3)
-        & (levlegalt_tab['cldgroup']==ncldgrp)
-        ]
-    plotkde_cldaltgroup(
-        dir_5hzdata, fnames_levlegs, 
-        tableinfo_grp['ncld'], tableinfo_grp['nlevleg'], 
-        ax, {'color':pltc}
-        )
-    
-    
-plt.figure()
-ax = plt.axes()
-for ncldgrp, pltc in zip(cldgrps, pltcolors):
-    tableinfo_grp = levlegalt_tab.loc[
-        (levlegalt_tab['altgroup']==4)
-        & (levlegalt_tab['cldgroup']==ncldgrp)
-        ]
-    plotkde_cldaltgroup(
-        dir_5hzdata, fnames_levlegs, 
-        tableinfo_grp['ncld'], tableinfo_grp['nlevleg'], 
-        ax, {'color':pltc}
-        )
+"""    
     
 
-plt.figure()
-ax = plt.axes()
-for ncldgrp, pltc in zip(cldgrps, pltcolors):
-    tableinfo_grp = levlegalt_tab.loc[
-        (levlegalt_tab['altgroup']==5)
-        & (levlegalt_tab['cldgroup']==ncldgrp)
-        ]
-    plotkde_cldaltgroup(
-        dir_5hzdata, fnames_levlegs, 
-        tableinfo_grp['ncld'], tableinfo_grp['nlevleg'], 
-        ax, {'color':pltc}
-        )
-    
-    
 """
-tableinfo_grp1 = levlegalt_tab.loc[
+plt.figure()
+
+tableinfo_grp = levlegalt_tab.loc[
     (levlegalt_tab['altgroup']==1)
     & (levlegalt_tab['cldgroup']==1)
     ]
-fnames_g1 = fnamesubset(fnames_levlegs, tableinfo_grp1['ncld'], tableinfo_grp1['nlevleg'])    
-data_group1 = multincdata_todf(dir_5hzdata, fnames_g1, varkeys)
-# Remove data where the roll was greater than 5 degrees:
-roll_crit = 5
-highroll = abs(data_group1['roll']) > roll_crit
-data_group1qc = data_group1.loc[~highroll]
-
-plt.figure()
-ax = plt.axes()
-sns.kdeplot(
-    data=data_group1qc, x="w'", y="q'", ax=ax, 
-    levels=[0.01] + list(np.arange(0.05, 1, 0.1)), color='grey'
-    )
-"""
-
-
-def plots(ncld):
+test = kde_levleggroup(
+    dir_5hzdata, fnames_levlegs, 
+    tableinfo_grp['ncld'], tableinfo_grp['nlevleg'])
+plt.contour(test.columns, test.index, test, colors='grey')
     
-    ncld_str = str(ncld).zfill(2)
-    fnames_levlegs_cld = [f for f in fnames_levlegs if "_cld%s"%ncld_str in f]
-   
-    for f in fnames_levlegs_cld:
-        
-        data = xr.load_dataset(dir_5hzdata + f)
-        data_df = data.to_dataframe() # Easier / faster to work with pandas.
-        
-        # Add dD column:
-        data_df["dD"] = iso.qD_dD_convert('qD2dD', data_df["q"], data_df["qD"])
-        
-        # Remove data where the roll was greater than 5 degrees:
-        roll_crit = 5
-        highroll = abs(data_df['roll']) > roll_crit
-        data_dfqc = data_df.loc[~highroll]
-        
-        # Split into rows of upward vs downward velocities:
-        dataup = data_dfqc.loc[data_dfqc["w'"]>0]
-        datadown = data_dfqc.loc[data_dfqc["w'"]<0]
-        
-        # Plots:
-        plt.figure()
-        ax = plt.axes()
-        plt.scatter(data_dfqc["w"], data_dfqc["q"])
-        sns.kdeplot(
-            data=data_dfqc, x="w", y="q", ax=ax, 
-            levels=[0.01] + list(np.arange(0.05, 1, 0.1)), color='red'
-            )
-        
-        #plt.figure()
-        #plt.scatter(data_dfqc["w'"], data_dfqc["q'"], s=1)
-        
-        #plt.figure()
-        #plt.hist(dataup['q'], bins=20, histtype='step')
-        #plt.hist(datadown['q'], bins=20, histtype='step')
-        
-        #plt.figure()
-        #plt.hist(dataup["w'"], bins=20, histtype='step')
-        #plt.hist(datadown["w'"], bins=20, histtype='step')
+
+tableinfo_grp = levlegalt_tab.loc[
+    (levlegalt_tab['altgroup']==1)
+    & (levlegalt_tab['cldgroup']==2)
+    ]
+test = kde_levleggroup(
+    dir_5hzdata, fnames_levlegs, 
+    tableinfo_grp['ncld'], tableinfo_grp['nlevleg'])
+plt.contour(test.columns, test.index, test, colors='blue')
+
+
+tableinfo_grp = levlegalt_tab.loc[
+    (levlegalt_tab['altgroup']==1)
+    & (levlegalt_tab['cldgroup']==3)
+    ]
+test = kde_levleggroup(
+    dir_5hzdata, fnames_levlegs, 
+    tableinfo_grp['ncld'], tableinfo_grp['nlevleg'])
+plt.contour(test.columns, test.index, test, colors='red')
+"""    
+
     
-        print("percentage upward = %0.2f" % (100*len(dataup)/len(data_dfqc)))
-        print("percentage downward = %0.2f" % (100*len(datadown)/len(data_dfqc)))
-        
-        
-        #plt.figure()
-        #ax1 = plt.subplot(1,2,1)
-        #qdD_pdf(dataup, 'blue', ax1)
-        #qdD_pdf(datadown, 'red', ax1)
-        
-        
-        # Same as above execpt for data above / below the upper / lower quartile:
-        #q1, q3 = np.nanquantile(data_dfqc["w'"], [0.25, 0.75])
-        #dataup = data_dfqc.loc[data_dfqc["w'"]>q3]
-        #datadown = data_dfqc.loc[data_dfqc["w'"]<q1]
-        
-        #plt.figure()
-        #plt.hist(dataup["dD"], bins=20, histtype='step')
-        #plt.hist(datadown["dD"], bins=20, histtype='step')
-        
-        ax.text(
-            0.95, 0.95, "z = %i m" % round(data_dfqc["alt"].mean()), 
-            ha='right', va='top', transform=ax.transAxes, fontsize=14
-            )
-        
-        
-        
-def qdD_pdf(data, color, ax, scatter=False):
-        
-    
-        if scatter: ax.scatter(data["q"], data["dD"], s=1, c=color)
-        kernel = gaussian_kde([data["q"].values, data["dD"].values])
-        qq, dDdD = np.meshgrid(
-            np.linspace(np.min(data["q"]), np.max(data["q"])),
-            np.linspace(np.min(data["dD"]), np.max(data["dD"]))
-            )
-        prob = np.reshape(kernel([qq.ravel(), dDdD.ravel()]).T, qq.shape)
-        ax.contour(qq, dDdD, prob, colors=color)
-        
 
 
 
-#plots(6)
-#plots(13)
+
 
 
