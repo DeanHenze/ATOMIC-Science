@@ -58,7 +58,7 @@ levlegalt_tab.loc[in_cg3, 'cldgroup'] = 3
 
 alt_thresh1 = 300
 alt_thresh2 = 800
-alt_thresh3 = 1500
+alt_thresh3 = 1600
 alt_thresh4 = 2500
 
 altgroup = []
@@ -133,20 +133,28 @@ def plotkde_cldaltgroup(dir_5hzdata, fnames_levlegs,
         data_grpqc = data_grp.loc[~highroll]
         
         # KDE plot:
+        #pdf = gaussian_kde(data_grpqc[["w'","q'"]].values.T)
+        #plt.contour()
         sns.kdeplot(
             data=data_grpqc, x="w'", y="q'", ax=ax, 
-            levels=[0.01] + list(np.arange(0.05, 1, 0.2)), 
+            levels=[0.001, 0.01] + list(np.arange(0.05, 1, 0.2)), 
+            bw_adjust=1.25, 
             **plt_kwargs
             )
     
     
 pltcolors = ["grey", "blue", "red"]
 cldgrps = [1,2,3]
+pltchars = [
+    {'cmap':'binary', 'fill':True, 'extend':'max', 'linewidths':1}, 
+    {'color':'blue', 'fill':False, 'linewidths':1}, 
+    {'color':'red', 'fill':False, 'linewidths':1}
+    ]
 
-    
+
 plt.figure()
 ax = plt.axes()
-for ncldgrp, pltc in zip(cldgrps, pltcolors):
+for ncldgrp, pltc in zip(cldgrps, pltchars):
     tableinfo_grp = levlegalt_tab.loc[
         (levlegalt_tab['altgroup']==1)
         & (levlegalt_tab['cldgroup']==ncldgrp)
@@ -154,7 +162,21 @@ for ncldgrp, pltc in zip(cldgrps, pltcolors):
     plotkde_cldaltgroup(
         dir_5hzdata, fnames_levlegs, 
         tableinfo_grp['ncld'], tableinfo_grp['nlevleg'], 
-        ax, {'color':pltc}
+        ax, pltc
+        )
+    
+    
+plt.figure()
+ax = plt.axes()
+for ncldgrp, pltc in zip(cldgrps, pltchars):
+    tableinfo_grp = levlegalt_tab.loc[
+        (levlegalt_tab['altgroup']==2)
+        & (levlegalt_tab['cldgroup']==ncldgrp)
+        ]
+    plotkde_cldaltgroup(
+        dir_5hzdata, fnames_levlegs, 
+        tableinfo_grp['ncld'], tableinfo_grp['nlevleg'], 
+        ax, pltc
         )
     
     
@@ -191,6 +213,20 @@ ax = plt.axes()
 for ncldgrp, pltc in zip(cldgrps, pltcolors):
     tableinfo_grp = levlegalt_tab.loc[
         (levlegalt_tab['altgroup']==4)
+        & (levlegalt_tab['cldgroup']==ncldgrp)
+        ]
+    plotkde_cldaltgroup(
+        dir_5hzdata, fnames_levlegs, 
+        tableinfo_grp['ncld'], tableinfo_grp['nlevleg'], 
+        ax, {'color':pltc}
+        )
+    
+
+plt.figure()
+ax = plt.axes()
+for ncldgrp, pltc in zip(cldgrps, pltcolors):
+    tableinfo_grp = levlegalt_tab.loc[
+        (levlegalt_tab['altgroup']==5)
         & (levlegalt_tab['cldgroup']==ncldgrp)
         ]
     plotkde_cldaltgroup(
