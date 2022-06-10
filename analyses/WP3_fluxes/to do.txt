@@ -16,12 +16,16 @@ moist adiabat.
 Climate path to CAM runs: /data/DATASETS/cesm/EUREC4A_branch/EUREC4A_branch/atm/hist
 h0 files should have SST.
 
+Incorporating EUREC4A intake catalog (python module) into work flow.
+
+Cloud fraction from GOES
+
+Plot pdfs of the IR temperature. Updated GOES files on Simon's server?
+
 
 Kurtosis
 
 PDF anomalies for T'w'
-
-Color w'w'w' by the cloud groupings.
 
 are w'w' PDFs different with statistical signifance?
 
