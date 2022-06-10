@@ -23,6 +23,7 @@ import seaborn as sns
 
 # Local code
 import iso
+import cdf
 
 
 
@@ -133,22 +134,48 @@ def plotkde_cldaltgroup(dir_5hzdata, fnames_levlegs,
         data_grpqc = data_grp.loc[~highroll]
         
         # KDE plot:
-        #pdf = gaussian_kde(data_grpqc[["w'","q'"]].values.T)
-        #plt.contour()
+        dw = 0.04
+        dq = 0.1
+        wmin = data_grpqc["w'"].min() - 4*dw
+        wmax = data_grpqc["w'"].max() + 4*dw
+        qmin = data_grpqc["q'"].min() - 4*dq
+        qmax = data_grpqc["q'"].max() + 4*dq
+        #wmin, qmin = data_grpqc[["w'","q'"]].min()
+        #wmax, qmax = data_grpqc[["w'","q'"]].max()
+        ww, qq = np.meshgrid(
+            np.arange(wmin, wmax, dw), np.arange(qmin, qmax, dq))
+        neff = len(data_grpqc.index) # effective number of data points
+        d = 2 # number of dims.
+        fact = 1.4 # multiplicative factor for bandwith (higher -> more smooth)
+        bw_silv = (neff * (d + 2) / 4.)**(-1. / (d + 4))
+        kernel = gaussian_kde(data_grpqc[["w'","q'"]].values.T, bw_method=bw_silv*fact)
+        pdf = kernel(np.vstack([ww.ravel(), qq.ravel()]))
+        pdf = pdf.reshape(ww.shape)
+        ccdf_levs = [1-0.001, 1-0.01] + list(1 - np.arange(0.05, 1, 0.2))
+        pvals_cdf = cdf.pvals_ccdflevs(pdf, ccdf_levs, dx=dw, dy=dq)
+
+        
+        #plt.contour(ww, qq, pdf, levels=pvals_cdf, **plt_kwargs)
         sns.kdeplot(
             data=data_grpqc, x="w'", y="q'", ax=ax, 
             levels=[0.001, 0.01] + list(np.arange(0.05, 1, 0.2)), 
             bw_adjust=1.25, 
             **plt_kwargs
             )
-    
+        
+        
     
 pltcolors = ["grey", "blue", "red"]
 cldgrps = [1,2,3]
+#pltchars = [
+#    {'cmap':'binary', 'fill':True, 'extend':'max', 'linewidths':1}, 
+#    {'color':'blue', 'fill':False, 'linewidths':1}, 
+#    {'color':'red', 'fill':False, 'linewidths':1}
+#    ]
 pltchars = [
-    {'cmap':'binary', 'fill':True, 'extend':'max', 'linewidths':1}, 
-    {'color':'blue', 'fill':False, 'linewidths':1}, 
-    {'color':'red', 'fill':False, 'linewidths':1}
+    {'colors':'grey', 'fill':True, 'extend':'max', 'linewidths':1}, 
+    {'colors':'blue', 'fill':False, 'linewidths':1}, 
+    {'colors':'red', 'fill':False, 'linewidths':1}
     ]
 
 
@@ -237,7 +264,11 @@ for ncldgrp, pltc in zip(cldgrps, pltcolors):
     
     
 """
-fnames_g1 = fnamesubset(fnames_levlegs, data_group1['ncld'], data_group1['nlevleg'])    
+tableinfo_grp1 = levlegalt_tab.loc[
+    (levlegalt_tab['altgroup']==1)
+    & (levlegalt_tab['cldgroup']==1)
+    ]
+fnames_g1 = fnamesubset(fnames_levlegs, tableinfo_grp1['ncld'], tableinfo_grp1['nlevleg'])    
 data_group1 = multincdata_todf(dir_5hzdata, fnames_g1, varkeys)
 # Remove data where the roll was greater than 5 degrees:
 roll_crit = 5
