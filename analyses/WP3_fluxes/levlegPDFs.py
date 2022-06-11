@@ -17,14 +17,8 @@ import itertools
 import numpy as np
 import pandas as pd
 import xarray as xr
-import numpy as np
-import matplotlib.pyplot as plt
 from scipy.stats import gaussian_kde
 import seaborn as sns
-
-# Local code
-import iso
-import cdf
 
 
 
@@ -116,7 +110,6 @@ def create_qwPDFfiles(dir_5hzdata, fnames_levlegs, path_levlegalt, path_savedir)
         pdf.to_csv(os.path.join(path_savedir, fname_save))
 
 
-
 def kde_levleggroup(dir_5hzdata, fnames_levlegs, 
                     ncld_list, nlevleg_list, varkeys):
     """
@@ -141,23 +134,24 @@ def kde_levleggroup(dir_5hzdata, fnames_levlegs,
     roll_crit = 5
     highroll = abs(data_grp['roll']) > roll_crit
     data_grpqc = data_grp.loc[~highroll]
+
     
     # 2D grid points to get PDF at:
-    dw = 0.04
+    dw = 0.075
     dq = 0.1
     wmin = data_grpqc["w'"].min() - 4*dw # Extra cushion for PDF domain.
     wmax = data_grpqc["w'"].max() + 4*dw
     qmin = data_grpqc["q'"].min() - 4*dq
     qmax = data_grpqc["q'"].max() + 4*dq
     w_1dgrid = np.arange(wmin, wmax, dw)
-    q_1dgrid = np.arange(qmin, qmax, dw)
+    q_1dgrid = np.arange(qmin, qmax, dq)
     w_2dgrid, q_2dgrid = np.meshgrid(w_1dgrid, q_1dgrid)
 
     # KDE bandwidth:
     neff = len(data_grpqc.index) # effective number of data points
     d = 2 # number of dims.
     bw_silv = (neff * (d + 2) / 4.)**(-1. / (d + 4)) # Silverman's method.    
-    fact = 1.4 # multiplicative factor for bandwith (higher -> more smooth)
+    fact = 1.5 # multiplicative factor for bandwith (higher -> more smooth)
     bw = bw_silv*fact
     
     # KDE estimation and evaluation at gridpoints:
