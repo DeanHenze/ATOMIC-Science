@@ -110,6 +110,7 @@ def create_qwPDFfiles(dir_5hzdata, fnames_levlegs, path_levlegalt, path_savedir)
         pdf.to_csv(os.path.join(path_savedir, fname_save))
 
 
+
 def kde_levleggroup(dir_5hzdata, fnames_levlegs, 
                     ncld_list, nlevleg_list, varkeys):
     """
@@ -134,15 +135,25 @@ def kde_levleggroup(dir_5hzdata, fnames_levlegs,
     roll_crit = 5
     highroll = abs(data_grp['roll']) > roll_crit
     data_grpqc = data_grp.loc[~highroll]
-
+    
+    
+    # Column for total time of each level leg:
+    tottime_df = pd.DataFrame({})
+    for n, data in data_grpqc.groupby(by="ndatafile"):
+        tottime_df = tottime_df.append(
+            {'ndatafile':n, 'time_total': len(data.index)}, 
+            ignore_index=True
+            )
+    data_grpqc = pd.merge(data_grpqc, tottime_df, how='left', on='ndatafile')
+    
     
     # 2D grid points to get PDF at:
     dw = 0.1
     dq = 0.1
     wmin = data_grpqc["w'"].min()
-    wmax = data_grpqc["w'"].max() + 4*dw
-    qmin = data_grpqc["q'"].min() - 4*dq
-    qmax = data_grpqc["q'"].max() + 4*dq
+    wmax = data_grpqc["w'"].max()
+    qmin = data_grpqc["q'"].min()
+    qmax = data_grpqc["q'"].max()
         # Extra cushion for PDF domain:
     wspan = wmax-wmin
     wmin = wmin - 0.25*wspan
@@ -159,11 +170,14 @@ def kde_levleggroup(dir_5hzdata, fnames_levlegs,
     neff = len(data_grpqc.index) # effective number of data points
     d = 2 # number of dims.
     bw_silv = (neff * (d + 2) / 4.)**(-1. / (d + 4)) # Silverman's method.    
-    fact = 2 # multiplicative factor for bandwith (higher -> more smooth)
+    fact = 2 # multiplicative factor for bandwith (higher -> smoother PDF)
     bw = bw_silv*fact
     
     # KDE estimation and evaluation at gridpoints:
-    kernel = gaussian_kde(data_grpqc[["w'","q'"]].values.T, bw_method=bw)
+    kernel = gaussian_kde(
+        data_grpqc[["w'","q'"]].values.T, 
+        bw_method=bw, weights=1/data_grpqc["time_total"]
+        )
     pdf = kernel(np.vstack([w_2dgrid.ravel(), q_2dgrid.ravel()]))
     pdf = pdf.reshape(w_2dgrid.shape)
     
@@ -178,15 +192,21 @@ def multincdata_todf(pathdir, fnames, varkeys):
     """
     Get all .nc file data for fnames located in directory pathdir. Return as 
     a single pandas df where columns correspond to varkeys (subset of keys in 
-    the .nc files).
+    the .nc files). Also append a column indicating which rows belong to the 
+    same data file.
     
     Assumes that the .nc dataset is in a format convertable to a 
-    pandas DataFrame.
+    pandas DataFrame with time as the dimension (e.g. will be converted to 
+    the index).
     """
     data_alldf = pd.DataFrame({})
+    ndatafile=1
     for f in fnames:
         data_nc = xr.load_dataset(pathdir + f)
-        data_alldf = data_alldf.append(data_nc[varkeys].to_dataframe())
+        data_df = data_nc[varkeys].to_dataframe()
+        data_df['ndatafile'] = ndatafile*np.ones(len(data_df.index))
+        ndatafile += 1
+        data_alldf = data_alldf.append(data_df)
     return data_alldf
 
 
