@@ -15,12 +15,8 @@ import os
 # Third party
 import numpy as np
 import pandas as pd
-import xarray as xr
-import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap as linsegcmap
-from scipy.stats import gaussian_kde
-import seaborn as sns
 
 # Local code
 import cdf
