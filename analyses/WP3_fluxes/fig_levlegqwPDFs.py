@@ -59,18 +59,31 @@ def cmap_mod(levs, cmap_name, vmin=0, vmax=1.0):
 
 
 
+altgroups = [1,2,3,4,5]
+altgrp_bnds = [300, 800, 1500, 2500]
+cldgroups = [1,2,3]
+
+
+
 contourargs = {
     1: {'colors':'red', 'linewidths':0.75}, 
     2: {'colors':'dimgrey', 'linewidths':0.75}, 
     3: {'colors':'blue', 'linewidths':0.75}
     }
 
-altgroups = [1,2,3,4,5]
-cldgroups = [1,2,3]
-fig, axset = plt.subplots(3, 2, figsize=(6.5, 8))
+
+fig = plt.figure(figsize=(6.5, 8))
+ax_width = 0.3
+ax_height = 0.25
+ax1 = fig.add_axes([0.15, 3*0.075 + 2*ax_height, ax_width, ax_height])
+ax2 = fig.add_axes([2*0.15 + ax_width, 3*0.075 + 2*ax_height, ax_width, ax_height])
+ax3 = fig.add_axes([0.15, 2*0.075 + ax_height, ax_width, ax_height])
+ax4 = fig.add_axes([2*0.15 + ax_width, 2*0.075 + ax_height, ax_width, ax_height])
+ax5 = fig.add_axes([(1-ax_width)/2, 0.075, ax_width, ax_height])
+axset = [ax1, ax2, ax3, ax4, ax5]
 
 
-for altgrp, ax in zip(altgroups, axset.flatten()):
+for altgrp, ax in zip(altgroups, axset):
     
     for cldgrp in cldgroups:
         
@@ -99,11 +112,24 @@ for altgrp, ax in zip(altgroups, axset.flatten()):
         
         
 ## Axes limits, labels, ...
-for ax in axset.flatten(): 
+for ax in axset: 
     ax.set_xlim(-5, 5)
     ax.set_ylim(-6, 6.5)
-#axset[0].set_xlim()
+    
+axset[2].set_ylabel("w' (m/s)", fontsize=14)
+axset[4].set_xlabel("q' (g/kg)", fontsize=14)
+
+axset[0].text(0.5, 1., "z < %i m" % altgrp_bnds[0], 
+                fontsize=11, ha='center', va='bottom', transform=axset[0].transAxes)
+axset[1].text(0.5, 1., "%i < z < %i m" % tuple([altgrp_bnds[0], altgrp_bnds[1]]), 
+                fontsize=11, ha='center', va='bottom', transform=axset[1].transAxes)
+axset[2].text(0.5, 1., "%i < z < %i m" % tuple([altgrp_bnds[1], altgrp_bnds[2]]), 
+                fontsize=11, ha='center', va='bottom', transform=axset[2].transAxes)
+axset[3].text(0.5, 1., "%i < z < %i m" % tuple([altgrp_bnds[2], altgrp_bnds[3]]), 
+                fontsize=11, ha='center', va='bottom', transform=axset[3].transAxes)
+axset[4].text(0.5, 1., "%i m < z" % altgrp_bnds[3], 
+                fontsize=11, ha='center', va='bottom', transform=axset[4].transAxes)
 
 
-
+fig.savefig("./fig_levlegqwPDFs.png")
 
