@@ -137,12 +137,20 @@ def kde_levleggroup(dir_5hzdata, fnames_levlegs,
 
     
     # 2D grid points to get PDF at:
-    dw = 0.075
+    dw = 0.1
     dq = 0.1
-    wmin = data_grpqc["w'"].min() - 4*dw # Extra cushion for PDF domain.
+    wmin = data_grpqc["w'"].min()
     wmax = data_grpqc["w'"].max() + 4*dw
     qmin = data_grpqc["q'"].min() - 4*dq
     qmax = data_grpqc["q'"].max() + 4*dq
+        # Extra cushion for PDF domain:
+    wspan = wmax-wmin
+    wmin = wmin - 0.25*wspan
+    wmax = wmax + 0.25*wspan
+    qspan = qmax-qmin
+    qmin = qmin - 0.25*qspan
+    qmax = qmax + 0.25*qspan
+    
     w_1dgrid = np.arange(wmin, wmax, dw)
     q_1dgrid = np.arange(qmin, qmax, dq)
     w_2dgrid, q_2dgrid = np.meshgrid(w_1dgrid, q_1dgrid)
@@ -151,7 +159,7 @@ def kde_levleggroup(dir_5hzdata, fnames_levlegs,
     neff = len(data_grpqc.index) # effective number of data points
     d = 2 # number of dims.
     bw_silv = (neff * (d + 2) / 4.)**(-1. / (d + 4)) # Silverman's method.    
-    fact = 1.5 # multiplicative factor for bandwith (higher -> more smooth)
+    fact = 2 # multiplicative factor for bandwith (higher -> more smooth)
     bw = bw_silv*fact
     
     # KDE estimation and evaluation at gridpoints:
