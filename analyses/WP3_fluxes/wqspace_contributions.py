@@ -46,25 +46,36 @@ def weird_integrate(x, y, z, dx, dy):
     """
     xgt0 = x > 0
     i0 = np.where(xgt0[1:] ^ xgt0[:-1])[0].item() # index of cross over from neg to pos.
-    ip = 1
-    im = 0
-    
+    ipos = 1
+    ineg = 0
     
     xx, yy = np.meshgrid(x, y)
     xyz = xx*yy*z
-    cumsum = 0
-    cumsum_x = []
+
     x_cs = []
-    for i in range(int(np.floor(len(x)/2))-2):
-        integralp = np.sum(xyz[:, i0+ip])*dx*dy
-        integralm = np.sum(xyz[:, i0-im])*dx*dy
-        cumsum += (integralp + integralm)
-        cumsum_x.append(cumsum)
-        ip += 1
-        im += 1
-        x_cs.append(x[i0+ip])
+    cumsum = []
+    cumsum_pos = []
+    cumsum_neg = []
+    
+    # First term:
+    cumsum_pos.append(np.sum(xyz[:, i0+ipos])*dx*dy)
+    cumsum_neg.append(np.sum(xyz[:, i0-ineg])*dx*dy)
+    cumsum.append(cumsum_pos[-1] + cumsum_neg[-1])
+    ipos += 1
+    ineg += 1
+    x_cs.append(x[i0+ipos])
+
+    # Remaining terms:        
+    for i in range(int(np.floor(len(x)/2))-3):
+        cumsum_pos.append(np.sum(xyz[:, i0+ipos])*dx*dy)
+        cumsum_neg.append(np.sum(xyz[:, i0-ineg])*dx*dy)
+        cumsum.append(cumsum[-1] + cumsum_pos[-1] + cumsum_neg[-1])
         
-    return x_cs, cumsum_x
+        x_cs.append(x[i0+ipos])
+        ipos += 1
+        ineg += 1
+        
+    return x_cs, cumsum_neg, cumsum_pos, cumsum
 
 
 
@@ -85,10 +96,15 @@ ax5 = fig.add_axes([(1-ax_width)/2, 0.075, ax_width, ax_height])
 axset = [ax1, ax2, ax3, ax4, ax5]
 
 
-plt.figure()
+fig1 = plt.figure()
+ax1 = fig1.add_axes([0.15, 0.15, 0.8, 0.8])
+fig2 = plt.figure()
+ax2 = fig2.add_axes([0.15, 0.15, 0.8, 0.8])
+
+
 for naltgrp in altgroups:
     f = [f for f in fnames_wqPDFs 
-         if "_altgrp%i_cldgrp%i" % tuple([naltgrp, 1]) in f]
+         if "_altgrp%i_cldgrp%i" % tuple([naltgrp, 3]) in f]
     f = f[0]
     pdf = pd.read_csv(os.path.join(path_wqPDFs, f), header=0, index_col=0)
     if len(pdf)==0: continue
@@ -98,8 +114,13 @@ for naltgrp in altgroups:
     dx = x[1]-x[0]
     dy = y[1]-y[0]
     z = pdf.values
-    test = weird_integrate(x, y, z, dx, dy)
-    plt.plot(test[0], test[1])
+    x_cs, cumsum_neg, cumsum_pos, cumsum = weird_integrate(x, y, z, dx, dy)
+    
+    ax1.plot(x_cs, cumsum)
+    ax2.plot(
+        np.append(-1*np.flip(x_cs), x_cs), 
+        np.append(np.flip(cumsum_neg), cumsum_pos)
+        )
 
 
 
