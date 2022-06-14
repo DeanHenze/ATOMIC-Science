@@ -62,7 +62,7 @@ cldgroups = [1,2,3]
 
 
 contourargs = {
-    1: {'colors':'red', 'linewidths':0.75}, 
+    1: {'colors':'red', 'linewidths':0.75, 'linestyles':'dashed'}, 
     2: {'colors':'dimgrey', 'linewidths':0.75}, 
     3: {'colors':'blue', 'linewidths':0.75}
     }
@@ -111,9 +111,9 @@ for altgrp, ax in zip(altgroups, axset):
 for ax in axset: 
     ax.set_xlim(-5, 5)
     ax.set_ylim(-6, 6.5)
-    
-axset[2].set_ylabel("w' (m/s)", fontsize=14)
-axset[4].set_xlabel("q' (g/kg)", fontsize=14)
+
+axset[4].set_xlabel("w' (m/s)", fontsize=14)
+axset[2].set_ylabel("q' (g/kg)", fontsize=14)
 
 axset[0].text(0.5, 1., "z < %i m" % altgrp_bnds[0], 
                 fontsize=11, ha='center', va='bottom', transform=axset[0].transAxes)
