@@ -55,7 +55,7 @@ def weird_integrate(x, y, z, dx, dy):
     cumsum = 0
     cumsum_x = []
     x_cs = []
-    for i in range(int(len(x)/2)):
+    for i in range(int(np.floor(len(x)/2))-2):
         integralp = np.sum(xyz[:, i0+ip])*dx*dy
         integralm = np.sum(xyz[:, i0-im])*dx*dy
         cumsum += (integralp + integralm)
@@ -85,22 +85,23 @@ ax5 = fig.add_axes([(1-ax_width)/2, 0.075, ax_width, ax_height])
 axset = [ax1, ax2, ax3, ax4, ax5]
 
 
+plt.figure()
+for naltgrp in altgroups:
+    f = [f for f in fnames_wqPDFs 
+         if "_altgrp%i_cldgrp%i" % tuple([naltgrp, 1]) in f]
+    f = f[0]
+    pdf = pd.read_csv(os.path.join(path_wqPDFs, f), header=0, index_col=0)
+    if len(pdf)==0: continue
+    
+    x = pdf.columns.astype(float)
+    y = pdf.index.values
+    dx = x[1]-x[0]
+    dy = y[1]-y[0]
+    z = pdf.values
+    test = weird_integrate(x, y, z, dx, dy)
+    plt.plot(test[0], test[1])
 
-f = [f for f in fnames_wqPDFs 
-     if "_altgrp%i_cldgrp%i" % tuple([3, 2]) in f]
-f = f[0]
-pdf = pd.read_csv(os.path.join(path_wqPDFs, f), header=0, index_col=0)
 
-x = pdf.columns.astype(float)
-y = pdf.index.values
-dx = x[1]-x[0]
-dy = y[1]-y[0]
-z = pdf.values
-test = weird_integrate(x, y, z, dx, dy)
-
-
-#plt.figure()
-plt.plot(test[0], test[1])
 
 
 
