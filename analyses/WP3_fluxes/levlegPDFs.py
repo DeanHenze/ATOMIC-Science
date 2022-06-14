@@ -150,20 +150,26 @@ def kde_levleggroup(dir_5hzdata, fnames_levlegs,
     # 2D grid points to get PDF at:
     dw = 0.1
     dq = 0.1
-    wmin = data_grpqc["w'"].min()
-    wmax = data_grpqc["w'"].max()
-    qmin = data_grpqc["q'"].min()
-    qmax = data_grpqc["q'"].max()
+    wabsbound = max(abs(data_grpqc["w'"].min()), data_grpqc["w'"].max())
+    wabsbound = 1.25*(np.round(wabsbound/0.1)*0.1)
+    qabsbound = max(abs(data_grpqc["q'"].min()), data_grpqc["q'"].max())
+    qabsbound = 1.25*(np.round(qabsbound/0.1)*0.1)
+    #wmin = data_grpqc["w'"].min()
+    #wmax = data_grpqc["w'"].max()
+    #qmin = data_grpqc["q'"].min()
+    #qmax = data_grpqc["q'"].max()
         # Extra cushion for PDF domain:
-    wspan = wmax-wmin
-    wmin = wmin - 0.25*wspan
-    wmax = wmax + 0.25*wspan
-    qspan = qmax-qmin
-    qmin = qmin - 0.25*qspan
-    qmax = qmax + 0.25*qspan
+    #wspan = wmax-wmin
+    #wmin = wmin - 0.25*wspan
+    #wmax = wmax + 0.25*wspan
+    #qspan = qmax-qmin
+    #qmin = qmin - 0.25*qspan
+    #qmax = qmax + 0.25*qspan
     
-    w_1dgrid = np.arange(wmin, wmax, dw)
-    q_1dgrid = np.arange(qmin, qmax, dq)
+    w_1dgrid = np.arange(-1*wabsbound, wabsbound, dw)
+    q_1dgrid = np.arange(-1*qabsbound, qabsbound, dq)
+    #w_1dgrid = np.arange(wmin, wmax, dw)
+    #q_1dgrid = np.arange(qmin, qmax, dq)
     w_2dgrid, q_2dgrid = np.meshgrid(w_1dgrid, q_1dgrid)
 
     # KDE bandwidth:
