@@ -94,13 +94,17 @@ for i, row in time_levlegs.iterrows():
     # Get processed data and water-wind time sync results:
     t1 = levlegdata_5hz.convert_time(row['tstart_tstamp'].to_datetime64())
     t2 = levlegdata_5hz.convert_time(row['tend_tstamp'].to_datetime64())
-    data_proc, xcormax, tshift = levlegdata_5hz.process_5hz(
+        # If using the original cross correlation time shift:
+    #data_proc, xcormax, tshift = levlegdata_5hz.process_5hz(
+    #    wind, mr, iso, roll, 
+    #    t1, t2, timesync_results=True
+    #    )
+        # With new linear function of altitude:
+    data_proc = levlegdata_5hz.process_5hz(
         wind, mr, iso, roll, 
-        t1, t2, timesync_results=True
+        t1, t2, timesync_method='linear', timesync_results=False
         )
-    #data_proc.to_netcdf("./levlegdata_5hz/WP3_5hz_%s_cld%i_levleg%i.nc"
-    #                    % tuple([date, row['num_cld_iop'], row['num_leg']])
-    #                    )
+    
     
     # Save processed data as new file:
     ncld_str = str(int(row['num_cld_iop'])).zfill(2)
@@ -110,8 +114,8 @@ for i, row in time_levlegs.iterrows():
     
     
     # Append time sync results:
-    xcormax_list.append(xcormax)
-    tshift_list.append(tshift)
+    #xcormax_list.append(xcormax)
+    #tshift_list.append(tshift)
     altleg_list.append(data_proc['alt'].mean().values.item())
     ncld.append(row['num_cld_iop'])
     nleg.append(row['num_leg'])
@@ -119,10 +123,11 @@ for i, row in time_levlegs.iterrows():
     
     del wind, mr, iso, roll, data_proc
     
-    
+"""  
 # Save time sync results:
 tsync_results = pd.DataFrame({
     'tshift': tshift_list, 'xcormax': xcormax_list,
     'alt_leg': altleg_list, 'ncld': ncld, 'nleg': nleg 
     })
 tsync_results.to_csv(dir_tsync + "timesync_wind-water_results.csv", index=False)
+"""

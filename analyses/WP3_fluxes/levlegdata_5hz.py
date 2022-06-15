@@ -37,7 +37,7 @@ import iso
 
 
 def process_5hz(wind_50hz, mr_5hz, iso_5hz, roll_1hz, 
-                t1, t2, timesync_results=False):
+                t1, t2, timesync_method='xcorr', timesync_results=False):
     """ 
     Returns processed wind, water, and isotope ratio data at 5Hz, collected 
     into a single xarray dataset. Includes total values as well as 
@@ -58,6 +58,9 @@ def process_5hz(wind_50hz, mr_5hz, iso_5hz, roll_1hz,
     
     t1, t2: floats.
         Start and end times for segment to isolate.
+        
+    timesync_method: str.
+        Either 'xcorr' or 'linear', see timesync function below.
         
     timesync_results: bool.
         If True, returns maximum cross correlation value and associate time 
@@ -123,11 +126,16 @@ def process_5hz(wind_50hz, mr_5hz, iso_5hz, roll_1hz,
         ["q'","qD'"]
         )    
     
-    # Time shift to wind data:       
-    mriso_pro, xcormax, tshift = time_sync(
+    # Time shift to wind data:     
+    #mriso_pro, xcormax, tshift = timesync(
+    tsyncresults = timesync(
         mriso_pro, wind_pro, "q'", "w'", 
-        fs=5, leadmax=0, lagmax=7
+        fs=5, method=timesync_method, leadmax=0, lagmax=7
         )
+    if timesync_results: 
+        mriso_pro, xcormax, tshift = tsyncresults  
+    else:
+        mriso_pro = tsyncresults
     ##_________________________________________________________________________            
     ## Process water mixing ratio and isotope data
     
@@ -271,14 +279,19 @@ def convert_time(dt64):
 
 
 
-def time_sync(ds1, ds2, k1, k2, fs=5, leadmax=0, lagmax=7):
+def timesync(ds1, ds2, k1, k2, fs=5, 
+             method='xcorr', leadmax=0, lagmax=7, altkey='alt'):
     """
-    Time shift variables in ds1 to ds2 using max cross-correlation.
+    Time shift variables in ds1 to ds2 using either max cross-correlation or 
+    predetermined linear function of altitude. ds1 time stamps are interpolated 
+    to ds2 timestamps after shifting.
     
     Inputs
     ------
     ds1, ds2: xarray.Dataset's.
-        Each should have time as a dimension and the same sampling freqency.
+        Each should have time as a dimension and the same sampling freqency. 
+        If time_sync method is 'linear', ds2 should have altitude as a 
+        variable.
         
     k1, k2: strs.
         Keys for the variables in ds1 and ds2 to cross-correlate.
@@ -286,8 +299,16 @@ def time_sync(ds1, ds2, k1, k2, fs=5, leadmax=0, lagmax=7):
     fs: scalar.
         Sampling frequency in Hz for ds1 and ds2.
         
+    method: 'xcorr' or 'linear'
+        If 'xcorr' use maximum cross-correlation method. If 'linear', use a 
+        predetermined linear function of altitude.
+        
     leadmax, lagmax: scalars.
-        Maximum lead and lag (seconds) time shift to consider.
+        Maximum lead and lag (seconds) time shift to consider if using the 
+        'xcorr' method.
+        
+    altkey: 'str'
+        Key for altitude in ds1, applicable if method='linear'.
 
     Returns
     -------
@@ -295,15 +316,23 @@ def time_sync(ds1, ds2, k1, k2, fs=5, leadmax=0, lagmax=7):
         ds1 time shifted.
         
     xcormax, tshift: scalars
-        Value of maximum cross-correlation and corresponding time shift.
-
+        Returned if method='xcorr'. Value of maximum cross-correlation and 
+        corresponding time shift.
     """
-    # Determine time shift using max cross-correlation:
-    c, xcor, n = xcorr.correlation(ds1[k1], ds2[k2], leadmax*fs, lagmax*fs)
-    imaxcor = np.argmax(xcor)
-    tshift = c[imaxcor]/fs
-    xcormax = xcor[imaxcor]
+    # Compute time shift:
+    if method=='xcorr':
+        # Determine time shift using max cross-correlation:
+        c, xcor, n = xcorr.correlation(ds1[k1], ds2[k2], leadmax*fs, lagmax*fs)
+        imaxcor = np.argmax(xcor)
+        tshift = c[imaxcor]/fs
+        xcormax = xcor[imaxcor]
     
+    if method=='linear':
+        # Determine using preset linear function of altitude:
+        m = 0.0002419
+        b = -3.838
+        tshift = m*ds2[altkey].mean().item() + b
+        
     # Apply shift and interpolate to ds2 time values:
     ds1 = ds1.assign_coords(time=ds1['time']+tshift)  
     ds1 = ds1.interp(
@@ -311,7 +340,10 @@ def time_sync(ds1, ds2, k1, k2, fs=5, leadmax=0, lagmax=7):
         method='nearest'
         )
     
-    return ds1, xcormax, tshift 
+    if method=='xcorr':
+        return ds1, xcormax, tshift 
+    else:
+        return ds1
 
 
 
