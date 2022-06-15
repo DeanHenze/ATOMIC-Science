@@ -132,7 +132,11 @@ def plot_fluxprofiles(fluxprfs_dict, varkeysplot, axset, pcolor='grey'):
         Same length as varkeysplot. Axes to plot on.
     """
     for varkey, ax in zip(varkeysplot, axset):        
-        profileplotter.plotprf_singlevar(fluxprfs_dict[varkey], ax, pcolor=pcolor)
+        #profileplotter.plotprf_singlevar(fluxprfs_dict[varkey], ax, pcolor=pcolor)
+        profileplotter.plotprf_singlevar(
+            fluxprfs_dict[varkey], ax, pcolor=pcolor, 
+            altbinwidth=0.33, npts_thresh=1
+            )
 
 
 
@@ -175,7 +179,11 @@ def xaxes_cleanup(axset_wind, axset_scalar):
     """
 
     ## Limits, labels, etc for wind / turbulence axes:    
-    for ax in axset_wind[0:3]: ax.set_xlim(0, 0.8)    
+    for ax in axset_wind[0:3]: 
+        ax.set_xlim(0, 0.8)
+        ax.set_xticks(np.arange(0, 1, 0.2))
+    axset_wind[3].set_xlim(0, 1.2)  
+    axset_wind[3].set_xticks(np.arange(0, 1.2, 0.2))
     axset_wind[0].set_xlabel(r"u'u' (m/s)$^2$", fontsize=12)
     axset_wind[1].set_xlabel(r"v'v' (m/s)$^2$", fontsize=12)
     axset_wind[2].set_xlabel(r"w'w' (m/s)$^2$", fontsize=12)
@@ -261,7 +269,7 @@ def analyzeplotgroupings_nonscaled(ncld_groups, colors, keyalts_table,
         for varkey, ax in zip(varkeysplot, axset):        
             profileplotter.plotprf_singlevar(
                 fluxprfs_dict[varkey], ax, 
-                altbinwidth=400, npts_thresh=2, pcolor=pcolor
+                altbinwidth=400, npts_thresh=1, pcolor=pcolor
                 )
         
         
