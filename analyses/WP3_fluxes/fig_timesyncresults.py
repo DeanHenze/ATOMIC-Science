@@ -8,6 +8,7 @@ Summary plot of time synchronization results.
 """
 
 
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
@@ -70,6 +71,8 @@ ax.legend(handles=legend_elements, loc='lower right', fontsize=9)
 ax.set_xlabel("time shift (s)", fontsize=12)
 ax.set_ylabel("altitude (m)", fontsize=12)
 cax.set_title("correlation", fontsize=12)
+
+ax.set_xticks(np.arange(-6, 0, 1))
 
 
 fig.savefig("./fig_timesyncresults.png")
