@@ -157,12 +157,14 @@ def plot_RHBmeanfluxes(path_rhbflux, ax_sh, ax_lh):
     ax_sh.errorbar(
         -1*flux_P3iopmean['hs_bulk'], rhb_altsamp, 
         xerr = flux_P3iopstd['hs_bulk'], 
-        marker='s', markersize=8, mfc='orange', mec='black', ecolor='black'
+        marker='s', markersize=8, mfc='orange', mec='black', ecolor='black', 
+        zorder=99
         )
     ax_lh.errorbar(
         -1*flux_P3iopmean['hl_bulk'], rhb_altsamp, 
         xerr = flux_P3iopstd['hl_bulk'], 
-        marker='s', markersize=8, mfc='orange', mec='black', ecolor='black'
+        marker='s', markersize=8, mfc='orange', mec='black', ecolor='black', 
+        zorder=99
         )
 
 
@@ -201,6 +203,7 @@ def yaxes_cleanup(axset_wind, axset_scalar, yticks, yticklabels):
         ax.set_yticks(yticks)
     axset_wind[0].set_yticklabels(yticklabels)
     for ax in axset_wind[1:]: ax.set_yticklabels(["" for t in yticks])
+    axset_wind[0].set_ylabel('altitude (m)', fontsize=12)
     
     ## Limits, labels, etc for flux axes:    
     for ax in axset_scalar:
@@ -208,6 +211,7 @@ def yaxes_cleanup(axset_wind, axset_scalar, yticks, yticklabels):
         ax.set_yticks(yticks)
     axset_scalar[0].set_yticklabels(yticklabels)
     for ax in axset_scalar[1:]: ax.set_yticklabels(["" for t in yticks])
+    axset_scalar[0].set_ylabel('altitude (m)', fontsize=12)
 
 
 
@@ -225,6 +229,7 @@ def analyzeplotgroupings(ncld_groups, colors, scale_altkeys, keyalts_table,
                 )
             )
         
+        
     # Plot wind / turbulence profiles with means overlain:
     windkeys = ["u'u'_bar", "v'v'_bar", "w'w'_bar", "TKE"] # vars to plot.   
     for fpgroup, c in zip(fluxprfs_grouped, colors):
@@ -233,8 +238,93 @@ def analyzeplotgroupings(ncld_groups, colors, scale_altkeys, keyalts_table,
     # Plot scalar flux profiles with means overlain:
     scalarfluxkeys = ["flux_sh", "flux_lh", "flux_b", "dD_flux"]
     for fpgroup, c in zip(fluxprfs_grouped, colors):
-        plot_fluxprofiles(
-            fpgroup, scalarfluxkeys, axset_scalar, pcolor=c)
+        plot_fluxprofiles(fpgroup, scalarfluxkeys, axset_scalar, pcolor=c)
+        
+        
+        
+def analyzeplotgroupings_nonscaled(ncld_groups, colors, keyalts_table,
+                         axset_wind, axset_scalar):
+    """
+    """
+    # Get flux profiles grouped; groups are elements of a list:
+    fluxprfs_grouped = []
+    for cg in ncld_groups:
+        fluxprfs_grouped.append(
+            get_fluxprofiles(       # Returns flux profiles as a dictionary of 
+                cg, keyalts_table,  # pandas.DataFrame's. 
+                dir_flux, scale_altkeys=[]
+                )
+            )
+        
+    
+    def plotprfs(fluxprfs_dict, varkeysplot, axset, pcolor='grey'):
+        for varkey, ax in zip(varkeysplot, axset):        
+            profileplotter.plotprf_singlevar(
+                fluxprfs_dict[varkey], ax, 
+                altbinwidth=400, npts_thresh=2, pcolor=pcolor
+                )
+        
+        
+    # Plot wind / turbulence profiles with means overlain:
+    windkeys = ["u'u'_bar", "v'v'_bar", "w'w'_bar", "TKE"] # vars to plot.   
+    for fpgroup, c in zip(fluxprfs_grouped, colors):
+        plotprfs(fpgroup, windkeys, axset_wind, pcolor=c)
+
+    # Plot scalar flux profiles with means overlain:
+    scalarfluxkeys = ["flux_sh", "flux_lh", "flux_b", "dD_flux"]
+    for fpgroup, c in zip(fluxprfs_grouped, colors):
+        plotprfs(fpgroup, scalarfluxkeys, axset_scalar, pcolor=c)
+        
+        
+    xaxes_cleanup(axset_wind, axset_scalar)
+    yticks = np.arange(0, 3001, 500)
+    yaxes_cleanup(
+        axset_wind, axset_scalar, 
+        yticks, yticks.astype(str)
+        )
+    for ax in axset_wind.flatten(): ax.set_ylim(-100, 3200)
+    for ax in axset_scalar.flatten(): ax.set_ylim(-100, 3200)
+        
+
+
+def fig_noscaling():
+    """
+    Create and save figures for turbulence and flux profiles with altitude 
+    in meters.
+    """
+    
+    keyalts_table = pd.read_csv(path_keyaltstable) # key altitudes for each cld mod.
+    
+    # Cloud module number groupings:
+    ncld_g1 = [7, 9, 11, 10, 12, 6]
+    ncld_g2 = [15, 3, 2, 13, 16, 14]
+    ncld_g3 = [1, 5, 4, 8]
+    
+    ncld_g1.sort()
+    ncld_g2.sort()
+    ncld_g3.sort()
+    ncld_groups = [ncld_g1, ncld_g2, ncld_g3]
+    
+
+    # Plot:
+    fig_wind, axset_wind = plt.subplots(1, 4, figsize=(10, 5))
+    fig_scalar, axset_scalar = plt.subplots(1, 4, figsize=(10, 5))
+        # Profiles:
+    analyzeplotgroupings_nonscaled(
+        ncld_groups, ['grey', 'blue', 'red'], 
+        keyalts_table, 
+        axset_wind, axset_scalar
+        )
+        # RHB surface flux means, stds for the P-3 sampling time period:
+    plot_RHBmeanfluxes(path_rhbflux, axset_scalar[0], axset_scalar[1])
+        # Axes limits, labels, etc.
+    xaxes_cleanup(axset_wind, axset_scalar)
+
+
+    ## Save figures:
+    fig_wind.savefig("./fig_wind+turb_profiles.png")
+    fig_scalar.savefig("./fig_scalarflux_profiles.png")
+
 
 
 def fig_LCLCTscaling():
@@ -336,5 +426,6 @@ def fig_LCLTIBscaling():
 
 
 if __name__=="__main__":
-    fig_LCLCTscaling()
-    fig_LCLTIBscaling()
+    #fig_LCLCTscaling()
+    #fig_LCLTIBscaling()
+    fig_noscaling()
