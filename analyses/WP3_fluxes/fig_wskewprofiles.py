@@ -70,16 +70,20 @@ def restruct_wksewprofiles(data, ncld_list, keyalts_table, scale_altkeys=[]):
     
         if ncld in ncld_list:
             
-            # Scale altitude:
-            keyalts = keyalts_table.loc[keyalts_table['ncld']==ncld]
-            alt_scalepoints = [0] + [keyalts[k].item() for k in scale_altkeys]
-            data_cld['altleg_scaled'] = rangescaler.piecewise_linscale(
-                data_cld['altleg'].values, 
-                alt_scalepoints, np.arange(len(alt_scalepoints))
-                )
-            
+            # Optional scale altitude:
+            if len(scale_altkeys) != 0:
+                keyalts = keyalts_table.loc[keyalts_table['ncld']==ncld]
+                alt_scalepoints = [0] + [keyalts[k].item() for k in scale_altkeys]
+                data_cld['altleg_scaled'] = rangescaler.piecewise_linscale(
+                    data_cld['altleg'].values, 
+                    alt_scalepoints, np.arange(len(alt_scalepoints))
+                    )
+                data_cld.set_index('altleg_scaled', inplace=True)
+            else:
+                data_cld.set_index('altleg', inplace=True)
+                
             # Append:
-            data_cld.set_index('altleg_scaled', inplace=True)
+            #data_cld.set_index('altleg_scaled', inplace=True)
             data_cld = data_cld.rename(columns={"wskew": "wskew_cld%i"%ncld})
             wskew_prfs = pd.merge(
                     wskew_prfs, data_cld[["wskew_cld%i"%ncld]], 
@@ -179,3 +183,54 @@ if __name__=="__main__":
     fig.savefig("./fig_wskewprofiles_LCLTIBscaling.png")
     ##_________________________________________________________________________    
     ## Figure where altitude is scaled by LCL and trade inversion bottom.
+    
+    
+    
+    ## Figure with no altitude scaling.
+    ##_________________________________________________________________________
+    # Get wskew profiles for each cloud group as a list of Dataframes:
+    wskewprfs_lcltibscaling = []
+    for ncld_list in [ncld_g1, ncld_g2, ncld_g3]:
+        wskewprfs_lcltibscaling.append(
+            restruct_wksewprofiles(
+                data, ncld_list, 
+                keyalts_table, scale_altkeys=[]
+                )
+            )
+        
+
+    pltcolors = ['grey', 'blue', 'red'] # Plot colors for each cloud group.
+    
+    
+    # Plot:
+    fig = plt.figure(figsize=(4,8))
+    ax = fig.add_axes([0.3, 0.1, 0.65, 0.8])
+    for prfs, c in zip(wskewprfs_lcltibscaling, pltcolors):  
+            profileplotter.plotprf_singlevar(
+                prfs, ax, 
+                pcolor=c,
+                #altbinwidth=400, npts_thresh=2,
+                altbinwidth=400, npts_thresh=1,
+                ) 
+            
+       
+        # Vertical line at wskew=0 for visual reference:
+    ax.plot([0,0], [-100, 3200], 'k-', linewidth=1)
+    
+    
+    # Figure limits, labels, etc:
+    ax.set_xlim(-2.5, 2.5)
+    #ax.set_ylim(0, 3.5)
+
+    #yticks = [0,1,2,3]
+    #yticklabels = ["0", r"$z_{LCL}$", r"$z_{IB}$", 
+    #               r"$z_{LCL} + 2\Delta z_{(IB-LCL)}$", 
+    #               ]  
+    #ax.set_yticks(yticks)
+    #ax.set_yticklabels(yticklabels)
+    #ax.set_xlabel(r"<w'w'w'>", fontsize=12)
+    
+    
+    fig.savefig("./fig_wskewprofiles_noscaling.png")
+    ##_________________________________________________________________________    
+    ## Figure with no altitude scaling.
