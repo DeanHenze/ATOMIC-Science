@@ -25,7 +25,7 @@ import rangescaler
 
 
 
-def plotprf_singlevar(data, ax, pcolor='grey'):
+def plotprf_singlevar(data, ax, altbinwidth=0.33, npts_thresh=2, pcolor='grey'):
     """
     Plot a summary profile for a collection of individual profiles. Plot:
         - mean (solid line)
@@ -41,13 +41,20 @@ def plotprf_singlevar(data, ax, pcolor='grey'):
     ax: matplotlib.pyplot.Axes.
         Axes to plot on.
         
+    altbinwidth: scalar.
+        Bin / average data by altitude bins of this width.
+        
+    npts_thresh: scalar.
+        Minimum number of points in an altitude bin, otherwise data are 
+        discarded.
+        
     pcolor: str.
         Color to pass to matplotlib.
     """
     
     # Group by altitude bins with pandas:
     #altgrouped = np.round(data.index/0.25)*0.25 # vertical binning.
-    altgrouped = np.round(data.index/0.33)*0.33 # vertical binning.
+    altgrouped = np.round(data.index/altbinwidth)*altbinwidth # vertical binning.
     fluxvar_grouped = data.groupby(altgrouped, axis=0, as_index=True)
     
     
@@ -71,7 +78,7 @@ def plotprf_singlevar(data, ax, pcolor='grey'):
 
 
     # Remove and levels with less than 2 data points:            
-    lessthan2points = (fluxvar_grouped.count().sum(axis=1) < 2).values
+    lessthan2points = (fluxvar_grouped.count().sum(axis=1) < npts_thresh).values
     alt_bincenter = alt_bincenter[~lessthan2points]
     meanprf = meanprf[~lessthan2points]
     medianprf = medianprf[~lessthan2points]
@@ -82,7 +89,8 @@ def plotprf_singlevar(data, ax, pcolor='grey'):
     # Plot:
     ax.fill_betweenx(
         alt_bincenter, minvals, x2=maxvals, 
-        color=pcolor, edgecolor='none', alpha=0.3
+        color=pcolor, alpha=0.3, 
+        #edgecolor='none'
         )
     ax.plot(
         meanprf, alt_bincenter, 
