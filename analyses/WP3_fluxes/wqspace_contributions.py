@@ -84,7 +84,7 @@ altgrp_bnds = [300, 800, 1500, 2500]
 cldgroups = [1,2,3]
 
 
-
+"""
 fig = plt.figure(figsize=(6.5, 8))
 ax_width = 0.3
 ax_height = 0.25
@@ -94,7 +94,7 @@ ax3 = fig.add_axes([0.15, 2*0.075 + ax_height, ax_width, ax_height])
 ax4 = fig.add_axes([2*0.15 + ax_width, 2*0.075 + ax_height, ax_width, ax_height])
 ax5 = fig.add_axes([(1-ax_width)/2, 0.075, ax_width, ax_height])
 axset = [ax1, ax2, ax3, ax4, ax5]
-
+"""
 
 fig1 = plt.figure()
 ax1 = fig1.add_axes([0.15, 0.15, 0.8, 0.8])
@@ -123,6 +123,10 @@ for naltgrp in altgroups:
         )
 
 
+ax1.set_xlabel("|w'| (m/s)", fontsize=12)
+ax1.set_ylabel("CDF(w'q') $(m*s^{-1}) (g*kg^{-1})$", fontsize=12)
+ax2.set_xlabel("w' (m/s)", fontsize=12)
+ax2.set_ylabel("CDF(w'q') $(m*s^{-1}) (g*kg^{-1})$", fontsize=12)
 
 
 
