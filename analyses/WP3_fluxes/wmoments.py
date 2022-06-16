@@ -16,18 +16,15 @@ import os
 import numpy as np
 import pandas as pd
 import xarray as xr
-from scipy import signal
+from scipy.stats import skew, kurtosis
 
-# Local code
-import rollqc
-import thermo
 
 
 
 # Save skewness results to this directory:
-dir_wskew = "./wskew_levlegs/"
-if not os.path.isdir(dir_wskew):
-    os.makedirs(dir_wskew)
+dir_wmom = "./wskew_levlegs/"
+if not os.path.isdir(dir_wmom):
+    os.makedirs(dir_wmom)
         
 
 # All level leg data filenames:
@@ -44,6 +41,7 @@ def skewness(x): # x=array-like.
 
 varkeys = ["w'"]
 wskew = []
+wkurt = []
 ncld = []
 nleg = []
 altleg = []
@@ -59,7 +57,11 @@ for f in fnames_levlegs:
     data_dfqc = data_df.loc[~highroll]
 
     # Compute w skewness and add to list:
-    wskew.append(skewness(data_dfqc["w'"]))
+    #wskew.append(skewness(data_dfqc["w'"]))
+    wskew.append(skew(data_dfqc["w'"], bias=False, nan_policy='omit'))
+    wkurt.append(
+        kurtosis(data_dfqc["w'"], fisher=True, bias=True, nan_policy='omit')
+        )
     
     # Add other data to lists:
     altleg.append(np.nanmean(data_dfqc['alt']))
@@ -69,6 +71,6 @@ for f in fnames_levlegs:
     
     
 # Collect info pandas df and save:
-dfkeys = ['ncld', 'nleg', 'altleg', 'wskew']
-wskew_df = pd.DataFrame(dict(zip(dfkeys, [ncld, nleg, altleg, wskew])))
-wskew_df.to_csv(dir_wskew + "WP3_wskewness_levlegs.csv", index=False)
+dfkeys = ['ncld', 'nleg', 'altleg', 'wskew', 'wkurt']
+wmom_df = pd.DataFrame(dict(zip(dfkeys, [ncld, nleg, altleg, wskew, wkurt])))
+wmom_df.to_csv(dir_wmom + "WP3_wmoments_levlegs.csv", index=False)
