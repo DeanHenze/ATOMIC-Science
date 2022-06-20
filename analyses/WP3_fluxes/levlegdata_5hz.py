@@ -118,12 +118,12 @@ def process_5hz(wind_50hz, mr_5hz, iso_5hz, roll_1hz,
     # Variable subset in the cloud leg interval:
     mriso_pro = varsubset(
         mriso_pro, t1, t2, 
-        ["mmr","qD"], 
-        keys_new=["q","qD"]
+        ["mmr","qD","dD","d18O"], 
+        keys_new=["q","qD","dD","d18O"]
         )
     mriso_pro = perturbations(
-        mriso_pro, ["q","qD"], 
-        ["q'","qD'"]
+        mriso_pro, ["q","qD","dD","d18O"], 
+        ["q'","qD'","dD'","d18O'"]
         )    
     
     # Time shift to wind data:     
