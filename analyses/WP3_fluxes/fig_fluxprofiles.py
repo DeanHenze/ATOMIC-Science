@@ -269,7 +269,8 @@ def analyzeplotgroupings_nonscaled(ncld_groups, colors, keyalts_table,
         for varkey, ax in zip(varkeysplot, axset):        
             profileplotter.plotprf_singlevar(
                 fluxprfs_dict[varkey], ax, 
-                altbinwidth=400, npts_thresh=1, pcolor=pcolor
+                altbinwidth=400, npts_thresh=1, cubic_interp=False, 
+                pcolor=pcolor
                 )
         
         

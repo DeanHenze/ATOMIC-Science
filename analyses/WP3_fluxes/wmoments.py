@@ -21,8 +21,8 @@ from scipy.stats import skew, kurtosis
 
 
 
-# Save skewness results to this directory:
-dir_wmom = "./wskew_levlegs/"
+# Save results to this directory:
+dir_wmom = "./"
 if not os.path.isdir(dir_wmom):
     os.makedirs(dir_wmom)
         
@@ -60,7 +60,7 @@ for f in fnames_levlegs:
     #wskew.append(skewness(data_dfqc["w'"]))
     wskew.append(skew(data_dfqc["w'"], bias=False, nan_policy='omit'))
     wkurt.append(
-        kurtosis(data_dfqc["w'"], fisher=True, bias=True, nan_policy='omit')
+        kurtosis(data_dfqc["w'"], fisher=True, bias=False, nan_policy='omit')
         )
     
     # Add other data to lists:

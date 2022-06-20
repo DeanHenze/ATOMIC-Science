@@ -26,7 +26,8 @@ import rangescaler
 
 
 
-def plotprf_singlevar(data, ax, altbinwidth=0.33, npts_thresh=2, pcolor='grey'):
+def plotprf_singlevar(data, ax, altbinwidth=0.33, npts_thresh=2, 
+                      cubic_interp=False, pcolor='grey'):
     """
     Plot a summary profile for a collection of individual profiles. Plot:
         - mean (solid line)
@@ -54,7 +55,6 @@ def plotprf_singlevar(data, ax, altbinwidth=0.33, npts_thresh=2, pcolor='grey'):
     """
     
     # Group by altitude bins with pandas:
-    #altgrouped = np.round(data.index/0.25)*0.25 # vertical binning.
     altgrouped = np.round(data.index/altbinwidth)*altbinwidth # vertical binning.
     fluxvar_grouped = data.groupby(altgrouped, axis=0, as_index=True)
     
@@ -87,40 +87,42 @@ def plotprf_singlevar(data, ax, altbinwidth=0.33, npts_thresh=2, pcolor='grey'):
     maxvals = maxvals[~ltnpoints]
     
     
-    # Spline interpolation:
-    alts_interp = np.arange(min(alt_bincenter), max(alt_bincenter), altbinwidth/1.5)
-    alts_interp = np.append(alts_interp, max(alt_bincenter))
-    meanprf_interp = interpolate.interp1d(alt_bincenter, meanprf, kind='cubic')(alts_interp)
-    medianprf_interp = interpolate.interp1d(alt_bincenter, medianprf, kind='cubic')(alts_interp)
-    minvals_interp = interpolate.interp1d(alt_bincenter, minvals, kind='cubic')(alts_interp)
-    maxvals_interp = interpolate.interp1d(alt_bincenter, maxvals, kind='cubic')(alts_interp)
+    if cubic_interp:
+        # Cubic interpolation with plot:
+        alts_interp = np.arange(min(alt_bincenter), max(alt_bincenter), altbinwidth/1.5)
+        alts_interp = np.append(alts_interp, max(alt_bincenter))
+        meanprf_interp = interpolate.interp1d(alt_bincenter, meanprf, kind='cubic')(alts_interp)
+        medianprf_interp = interpolate.interp1d(alt_bincenter, medianprf, kind='cubic')(alts_interp)
+        minvals_interp = interpolate.interp1d(alt_bincenter, minvals, kind='cubic')(alts_interp)
+        maxvals_interp = interpolate.interp1d(alt_bincenter, maxvals, kind='cubic')(alts_interp)
+        
+        ax.fill_betweenx(
+            alts_interp, minvals_interp, x2=maxvals_interp, 
+            color=pcolor, alpha=0.3, 
+            )
+        ax.plot(
+            meanprf_interp, alts_interp, 
+            color=pcolor, linestyle='-', linewidth=3, zorder=10
+            )
+        ax.plot(
+            medianprf_interp, alts_interp, 
+            color=pcolor, linestyle='--', linewidth=2, zorder=10
+            )
 
+    else:
+        # Plot:
+        ax.fill_betweenx(
+            alt_bincenter, minvals, x2=maxvals, 
+            color=pcolor, alpha=0.3, 
+            )
+        ax.plot(
+            meanprf, alt_bincenter, 
+            color=pcolor, linestyle='-', linewidth=3, zorder=10
+            )
+        ax.plot(
+            medianprf, alt_bincenter, 
+            color=pcolor, linestyle='--', linewidth=2, zorder=10
+            )
 
-    # Plot:
-    #ax.fill_betweenx(
-    #    alt_bincenter, minvals, x2=maxvals, 
-    #    color=pcolor, alpha=0.3, 
-    #    )
-    #ax.plot(
-    #    meanprf, alt_bincenter, 
-    #    color=pcolor, linestyle='-', linewidth=3, zorder=10
-    #    )
-    #ax.plot(
-    #    medianprf, alt_bincenter, 
-    #    color=pcolor, linestyle='--', linewidth=2, zorder=10
-    #    )
-    
-    ax.fill_betweenx(
-        alts_interp, minvals_interp, x2=maxvals_interp, 
-        color=pcolor, alpha=0.3, 
-        )
-    ax.plot(
-        meanprf_interp, alts_interp, 
-        color=pcolor, linestyle='-', linewidth=3, zorder=10
-        )
-    ax.plot(
-        medianprf_interp, alts_interp, 
-        color=pcolor, linestyle='--', linewidth=2, zorder=10
-        )
  
     
