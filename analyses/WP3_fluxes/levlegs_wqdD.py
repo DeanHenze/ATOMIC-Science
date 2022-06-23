@@ -5,6 +5,15 @@ Created on Sat May 14 16:49:36 2022
 @author: Dean
 
 Save PDFs of q' vs w' for cloud groupings and altitude groupings.
+
+Current status:
+--------------
+- For some of my profiles, the downdrafts are enriched in comparison to the 
+  updrafts. Two possibilities:
+      1. Precipitation removing heavy isotopes from updrafts then evaporating into 
+         downdrafts.
+      2. Condensate, removing heavy isotopes from the vapor which the aircraft 
+         may not pick up. Then in the downdrafts, the vapor re-evaporates. 
 """
 
 
@@ -194,17 +203,19 @@ def test_scatter2(dir_5hzdata, fnames_levlegs):
         
             q_05p = np.quantile(data_qc["w'"], 0.05)
             q_95p = np.quantile(data_qc["w'"], 0.95)
-            data_lt05p = data_qc.loc[data_qc["w'"] < q_05p]
-            data_gt95p = data_qc.loc[data_qc["w'"] > q_95p]
+            downdraft = data_qc["w'"] < q_05p
+            updraft = data_qc["w'"] > q_95p
+            data_down = data_qc.loc[downdraft]
+            data_up = data_qc.loc[updraft]
+            data_env = data_qc.loc[~updraft & ~downdraft]
             
-            
-            q_up.append(data_gt95p["q"].mean())
-            q_down.append(data_lt05p["q"].mean())
-            q.append(data_qc["q"].mean())
+            q_up.append(data_up["q"].mean())
+            q_down.append(data_down["q"].mean())
+            q.append(data_env["q"].mean())
     
-            dD_up.append(data_gt95p["dD"].mean())
-            dD_down.append(data_lt05p["dD"].mean())
-            dD.append(data_qc["dD"].mean())
+            dD_up.append(data_up["dD"].mean())
+            dD_down.append(data_down["dD"].mean())
+            dD.append(data_env["dD"].mean())
     
     
         import matplotlib.pyplot as plt
