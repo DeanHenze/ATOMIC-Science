@@ -135,7 +135,8 @@ def plot_fluxprofiles(fluxprfs_dict, varkeysplot, axset, pcolor='grey'):
         #profileplotter.plotprf_singlevar(fluxprfs_dict[varkey], ax, pcolor=pcolor)
         profileplotter.plotprf_singlevar(
             fluxprfs_dict[varkey], ax, pcolor=pcolor, 
-            altbinwidth=0.33, npts_thresh=1
+            altbinwidth=0.4, npts_thresh=1, 
+            cubic_interp=False
             )
 
 
@@ -405,7 +406,7 @@ def fig_LCLTIBscaling():
     ncld_g3.sort()
     ncld_groups = [ncld_g1, ncld_g2, ncld_g3]
     
-    scale_altkeys = ["z_lcl", "z_tib"] # scale altitude by these quantities.
+    scale_altkeys = ["z_lcl", "z_madev"] # scale altitude by these quantities.
 
 
     # Plot:
@@ -435,6 +436,6 @@ def fig_LCLTIBscaling():
 
 
 if __name__=="__main__":
-    #fig_LCLCTscaling()
-    #fig_LCLTIBscaling()
-    fig_noscaling()
+    fig_LCLCTscaling()
+    fig_LCLTIBscaling()
+    #fig_noscaling()
