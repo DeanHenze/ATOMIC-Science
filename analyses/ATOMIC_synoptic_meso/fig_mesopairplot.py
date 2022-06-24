@@ -4,7 +4,15 @@ Created on Sun May 29 12:41:53 2022
 
 @author: Dean
 
-Figure of mososcale and synoptic characteristics for each P-3 cloud module.
+Figure of mososcale characteristics for each P-3 cloud module.
+Expressed as pair plots of mesoscale circulation variables.
+
+Current status:
+--------------
+- Pending final code cleanup (including removing code for time series plots, 
+  which likely won't end up in the manuscript.)
+- question of whether or not to add pair plot of 600 hPa vertical velocity 
+  vs. something.
 """
 
 
@@ -14,7 +22,6 @@ import os
 
 # Third party
 import numpy as np
-import pandas as pd
 import xarray as xr
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
@@ -132,11 +139,14 @@ def lsforce_pairplot(ncld, pltcolor, axset):
         era5mean['windshear_sfc700hpa'], era5mean['LTS'], 
         marker='o', markersize=4, color=pltcolor
         )
+    #axset[2].plot(
+    #    era5mean['LTS'], era5mean['w_600hPa'], 
+    #    marker='o', markersize=4, color=pltcolor
+    #    )
     axset[2].plot(
-        era5mean['LTS'], era5mean['w_600hPa'], 
+        era5mean['LTS'], era5mean['wspd_sfc'], 
         marker='o', markersize=4, color=pltcolor
-        )
-  
+        )  
     
 """
 ## Time series plot
@@ -216,13 +226,20 @@ axset[1].set_xticks([0.001, 0.002, 0.003])
 axset[1].set_xticklabels(axset[1].get_xticks().astype(str), fontsize=9)
 axset[1].set_yticks(np.arange(15, 21, 1))
 axset[1].set_yticklabels(axset[1].get_yticks().astype(str), fontsize=9)
-
+"""
 axset[2].set_xlabel(r'LTS (K)', fontsize=12)
 axset[2].set_ylabel(r'$\omega_{600}$ (Pa * s$^{-1}$)', fontsize=12)
 axset[2].set_xticks(np.arange(15, 20, 2))
 axset[2].set_xticklabels(axset[2].get_xticks().astype(str), fontsize=9)
 axset[2].set_yticks([-0.1, -0.05, 0, 0.05, 0.1])
 axset[2].set_yticklabels(['-0.1','','0','','0.1'], fontsize=9)
+"""
+axset[2].set_xlabel(r'LTS (K)', fontsize=12)
+axset[2].set_ylabel(r'$|U|_{sfc}$ (m/s)', fontsize=12)
+axset[2].set_xticks(np.arange(15, 20, 2))
+axset[2].set_xticklabels(axset[2].get_xticks().astype(str), fontsize=9)
+axset[2].set_yticks([6, 8, 10, 12])
+axset[2].set_yticklabels(['6', '8', '10', '12'], fontsize=9)
 
 legend_lines = [Line2D([0], [0], color='red', lw=4),
                 Line2D([0], [0], color='grey', lw=4),
