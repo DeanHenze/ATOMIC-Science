@@ -101,7 +101,8 @@ if __name__=="__main__":
     # Keys of variables to get cospectra for:
     varkeys = ["u","v","w","T","q","qD"]
     varkeys = [k+"'" for k in varkeys]
-    varkeypairs = [("u'","u'"), ("v'","v'")] + [(vk, "w'") for vk in varkeys] 
+    #varkeypairs = [("u'","u'"), ("v'","v'")] + [(vk, "w'") for vk in varkeys] 
+    varkeypairs = [(vk, vk) for vk in varkeys] + [(vk, "w'") for vk in varkeys] 
         
     
     for fname in fnames_levlegs:
