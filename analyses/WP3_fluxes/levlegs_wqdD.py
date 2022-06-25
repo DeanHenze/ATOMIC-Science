@@ -167,6 +167,7 @@ def test_scatter2(dir_5hzdata, fnames_levlegs):
     nlevleg_list = [1,2,3,4,5,6]
     nclds = np.arange(1,17,1)
     
+    results = []
     
     for n in nclds:
     # All level leg data for cloud + altitude group:
@@ -188,6 +189,7 @@ def test_scatter2(dir_5hzdata, fnames_levlegs):
         dD_up = []
         dD_down = []
         dD = []
+        alt = []
         
         for f in fnames_grp:
             
@@ -216,6 +218,14 @@ def test_scatter2(dir_5hzdata, fnames_levlegs):
             dD_up.append(data_up["dD"].mean())
             dD_down.append(data_down["dD"].mean())
             dD.append(data_env["dD"].mean())
+            
+            alt.append(data_qc["alt"])
+            
+        results.append({
+            'qup':q_up, 'qdown':q_down, 'q':q, 
+            'dDup':dD_up, 'dDdown':dD_down, 'dD':dD,  
+            'alt':alt                       
+            })
     
     
         import matplotlib.pyplot as plt
