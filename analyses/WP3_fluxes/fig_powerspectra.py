@@ -38,6 +38,7 @@ for levleg in [1, 3, 4]:
 
     for ax, v in zip(axset.flatten(), varsplot):
         f_smooth, P_smooth = specsmoother.spec_smoother(ps_levleg[v+v], fs, Rdi=0.08)
+        #f_smooth, P_smooth = specsmoother.spec_smoother(ps_levleg[v+"w'"], fs, Rdi=0.08)
         f_smooth, P_smooth = f_smooth[1:], P_smooth[1:] # Remove 0 frequency.
         altmean_label = str(int(np.round(ps_levleg['alt_mean']/10)*10)) + " m"
         ax.plot(f_smooth, f_smooth*P_smooth, label=altmean_label)
@@ -54,8 +55,8 @@ for ax, v in zip(axset.flatten(), varsplot):
 
 axset[1,0].set_xlabel('frequency (Hz)', fontsize=12)
 axset[1,1].set_xlabel('frequency (Hz)', fontsize=12)
-axset[0,0].set_ylabel(r'f*PSD (Hz*V$^2$)', fontsize=12)
-axset[1,0].set_ylabel(r'f*PSD (Hz*V$^2$)', fontsize=12)
+axset[0,0].set_ylabel(r'f*PSD (V$^2$)', fontsize=12)
+axset[1,0].set_ylabel(r'f*PSD (V$^2$)', fontsize=12)
 
 axset[0,0].legend(loc='upper left', fontsize=10, handlelength=1)
 
