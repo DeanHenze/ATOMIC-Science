@@ -25,10 +25,6 @@ Plot pdfs of the IR temperature. Updated GOES files on Simon's server?
 
 Kurtosis
 
-PDF anomalies for T'w'
-
-are w'w' PDFs different with statistical signifance?
-
 comparison of CAM fluxes to obs. Straightforward comparison with immediate 
 science benefits.
 
@@ -60,12 +56,6 @@ multiple inversions, etc.
 Get: trade inversion top, inversion strength, lower tropo stability, water gradient accross 
 trade inversion
 
-Grouping ideas:
-	- cloud layer depth
-	- trade inversion strength (or lower tropo stability)
-	- LHF profile, TKE profile.
-	- Moisture above trade inversion
-
 Try gaussian white noise imputation. Time to start tightening up the QC.
 
 Migrate code / data from old ATOMIC directory to new one. Start organizing code 
@@ -77,10 +67,6 @@ Fourier transform of the covariance.
 Take note of cloud fraction during in cloud leg.
 
 Comparison of fluxes to GCMs
-
-w' vs q quadrant plot for comparison updrafts and downdrafts.
-
-w' vs dD quadrant plot
 
 q vs dD distributions for updraft vs downdrafts (colored in some way by w'?)
 
