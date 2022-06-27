@@ -28,6 +28,7 @@ import pandas as pd
 import xarray as xr
 from scipy.stats import gaussian_kde
 import seaborn as sns
+import matplotlib.pyplot as plt
 
 
 
@@ -153,7 +154,7 @@ def test_scatter1(dir_5hzdata, fnames_levlegs,
         
     
 
-def test_scatter2(dir_5hzdata, fnames_levlegs):
+def test_scatter2(dir_5hzdata, fnames_levlegs, nclds):
     """
     Generate PDF (using KDE method) for all P-3 level leg data for a subset of 
     cloud module and level leg numbers.
@@ -165,31 +166,44 @@ def test_scatter2(dir_5hzdata, fnames_levlegs):
     DataFrame.
     """
     nlevleg_list = [1,2,3,4,5,6]
-    nclds = np.arange(1,17,1)
+    #nclds = np.arange(1,17,1)
+
+
+    q_up = []
+    q_down = []
+    q = []
+    dD_up = []
+    dD_down = []
+    dD = []
+    alt = []
+    ncld_list = []
     
-    results = []
+    #results = []
+    
     
     for n in nclds:
     # All level leg data for cloud + altitude group:
         try:
-            ncld_list = (np.ones(5)*n).astype(int)
-            fnames_grp = fnamesubset(fnames_levlegs, ncld_list, nlevleg_list)    
+            fnames_grp = fnamesubset(
+                fnames_levlegs, (np.ones(6)*n).astype(int), nlevleg_list)    
         except IndexError:
             try:
-                fnames_grp = fnamesubset(fnames_levlegs, ncld_list[:-1], nlevleg_list[:-1])    
+                fnames_grp = fnamesubset(
+                    fnames_levlegs, (np.ones(5)*n).astype(int), nlevleg_list[:-1])    
             except IndexError:
-                fnames_grp = fnamesubset(fnames_levlegs, ncld_list[:-2], nlevleg_list[:-2])    
+                fnames_grp = fnamesubset(
+                    fnames_levlegs, (np.ones(4)*n).astype(int), nlevleg_list[:-2])    
             
         
         #data_grp = multincdata_todf(dir_5hzdata, fnames_grp, varkeys)
     
-        q_up = []
-        q_down = []
-        q = []
-        dD_up = []
-        dD_down = []
-        dD = []
-        alt = []
+        #q_up = []
+        #q_down = []
+        #q = []
+        #dD_up = []
+        #dD_down = []
+        #dD = []
+        #alt = []
         
         for f in fnames_grp:
             
@@ -219,20 +233,30 @@ def test_scatter2(dir_5hzdata, fnames_levlegs):
             dD_down.append(data_down["dD"].mean())
             dD.append(data_env["dD"].mean())
             
-            alt.append(data_qc["alt"])
+            alt.append(data_qc["alt"].mean())
+            ncld_list.append(np.ones(len(fnames_grp))*n)
             
-        results.append({
-            'qup':q_up, 'qdown':q_down, 'q':q, 
-            'dDup':dD_up, 'dDdown':dD_down, 'dD':dD,  
-            'alt':alt                       
-            })
+            
+        #import matplotlib.pyplot as plt
+        #plt.figure()
+        #plt.scatter(q, dD, color='black')
+        #plt.scatter(q_up, dD_up, color='blue')
+        #plt.scatter(q_down, dD_down, color='magenta')
+
+
+        #results.append({
+        #    'qup':q_up, 'qdown':q_down, 'q':q, 
+        #    'dDup':dD_up, 'dDdown':dD_down, 'dD':dD,  
+        #    'alt':alt                       
+        #    })
     
-    
-        import matplotlib.pyplot as plt
-        plt.figure()
-        plt.scatter(q, dD, color='black')
-        plt.scatter(q_up, dD_up, color='blue')
-        plt.scatter(q_down, dD_down, color='magenta')
+    results = {
+        'qup':np.array(q_up), 'qdown':np.array(q_down), 'q':np.array(q), 
+        'dDup':np.array(dD_up), 'dDdown':np.array(dD_down), 'dD':np.array(dD),  
+        'alt':np.array(alt)                       
+        } 
+    return results
+
         
 
 
@@ -278,12 +302,136 @@ def fnamesubset(fnames_levlegs, ncld_list, nlevleg_list):
    
 if __name__=="__main__":
     #create_qwPDFfiles(dir_5hzdata, fnames_levlegs, path_levlegalt, path_savedir)
-    test_scatter2(dir_5hzdata, fnames_levlegs)
     
     
+    # Cloud module number groupings:
+    ncld_g1 = [1, 5, 4, 8]
+    ncld_g2 = [7, 9, 11, 10, 12, 6]
+    ncld_g3 = [15, 3, 2, 13, 16, 14]
+    
+    
+    results_g1 = test_scatter2(dir_5hzdata, fnames_levlegs, ncld_g1)
+    results_g2 = test_scatter2(dir_5hzdata, fnames_levlegs, ncld_g2)
+    results_g3 = test_scatter2(dir_5hzdata, fnames_levlegs, ncld_g3)
+    
+    
+    ## Plot deviations of updrafts and downdrafts from mean
+    ##_________________________________________________________________________
+    fig = plt.figure(figsize=(6.5, 3.5))
+    ax1 = fig.add_axes([0.11, 0.15, 0.275, 0.75])
+    ax2 = fig.add_axes([0.41, 0.15, 0.275, 0.75])
+    ax3 = fig.add_axes([0.71, 0.15, 0.275, 0.75])
+    axset = [ax1, ax2, ax3]
+    scattersize = 15
+    axset[0].scatter(
+        results_g1['dDup']-results_g1['dD'], results_g1['alt'], 
+        color='blue', s=scattersize, label='updraft'
+        )
+    axset[0].scatter(
+        results_g1['dDdown']-results_g1['dD'], results_g1['alt'], 
+        color='magenta', s=scattersize, label='downdraft'
+        )    
+    
+    axset[1].scatter(
+        results_g2['dDup']-results_g2['dD'], results_g2['alt'], 
+        color='blue', s=scattersize
+        )
+    axset[1].scatter(
+        results_g2['dDdown']-results_g2['dD'], results_g2['alt'], 
+        color='magenta', s=scattersize
+        )    
+    
+    axset[2].scatter(
+        results_g3['dDup']-results_g3['dD'], results_g3['alt'], 
+        color='blue', s=scattersize
+        )
+    axset[2].scatter(
+        results_g3['dDdown']-results_g3['dD'], results_g3['alt'], 
+        color='magenta', s=scattersize
+        )
+    
+    
+    axset[1].set_yticks(axset[1].get_yticks())
+    axset[1].set_yticklabels(['' for t in axset[1].get_yticks()])
+    axset[2].set_yticks(axset[2].get_yticks())
+    axset[2].set_yticklabels(['' for t in axset[2].get_yticks()])
 
 
+    for ax in axset: 
+        ax.set_xlim(-10, 20)
+        ax.set_xticks(np.arange(-10, 21, 5))
+        ax.set_xticklabels(['', '-5', '', '5', '', '15', ''])
+        ax.vlines(0, -100, 3500, colors='black')
+        
+        ax.set_ylim(-50, 3300)
+    
+
+    axset[1].set_xlabel(r'$\Delta \delta D$'+u'(\u2030)', fontsize=12)
+    axset[0].set_ylabel('altitude (m)', fontsize=12)
+    
+    axlabels = ['cg1', 'cg2', 'cg3']
+    for ax, lab in zip(axset, axlabels):
+        ax.text(
+            0.5, 1.01, lab, fontsize=12, 
+            ha='center', va='bottom', transform=ax.transAxes
+            )
+        
+    axset[0].legend(loc='lower right', handletextpad=0.1, fontsize=9)
+    fig.savefig("./dD_updraft-downdraft_deviations.png")
+    ##_________________________________________________________________________
+    ## Plot deviations of updrafts and downdrafts from mean
+    
+    
+    
+    ## Plot deviations of updrafts and downdrafts from mean
+    ##_________________________________________________________________________
+    fig = plt.figure(figsize=(6.5, 3.5))
+    ax1 = fig.add_axes([0.11, 0.15, 0.275, 0.75])
+    ax2 = fig.add_axes([0.41, 0.15, 0.275, 0.75])
+    ax3 = fig.add_axes([0.71, 0.15, 0.275, 0.75])
+    axset = [ax1, ax2, ax3]
+    scattersize = 15
+    axset[0].scatter(
+        results_g1['dDup']-results_g1['dDdown'], results_g1['alt'], 
+        color='black', s=scattersize
+        )  
+    axset[1].scatter(
+        results_g2['dDup']-results_g2['dDdown'], results_g2['alt'], 
+        color='black', s=scattersize
+        )
+    axset[2].scatter(
+        results_g3['dDup']-results_g3['dDdown'], results_g3['alt'], 
+        color='black', s=scattersize
+        )
+    
+    
+    axset[1].set_yticks(axset[1].get_yticks())
+    axset[1].set_yticklabels(['' for t in axset[1].get_yticks()])
+    axset[2].set_yticks(axset[2].get_yticks())
+    axset[2].set_yticklabels(['' for t in axset[2].get_yticks()])
 
 
+    for ax in axset: 
+        ax.set_xlim(-10, 20)
+        ax.set_xticks(np.arange(-10, 21, 5))
+        ax.set_xticklabels(['', '-5', '', '5', '', '15', ''])
+        ax.vlines(0, -100, 3500, colors='black')
+        
+        ax.set_ylim(-50, 3300)
+    
+
+    axset[1].set_xlabel(r'$\Delta \delta D$'+u'(\u2030)', fontsize=12)
+    axset[0].set_ylabel('altitude (m)', fontsize=12)
+    
+    axlabels = ['cg1', 'cg2', 'cg3']
+    for ax, lab in zip(axset, axlabels):
+        ax.text(
+            0.5, 1.01, lab, fontsize=12, 
+            ha='center', va='bottom', transform=ax.transAxes
+            )
+        
+    fig.savefig("./dD_updraft-downdraft_diff.png")
+    ##_________________________________________________________________________
+    ## Plot deviations of updrafts and downdrafts from mean
 
 
