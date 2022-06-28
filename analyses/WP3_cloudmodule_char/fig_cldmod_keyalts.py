@@ -40,8 +40,10 @@ def plot_keyalts(keyalts, ax, xplot):
     """
     keyalts: pandas.Dataframe
         Key altitudes data set.
-    """
-    
+        
+    xplot: iterable.
+        x-locations to plot for each cloud module.
+    """    
     # Plot cloud tops as 50th - 95th percentile ranges:
     ax.errorbar(
         xplot, keyalts['z_ctmean_50p95p'],
@@ -58,8 +60,9 @@ def plot_keyalts(keyalts, ax, xplot):
     pltmarkers = dict(
         z_mltop=dict(marker='^', color='green'), 
         z_lcl=dict(marker='o', facecolor='none', edgecolor='k'), 
-        z_tib=dict(marker='s', facecolor='none', edgecolor='k'),
-        z_tit=dict(marker='x', facecolor='r', edgecolor='r'), 
+        #z_tib=dict(marker='s', facecolor='none', edgecolor='k'),
+        z_madev=dict(marker='x', facecolor='r', edgecolor='r'),
+        #z_tit=dict(marker='x', facecolor='r', edgecolor='r'), 
         #z_ct=dict(marker='P', facecolor='y', edgecolor='y')
         )
         
@@ -69,7 +72,7 @@ def plot_keyalts(keyalts, ax, xplot):
             **pltmarkers[varkey], zorder=10
             )
     
-    
+    """
     # Figure limits, labels:
     ax.set_xlim(np.min(xplot)-1, np.max(xplot)+1)
     #ax.set_xticks(xplot)
@@ -99,7 +102,7 @@ def plot_keyalts(keyalts, ax, xplot):
         ]
     legend_elements.append(Patch(facecolor='blue', edgecolor='blue', label='z_ct'))
     ax.legend(handles=legend_elements, loc='lower right', fontsize=9, ncol=5)
-
+    """
 
 
 def addthetacontours(dir_drpsnd, ncld, varkey, fig, ax, xplot):
@@ -166,21 +169,88 @@ def addthetacontours(dir_drpsnd, ncld, varkey, fig, ax, xplot):
 
 if __name__=="__main__":
     
+    ncld_g1 = [1, 5, 4, 8]
+    ncld_g2 = [7, 9, 11, 10, 12, 6]
+    ncld_g3 = [15, 3, 2, 13, 16, 14]
+    ncld_g1.sort()
+    ncld_g2.sort()
+    ncld_g3.sort()
+    
     keyalts = pd.read_csv("./cldmod_keyaltitudes.csv") # key altitudes table
     keyalts = keyalts.sort_values('z_ctmean_50p95p')
     
     dir_drpsnd = "./cldmod_datafiles/"
     
+    
+    ### Coce for an older figure. To retreive, uncomment out this and the 
+    ### """-commented code in plot_keyalts().
+    #fig = plt.figure(figsize=(6.5, 4))
+    #ax = fig.add_axes([0.15, 0.15, 0.8, 0.8])
+    #xplot = np.arange(len(keyalts.index)) # x-axis values for plotting
+    #ax.set_xticks(xplot)
+    #addthetacontours(dir_drpsnd, keyalts['ncld'], 'theta', fig, ax, xplot)
+    #plot_keyalts(keyalts, ax, xplot)
+
+    #fig.savefig("./fig_cloudmod_keyalts.png")
+    
+    
+    #fig, axset = plt.subplots(1, 3, figsize=(6.5, 3))
     fig = plt.figure(figsize=(6.5, 4))
-    ax = fig.add_axes([0.15, 0.15, 0.8, 0.8])
-    xplot = np.arange(len(keyalts.index)) # x-axis values for plotting
-    ax.set_xticks(xplot)
-    addthetacontours(dir_drpsnd, keyalts['ncld'], 'theta', fig, ax, xplot)
-    plot_keyalts(keyalts, ax, xplot)
+    ax1 = fig.add_axes([0.1, 0.225, 0.275, 0.7])
+    ax2 = fig.add_axes([0.4, 0.225, 0.275, 0.7])
+    ax3 = fig.add_axes([0.7, 0.225, 0.275, 0.7])
+    axset = [ax1, ax2, ax3]
+    
+    for ncld, ax in zip([ncld_g1, ncld_g2, ncld_g3], axset):
+        # Plot:
+        rows_ncld = [n in ncld for n in keyalts['ncld']]
+        keyalts_ncld = keyalts.loc[rows_ncld]
+        xplot = range(1, len(keyalts_ncld)+1)
+        plot_keyalts(keyalts_ncld, ax, xplot)
+        
+        # Some axes limits, labels:
+        ax.set_xlim(np.min(xplot)-1, np.max(xplot)+1)
+        ax.set_xticks(xplot)
+        ax.set_xticklabels([str(n).zfill(2) for n in keyalts_ncld['ncld']])
+    
+        ax.set_ylim(0, 3300)
+        ax.set_yticks(np.arange(0, 3500, 500))
+        
+        
+    # Limits, labels specific to a subset of axes:
+    axset[0].set_ylabel("altitude (m)", fontsize=12)
+    axset[1].set_yticklabels(['' for t in axset[1].get_yticks()])
+    axset[1].set_xlabel("cloud module #", fontsize=12)
+    axset[2].set_yticklabels(['' for t in axset[2].get_yticks()])
+
+    
+    # Figure legend:
+    legendmarkers = dict(
+        z_mltop=dict(marker='^', color='green', linestyle=''), 
+        z_lcl=dict(marker='o', markerfacecolor='none', 
+                   markeredgecolor='k', linestyle=''), 
+        z_tib=dict(marker='x', markerfacecolor='r', 
+                   markeredgecolor='r', linestyle=''),
+        )
+    legend_elements = [
+        Line2D([0], [0], label=varkey, **legendmarkers[varkey], markersize=9)
+        for varkey in legendmarkers.keys()
+        ]
+    legend_elements.append(Patch(facecolor='blue', edgecolor='blue', label='z_ct'))
+    axset[1].legend(
+        handles=legend_elements, loc='lower center', bbox_to_anchor= (0.5, -0.3), 
+        fontsize=9, ncol=5
+        )
+    
+    # Axes sublabels for each cloud group:
+    axlabels = ['cg1', 'cg2', 'cg3']
+    for ax, lab in zip(axset, axlabels):
+        ax.text(
+            0.5, 1.01, lab, fontsize=12, 
+            ha='center', va='bottom', transform=ax.transAxes
+            )
 
     fig.savefig("./fig_cloudmod_keyalts.png")
-
-
 
 
 
