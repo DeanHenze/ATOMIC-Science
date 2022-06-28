@@ -135,7 +135,7 @@ def plot_fluxprofiles(fluxprfs_dict, varkeysplot, axset, pcolor='grey'):
         #profileplotter.plotprf_singlevar(fluxprfs_dict[varkey], ax, pcolor=pcolor)
         profileplotter.plotprf_singlevar(
             fluxprfs_dict[varkey], ax, pcolor=pcolor, 
-            altbinwidth=0.4, npts_thresh=1, 
+            altbinwidth=0.5, npts_thresh=2, 
             cubic_interp=False
             )
 
