@@ -127,8 +127,9 @@ for n in ncldmod_unique:
     flux_ds['flux_b'] = buoyflx[0]
     
     
-    # Add total kinetic energy:
+    # Add total kinetic energy and horizontal kinetic energy:
     flux_ds['TKE'] = 0.5*(flux_ds["u'u'_bar"] + flux_ds["v'v'_bar"] + flux_ds["w'w'_bar"])
+    flux_ds['TKE_h'] = 0.5*(flux_ds["u'u'_bar"] + flux_ds["v'v'_bar"])
     
     
     # Add dD of flux:
