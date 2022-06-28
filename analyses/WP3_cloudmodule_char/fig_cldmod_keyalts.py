@@ -195,10 +195,10 @@ if __name__=="__main__":
     
     
     #fig, axset = plt.subplots(1, 3, figsize=(6.5, 3))
-    fig = plt.figure(figsize=(6.5, 4))
-    ax1 = fig.add_axes([0.1, 0.225, 0.275, 0.7])
-    ax2 = fig.add_axes([0.4, 0.225, 0.275, 0.7])
-    ax3 = fig.add_axes([0.7, 0.225, 0.275, 0.7])
+    fig = plt.figure(figsize=(6.5, 3.5))
+    ax1 = fig.add_axes([0.1, 0.23, 0.275, 0.7])
+    ax2 = fig.add_axes([0.4, 0.23, 0.275, 0.7])
+    ax3 = fig.add_axes([0.7, 0.23, 0.275, 0.7])
     axset = [ax1, ax2, ax3]
     
     for ncld, ax in zip([ncld_g1, ncld_g2, ncld_g3], axset):
@@ -238,7 +238,7 @@ if __name__=="__main__":
         ]
     legend_elements.append(Patch(facecolor='blue', edgecolor='blue', label='z_ct'))
     axset[1].legend(
-        handles=legend_elements, loc='lower center', bbox_to_anchor= (0.5, -0.3), 
+        handles=legend_elements, loc='lower center', bbox_to_anchor= (0.5, -0.325), 
         fontsize=9, ncol=5
         )
     
