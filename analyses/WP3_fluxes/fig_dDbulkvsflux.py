@@ -123,7 +123,7 @@ for insitu, c, ax in zip(insitu_grouped, pltcolors, axset):
         profileplotter.plotprf_singlevar(
             insitu['dD'].to_pandas().T, 
             ax, 
-            alt_binwidth=100, pcolor=c
+            altbinwidth=100, pcolor=c
             #alt_binwidth=0.25, pcolor=c
             )
         
