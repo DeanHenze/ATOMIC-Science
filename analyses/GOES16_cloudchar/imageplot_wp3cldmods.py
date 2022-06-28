@@ -53,7 +53,8 @@ def createimages(path_goescldmoddir, path_savedir):
         ncld_str = f[-9:-3]
 
                 
-        fig_ir = plt.figure(figsize=(1.25, 1.25))
+        #fig_ir = plt.figure(figsize=(1.25, 1.25))
+        fig_ir = plt.figure(figsize=(2, 2))
         ax_ir = fig_ir.add_axes([0.2, 0.2, 0.7, 0.7])
         ax_ir.pcolor(
             goesdata['longitude'], goesdata['latitude'], 

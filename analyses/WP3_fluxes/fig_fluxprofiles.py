@@ -406,7 +406,8 @@ def fig_LCLTIBscaling():
     ncld_g3.sort()
     ncld_groups = [ncld_g1, ncld_g2, ncld_g3]
     
-    scale_altkeys = ["z_lcl", "z_madev"] # scale altitude by these quantities.
+    #scale_altkeys = ["z_lcl", "z_madev"] # scale altitude by these quantities.
+    scale_altkeys = ["z_lcl"] # scale altitude by these quantities.
 
 
     # Plot:
@@ -436,6 +437,6 @@ def fig_LCLTIBscaling():
 
 
 if __name__=="__main__":
-    fig_LCLCTscaling()
+    #fig_LCLCTscaling()
     fig_LCLTIBscaling()
     #fig_noscaling()
