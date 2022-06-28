@@ -154,7 +154,8 @@ def test_scatter1(dir_5hzdata, fnames_levlegs,
         
     
 
-def test_scatter2(dir_5hzdata, fnames_levlegs, nclds):
+def test_scatter2(dir_5hzdata, fnames_levlegs, nclds, 
+                  qrange1=(0, 0.05), qrange2=(0.95, 1.)):
     """
     Generate PDF (using KDE method) for all P-3 level leg data for a subset of 
     cloud module and level leg numbers.
@@ -194,16 +195,7 @@ def test_scatter2(dir_5hzdata, fnames_levlegs, nclds):
                 fnames_grp = fnamesubset(
                     fnames_levlegs, (np.ones(4)*n).astype(int), nlevleg_list[:-2])    
             
-        
-        #data_grp = multincdata_todf(dir_5hzdata, fnames_grp, varkeys)
-    
-        #q_up = []
-        #q_down = []
-        #q = []
-        #dD_up = []
-        #dD_down = []
-        #dD = []
-        #alt = []
+
         
         for f in fnames_grp:
             
@@ -217,13 +209,26 @@ def test_scatter2(dir_5hzdata, fnames_levlegs, nclds):
             data_qc = data.loc[~highroll]
         
         
-            q_05p = np.quantile(data_qc["w'"], 0.05)
-            q_95p = np.quantile(data_qc["w'"], 0.95)
-            downdraft = data_qc["w'"] < q_05p
-            updraft = data_qc["w'"] > q_95p
+            downdraft = (
+                (data_qc["w'"] > np.quantile(data_qc["w'"], qrange1[0])) & 
+                (data_qc["w'"] < np.quantile(data_qc["w'"], qrange1[1]))
+                )
+            updraft = (
+                (data_qc["w'"] > np.quantile(data_qc["w'"], qrange2[0])) & 
+                (data_qc["w'"] < np.quantile(data_qc["w'"], qrange2[1]))
+                )
+            #q_05p = np.quantile(data_qc["w'"], 0.05)
+            #q_95p = np.quantile(data_qc["w'"], 0.95)
+            #downdraft = data_qc["w'"] < q_05p
+            #updraft = data_qc["w'"] > q_95p
             data_down = data_qc.loc[downdraft]
             data_up = data_qc.loc[updraft]
-            data_env = data_qc.loc[~updraft & ~downdraft]
+            #data_env = data_qc.loc[~updraft & ~downdraft]
+            env = (
+                (data_qc["w'"] > np.quantile(data_qc["w'"], 0.05)) & 
+                (data_qc["w'"] < np.quantile(data_qc["w'"], 0.95))
+                )
+            data_env = data_qc[env]
             
             q_up.append(data_up["q"].mean())
             q_down.append(data_down["q"].mean())
@@ -236,19 +241,7 @@ def test_scatter2(dir_5hzdata, fnames_levlegs, nclds):
             alt.append(data_qc["alt"].mean())
             ncld_list.append(np.ones(len(fnames_grp))*n)
             
-            
-        #import matplotlib.pyplot as plt
-        #plt.figure()
-        #plt.scatter(q, dD, color='black')
-        #plt.scatter(q_up, dD_up, color='blue')
-        #plt.scatter(q_down, dD_down, color='magenta')
-
-
-        #results.append({
-        #    'qup':q_up, 'qdown':q_down, 'q':q, 
-        #    'dDup':dD_up, 'dDdown':dD_down, 'dD':dD,  
-        #    'alt':alt                       
-        #    })
+    
     
     results = {
         'qup':np.array(q_up), 'qdown':np.array(q_down), 'q':np.array(q), 
@@ -315,6 +308,14 @@ if __name__=="__main__":
     results_g3 = test_scatter2(dir_5hzdata, fnames_levlegs, ncld_g3)
     
     
+    control_g1 = test_scatter2(dir_5hzdata, fnames_levlegs, ncld_g1, 
+                               qrange1=(0.05, 0.5), qrange2=(0.5, 0.95))
+    control_g2 = test_scatter2(dir_5hzdata, fnames_levlegs, ncld_g2, 
+                               qrange1=(0.05, 0.5), qrange2=(0.5, 0.95))
+    control_g3 = test_scatter2(dir_5hzdata, fnames_levlegs, ncld_g3, 
+                               qrange1=(0.05, 0.5), qrange2=(0.5, 0.95))
+    
+    
     ## Plot deviations of updrafts and downdrafts from mean
     ##_________________________________________________________________________
     fig = plt.figure(figsize=(6.5, 3.5))
@@ -330,7 +331,16 @@ if __name__=="__main__":
     axset[0].scatter(
         results_g1['dDdown']-results_g1['dD'], results_g1['alt'], 
         color='magenta', s=scattersize, label='downdraft'
-        )    
+        ) 
+    axset[0].scatter(
+        control_g1['dDup']-control_g1['dD'], control_g1['alt'], 
+        color='grey', s=scattersize, marker='x', label='upward turbulence', 
+        )
+    axset[0].scatter(
+        control_g1['dDdown']-control_g1['dD'], control_g1['alt'], 
+        color='grey', s=scattersize, marker='.', label='downward turbulence', 
+        )
+    
     
     axset[1].scatter(
         results_g2['dDup']-results_g2['dD'], results_g2['alt'], 
@@ -340,6 +350,14 @@ if __name__=="__main__":
         results_g2['dDdown']-results_g2['dD'], results_g2['alt'], 
         color='magenta', s=scattersize
         )    
+    axset[1].scatter(
+        control_g2['dDup']-control_g2['dD'], control_g2['alt'], 
+        color='grey', s=scattersize, marker='x', label='upward turbulence', 
+        )
+    axset[1].scatter(
+        control_g2['dDdown']-control_g2['dD'], control_g2['alt'], 
+        color='grey', s=scattersize, marker='.', label='downward turbulence', 
+        )
     
     axset[2].scatter(
         results_g3['dDup']-results_g3['dD'], results_g3['alt'], 
@@ -348,6 +366,14 @@ if __name__=="__main__":
     axset[2].scatter(
         results_g3['dDdown']-results_g3['dD'], results_g3['alt'], 
         color='magenta', s=scattersize
+        )
+    axset[2].scatter(
+        control_g3['dDup']-control_g3['dD'], control_g3['alt'], 
+        color='grey', s=scattersize, marker='x', label='upward turbulence', 
+        )
+    axset[2].scatter(
+        control_g3['dDdown']-control_g3['dD'], control_g3['alt'], 
+        color='grey', s=scattersize, marker='.', label='downward turbulence', 
         )
     
     
