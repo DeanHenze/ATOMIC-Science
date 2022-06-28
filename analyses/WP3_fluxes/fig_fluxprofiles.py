@@ -65,8 +65,9 @@ def get_fluxprofiles(ncld_list, keyalts_table, dir_flux,
 
     # Collect flux profiles into a dictionary of pandas.DataFrame's.
     # Each DataFrame will contain all profiles for a specific var.
-    fluxvarkeys = ["u'u'_bar", "v'v'_bar", "w'w'_bar", "TKE", 
-                   "flux_sh", "flux_lh", "flux_b", "dD_flux"
+    fluxvarkeys = ["u'u'_bar", "v'v'_bar", "w'w'_bar", "TKE", "TKE_h",
+                   "flux_sh", "flux_lh", "flux_b", "dD_flux", 
+                   "q'w'_bar"
                    ]
     fluxprfs_dict = {}
     for k in fluxvarkeys: fluxprfs_dict[k] = pd.DataFrame({})
@@ -413,6 +414,7 @@ def fig_LCLTIBscaling():
     # Plot:
     fig_wind, axset_wind = plt.subplots(1, 4, figsize=(10, 5))
     fig_scalar, axset_scalar = plt.subplots(1, 4, figsize=(10, 5))
+        
         # Profiles:
     analyzeplotgroupings(
         ncld_groups, ['grey', 'blue', 'red'], 
@@ -433,10 +435,146 @@ def fig_LCLTIBscaling():
     ## Save figure:
     fig_wind.savefig("./fig_wind+turb_profiles_LCLTIBscaling.png")
     fig_scalar.savefig("./fig_scalarflux_profiles_LCLTIBscaling.png")
+    
+    
+
+def fig_LCLscaling():
+    """
+    Create and save figures for turbulence and flux profiles where altitude 
+    is scaled by LCL and trade inversion bottom.
+    """
+    
+    keyalts_table = pd.read_csv(path_keyaltstable) # key altitudes for each cld mod.
+    
+    # Cloud module number groupings:
+    ncld_g1 = [1, 5, 4, 8]
+    ncld_g2 = [7, 9, 11, 10, 12, 6]
+    ncld_g3 = [15, 3, 2, 13, 16, 14]  
+    
+    ncld_g1.sort()
+    ncld_g2.sort()
+    ncld_g3.sort()
+    ncld_groups = [ncld_g1, ncld_g2, ncld_g3]
+    
+    scale_altkeys = ["z_lcl"] # scale altitude by these quantities.
+    altbinwidth=0.5
+    #scale_altkeys = [] # scale altitude by these quantities.
+    #altbinwidth = 250
+
+    # Get flux profiles grouped; groups are elements of a list:
+    fluxprfs_grouped = []
+    for cg in ncld_groups:
+        fluxprfs_grouped.append(
+            get_fluxprofiles(       # Returns flux profiles as a dictionary of 
+                cg, keyalts_table,  # pandas.DataFrame's. 
+                dir_flux, scale_altkeys=scale_altkeys
+                )
+            )
+        
+        
+    # Plot:
+    def scatterwithmean(data_prfs, ax, color, altbinwidth):
+        """
+        """
+        for key_prf in data_prfs.columns:
+            prf = data_prfs[key_prf]
+            ax.scatter(prf, data_prfs.index, color=c, s=15)
+        
+        altgrouped = np.round(data_prfs.index/altbinwidth)*altbinwidth # vertical binning.
+        fluxvar_grouped = data_prfs.groupby(altgrouped, axis=0, as_index=True)
+        alt_bincenter = []
+        meanprf = []
+        for altbc, grp in fluxvar_grouped:
+            alt_bincenter.append(altbc)
+            grpvals_1d = grp.values.flatten()
+            meanprf.append(np.nanmean(grpvals_1d))
+        
+        df = pd.DataFrame({'data_prfs':meanprf}, index=alt_bincenter)
+        refalt = pd.DataFrame(
+            index=pd.Index(np.arange(0, np.nanmax(data_prfs), altbinwidth)))
+        df = df.merge(refalt, 
+                      left_index=True, right_index=True, how='outer')
+        test = df.rolling(
+            window=5, min_periods=1, win_type='hamming', 
+            center=True, closed='neither'
+            )
+        test = test.mean()
+        ax.plot(test.iloc[:], test.index[:], color=c, linewidth=5)
+    
+    
+    
+    fig_windcheck, axset_windcheck = plt.subplots(1, 2, figsize=(6, 4.5))
+    fig_scalarcheck = plt.figure(figsize=(4, 5)) 
+    axset_scalarcheck = fig_scalarcheck.add_axes([0.25, 0.2, 0.7, 0.7])
+    
+    #fig_wind, axset_wind = plt.subplots(1, 3, figsize=(10, 5))
+    #fig_scalar, axset_scalar = plt.subplots(1, 4, figsize=(10, 5))
+    
+    
+    colors = ['red', 'grey', 'blue']
+    for fpgroup, c in zip(fluxprfs_grouped, colors):
+
+        scatterwithmean(fpgroup["w'w'_bar"], axset_windcheck[0], c, altbinwidth)                  
+        scatterwithmean(fpgroup["TKE_h"], axset_windcheck[1], c, altbinwidth)                  
+
+        scatterwithmean(fpgroup["q'w'_bar"], axset_scalarcheck, c, altbinwidth)                  
+
+        #scatterwithmean(fpgroup["TKE_h"], axset_wind[0], c, altbinwidth)
+        #scatterwithmean(fpgroup["w'w'_bar"], axset_wind[1], c, altbinwidth)
+        #scatterwithmean(fpgroup['TKE'], axset_wind[2], c, altbinwidth)                  
+    
+        #scatterwithmean(fpgroup["flux_sh"], axset_scalar[0], c, altbinwidth)
+        #scatterwithmean(fpgroup["flux_lh"], axset_scalar[1], c, altbinwidth)
+        #scatterwithmean(fpgroup['flux_b'], axset_scalar[2], c, altbinwidth)
+        #scatterwithmean(fpgroup['dD_flux'], axset_scalar[3], c, altbinwidth)
+
+        
+    # RHB surface flux means, stds for the P-3 sampling time period:
+    #plot_RHBmeanfluxes(path_rhbflux, axset_scalar[0], axset_scalar[1])
+       
+    axset_scalarcheck.vlines(0, 0, 3000, linestyles='dashed', colors='grey')    
+    
+    # Axes limits, labels, etc.
+    #for ax in axset_wind:
+    #    ax.set_ylim(-0.25, 3.25)
+        
+    #for ax in axset_scalar:
+    #    ax.set_ylim(-0.25, 3.25)
+        
+        
+    for ax in axset_windcheck:
+        ax.set_ylim(0, 3)
+    axset_windcheck[0].set_ylabel(r"z/z$_{LCL}$", fontsize=12)
+    axset_windcheck[0].set_xlabel(r"<w'w'> (m$^2$ s$^{-2}$)", fontsize=12)
+    axset_windcheck[0].set_xlim(0, 1.2)
+    axset_windcheck[0].set_xticks(np.arange(0, 1.21, 0.2))
+    axset_windcheck[1].set_xlabel(r"TKE$_h$ (m$^2$ s$^{-2}$)", fontsize=12)   
+    axset_windcheck[1].set_xlim(0, 1.4)
+    axset_windcheck[1].set_xticks(np.arange(0, 1.41, 0.2))
+        
+    axset_scalarcheck.set_ylim(-0.25, 3.25)
+    axset_scalarcheck.set_ylabel(r"z/z$_{LCL}$", fontsize=12)
+    axset_scalarcheck.set_xlabel(r"<w'q'> (g kg$^{-1}$ m s$^{-1}$)", fontsize=12)
+    axset_scalarcheck.set_xlim(0, 0.15)
+    axset_scalarcheck.set_xticks(np.arange(-0.05, 0.151, 0.05))
+
+    
+    #xaxes_cleanup(axset_wind, axset_scalar)
+    #yticks = [0,1,2,3]
+    #yticklabels = ["0", r"$z_{LCL}$", r"$z_{IB}$", 
+    #               r"$z_{LCL} + 2\Delta z_{(IB-LCL)}$", 
+    #               ]  
+    #yaxes_cleanup(axset_wind, axset_scalar, yticks, yticklabels)       
+      
+
+    ## Save figure:
+    #fig_wind.savefig("./fig_wind+turb_profiles_LCLTIBscaling.png")
+    #fig_scalar.savefig("./fig_scalarflux_profiles_LCLTIBscaling.png")
 
 
 
 if __name__=="__main__":
     #fig_LCLCTscaling()
-    fig_LCLTIBscaling()
+    #fig_LCLTIBscaling()
     #fig_noscaling()
+    fig_LCLscaling()
