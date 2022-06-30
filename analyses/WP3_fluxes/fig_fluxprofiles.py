@@ -456,10 +456,10 @@ def fig_LCLscaling():
     ncld_g3.sort()
     ncld_groups = [ncld_g1, ncld_g2, ncld_g3]
     
-    scale_altkeys = ["z_lcl"] # scale altitude by these quantities.
-    altbinwidth=0.5
-    #scale_altkeys = [] # scale altitude by these quantities.
-    #altbinwidth = 250
+    #scale_altkeys = ["z_lcl"] # scale altitude by these quantities.
+    #altbinwidth=0.5
+    scale_altkeys = [] # scale altitude by these quantities.
+    altbinwidth = 250
 
     # Get flux profiles grouped; groups are elements of a list:
     fluxprfs_grouped = []
@@ -503,9 +503,11 @@ def fig_LCLscaling():
     
     
     
-    fig_windcheck, axset_windcheck = plt.subplots(1, 2, figsize=(6, 4.5))
-    fig_scalarcheck = plt.figure(figsize=(4, 5)) 
-    axset_scalarcheck = fig_scalarcheck.add_axes([0.25, 0.2, 0.7, 0.7])
+    #fig_windcheck, axset_windcheck = plt.subplots(1, 2, figsize=(6, 4.5))
+    #fig_scalarcheck = plt.figure(figsize=(4, 5)) 
+    #axset_scalarcheck = fig_scalarcheck.add_axes([0.25, 0.2, 0.7, 0.7])
+    fig_scalar, axset_scalar = plt.subplots(1, 2, figsize=(6, 4.5))
+    fig_wind, axset_wind = plt.subplots(1, 2, figsize=(6, 4.5))
     
     #fig_wind, axset_wind = plt.subplots(1, 3, figsize=(10, 5))
     #fig_scalar, axset_scalar = plt.subplots(1, 4, figsize=(10, 5))
@@ -514,25 +516,25 @@ def fig_LCLscaling():
     colors = ['red', 'grey', 'blue']
     for fpgroup, c in zip(fluxprfs_grouped, colors):
 
-        scatterwithmean(fpgroup["w'w'_bar"], axset_windcheck[0], c, altbinwidth)                  
-        scatterwithmean(fpgroup["TKE_h"], axset_windcheck[1], c, altbinwidth)                  
+        #scatterwithmean(fpgroup["w'w'_bar"], axset_windcheck[0], c, altbinwidth)                  
+        #scatterwithmean(fpgroup["TKE_h"], axset_windcheck[1], c, altbinwidth)                  
 
-        scatterwithmean(fpgroup["q'w'_bar"], axset_scalarcheck, c, altbinwidth)                  
+        #scatterwithmean(fpgroup["q'w'_bar"], axset_scalarcheck, c, altbinwidth)                  
 
-        #scatterwithmean(fpgroup["TKE_h"], axset_wind[0], c, altbinwidth)
-        #scatterwithmean(fpgroup["w'w'_bar"], axset_wind[1], c, altbinwidth)
-        #scatterwithmean(fpgroup['TKE'], axset_wind[2], c, altbinwidth)                  
-    
-        #scatterwithmean(fpgroup["flux_sh"], axset_scalar[0], c, altbinwidth)
-        #scatterwithmean(fpgroup["flux_lh"], axset_scalar[1], c, altbinwidth)
-        #scatterwithmean(fpgroup['flux_b'], axset_scalar[2], c, altbinwidth)
-        #scatterwithmean(fpgroup['dD_flux'], axset_scalar[3], c, altbinwidth)
+        scatterwithmean(fpgroup["w'w'_bar"], axset_wind[0], c, altbinwidth)                  
+        scatterwithmean(fpgroup["TKE_h"], axset_wind[1], c, altbinwidth)                  
+
+        scatterwithmean(fpgroup["flux_lh"], axset_scalar[0], c, altbinwidth)        
+        scatterwithmean(fpgroup["dD_flux"], axset_scalar[1], c, altbinwidth)        
 
         
     # RHB surface flux means, stds for the P-3 sampling time period:
     #plot_RHBmeanfluxes(path_rhbflux, axset_scalar[0], axset_scalar[1])
+    plt.figure()
+    ax_toss = plt.axes()
+    plot_RHBmeanfluxes(path_rhbflux, ax_toss, axset_scalar[0])
        
-    axset_scalarcheck.vlines(0, 0, 3000, linestyles='dashed', colors='grey')    
+    #axset_scalarcheck.vlines(0, 0, 3000, linestyles='dashed', colors='grey')    
     
     # Axes limits, labels, etc.
     #for ax in axset_wind:
@@ -540,8 +542,30 @@ def fig_LCLscaling():
         
     #for ax in axset_scalar:
     #    ax.set_ylim(-0.25, 3.25)
-        
-        
+    
+    axset_wind[0].set_ylim(-100, 3300) 
+    axset_wind[0].set_ylabel('altitude (m)', fontsize=12)
+    axset_wind[0].set_xlabel(r"<w'w'> (m$^2$ s$^{-2}$)", fontsize=12)
+    
+    axset_wind[1].set_yticks(axset_wind[1].get_yticks())
+    axset_wind[1].set_yticklabels(['' for t in axset_wind[1].get_yticks()])
+    axset_wind[1].set_ylim(-100, 3300)
+    axset_wind[1].set_xlabel(r"TKE (m$^2$ s$^{-2}$)", fontsize=12)
+
+    axset_scalar[0].set_yticks(axset_scalar[0].get_yticks())
+    axset_scalar[0].set_xlim(-60, 490) 
+    axset_scalar[0].set_ylim(-100, 3300) 
+    axset_scalar[0].set_ylabel('altitude (m)', fontsize=12)
+    axset_scalar[0].set_xlabel(r"LHF (W m$^{-2}$)", fontsize=12)
+    
+    axset_scalar[1].set_yticks(axset_scalar[1].get_yticks())
+    axset_scalar[1].set_yticklabels(['' for t in axset_scalar[1].get_yticks()])
+    axset_scalar[1].set_ylim(-100, 3300) 
+    axset_scalar[1].set_xlim(-170, 50) 
+    axset_scalar[1].set_xlabel(r"$\delta D_{flux}$"+u'(\u2030)', fontsize=12)
+
+
+    """   
     for ax in axset_windcheck:
         ax.set_ylim(0, 3)
     axset_windcheck[0].set_ylabel(r"z/z$_{LCL}$", fontsize=12)
@@ -557,8 +581,13 @@ def fig_LCLscaling():
     axset_scalarcheck.set_xlabel(r"<w'q'> (g kg$^{-1}$ m s$^{-1}$)", fontsize=12)
     axset_scalarcheck.set_xlim(0, 0.15)
     axset_scalarcheck.set_xticks(np.arange(-0.05, 0.151, 0.05))
-
+    """
     
+
+
+
+
+
     #xaxes_cleanup(axset_wind, axset_scalar)
     #yticks = [0,1,2,3]
     #yticklabels = ["0", r"$z_{LCL}$", r"$z_{IB}$", 
