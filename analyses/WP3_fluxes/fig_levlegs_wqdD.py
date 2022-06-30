@@ -155,7 +155,7 @@ def test_scatter1(dir_5hzdata, fnames_levlegs,
     
 
 def test_scatter2(dir_5hzdata, fnames_levlegs, nclds, 
-                  qrange1=(0, 0.05), qrange2=(0.95, 1.)):
+                  qrange1=(0, 0.025), qrange2=(0.975, 1.)):
     """
     Generate PDF (using KDE method) for all P-3 level leg data for a subset of 
     cloud module and level leg numbers.
@@ -208,22 +208,28 @@ def test_scatter2(dir_5hzdata, fnames_levlegs, nclds,
             highroll = abs(data['roll']) > roll_crit
             data_qc = data.loc[~highroll]
         
+            if qrange1[1]=="w'=0":
+                downdraft = (
+                    (data_qc["w'"] > np.quantile(data_qc["w'"], qrange1[0])) & 
+                    (data_qc["w'"] < 0)
+                    )
+                updraft = (
+                    (data_qc["w'"] > 0) & 
+                    (data_qc["w'"] < np.quantile(data_qc["w'"], qrange2[1]))
+                    )                
         
-            downdraft = (
-                (data_qc["w'"] > np.quantile(data_qc["w'"], qrange1[0])) & 
-                (data_qc["w'"] < np.quantile(data_qc["w'"], qrange1[1]))
-                )
-            updraft = (
-                (data_qc["w'"] > np.quantile(data_qc["w'"], qrange2[0])) & 
-                (data_qc["w'"] < np.quantile(data_qc["w'"], qrange2[1]))
-                )
-            #q_05p = np.quantile(data_qc["w'"], 0.05)
-            #q_95p = np.quantile(data_qc["w'"], 0.95)
-            #downdraft = data_qc["w'"] < q_05p
-            #updraft = data_qc["w'"] > q_95p
+            else:
+                downdraft = (
+                    (data_qc["w'"] > np.quantile(data_qc["w'"], qrange1[0])) & 
+                    (data_qc["w'"] < np.quantile(data_qc["w'"], qrange1[1]))
+                    )
+                updraft = (
+                    (data_qc["w'"] > np.quantile(data_qc["w'"], qrange2[0])) & 
+                    (data_qc["w'"] < np.quantile(data_qc["w'"], qrange2[1]))
+                    )
+
             data_down = data_qc.loc[downdraft]
             data_up = data_qc.loc[updraft]
-            #data_env = data_qc.loc[~updraft & ~downdraft]
             env = (
                 (data_qc["w'"] > np.quantile(data_qc["w'"], 0.05)) & 
                 (data_qc["w'"] < np.quantile(data_qc["w'"], 0.95))
@@ -308,12 +314,18 @@ if __name__=="__main__":
     results_g3 = test_scatter2(dir_5hzdata, fnames_levlegs, ncld_g3)
     
     
+    #control_g1 = test_scatter2(dir_5hzdata, fnames_levlegs, ncld_g1, 
+    #                           qrange1=(0.05, 0.5), qrange2=(0.5, 0.95))
+    #control_g2 = test_scatter2(dir_5hzdata, fnames_levlegs, ncld_g2, 
+    #                           qrange1=(0.05, 0.5), qrange2=(0.5, 0.95))
+    #control_g3 = test_scatter2(dir_5hzdata, fnames_levlegs, ncld_g3, 
+    #                           qrange1=(0.05, 0.5), qrange2=(0.5, 0.95))
     control_g1 = test_scatter2(dir_5hzdata, fnames_levlegs, ncld_g1, 
-                               qrange1=(0.05, 0.5), qrange2=(0.5, 0.95))
+                               qrange1=(0.05, "w'=0"), qrange2=(0.5, 0.95))
     control_g2 = test_scatter2(dir_5hzdata, fnames_levlegs, ncld_g2, 
-                               qrange1=(0.05, 0.5), qrange2=(0.5, 0.95))
+                               qrange1=(0.05, "w'=0"), qrange2=(0.5, 0.95))
     control_g3 = test_scatter2(dir_5hzdata, fnames_levlegs, ncld_g3, 
-                               qrange1=(0.05, 0.5), qrange2=(0.5, 0.95))
+                               qrange1=(0.05, "w'=0"), qrange2=(0.5, 0.95))
     
     
     ## Plot deviations of updrafts and downdrafts from mean
@@ -334,11 +346,11 @@ if __name__=="__main__":
         ) 
     axset[0].scatter(
         control_g1['dDup']-control_g1['dD'], control_g1['alt'], 
-        color='grey', s=scattersize, marker='x', label='upward turbulence', 
+        color='grey', s=scattersize, marker='x', label='upward \nturb.', 
         )
     axset[0].scatter(
         control_g1['dDdown']-control_g1['dD'], control_g1['alt'], 
-        color='grey', s=scattersize, marker='.', label='downward turbulence', 
+        color='grey', s=scattersize, marker='.', label='downward \nturb.', 
         )
     
     
@@ -369,11 +381,11 @@ if __name__=="__main__":
         )
     axset[2].scatter(
         control_g3['dDup']-control_g3['dD'], control_g3['alt'], 
-        color='grey', s=scattersize, marker='x', label='upward turbulence', 
+        color='grey', s=scattersize, marker='x', label='upward turb.', 
         )
     axset[2].scatter(
         control_g3['dDdown']-control_g3['dD'], control_g3['alt'], 
-        color='grey', s=scattersize, marker='.', label='downward turbulence', 
+        color='grey', s=scattersize, marker='.', label='downward turb.', 
         )
     
     
@@ -384,7 +396,7 @@ if __name__=="__main__":
 
 
     for ax in axset: 
-        ax.set_xlim(-10, 20)
+        ax.set_xlim(-15, 22)
         ax.set_xticks(np.arange(-10, 21, 5))
         ax.set_xticklabels(['', '-5', '', '5', '', '15', ''])
         ax.vlines(0, -100, 3500, colors='black')
@@ -402,7 +414,7 @@ if __name__=="__main__":
             ha='center', va='bottom', transform=ax.transAxes
             )
         
-    axset[0].legend(loc='lower right', handletextpad=0.1, fontsize=9)
+    axset[0].legend(loc='lower right', handletextpad=0.1, fontsize=8)
     fig.savefig("./dD_updraft-downdraft_deviations.png")
     ##_________________________________________________________________________
     ## Plot deviations of updrafts and downdrafts from mean
@@ -438,7 +450,7 @@ if __name__=="__main__":
 
 
     for ax in axset: 
-        ax.set_xlim(-10, 20)
+        ax.set_xlim(-15, 20)
         ax.set_xticks(np.arange(-10, 21, 5))
         ax.set_xticklabels(['', '-5', '', '5', '', '15', ''])
         ax.vlines(0, -100, 3500, colors='black')
@@ -446,7 +458,7 @@ if __name__=="__main__":
         ax.set_ylim(-50, 3300)
     
 
-    axset[1].set_xlabel(r'$\Delta \delta D$'+u'(\u2030)', fontsize=12)
+    axset[1].set_xlabel(r'$\Delta \delta D(up-down) $'+u'(\u2030)', fontsize=12)
     axset[0].set_ylabel('altitude (m)', fontsize=12)
     
     axlabels = ['cg1', 'cg2', 'cg3']
