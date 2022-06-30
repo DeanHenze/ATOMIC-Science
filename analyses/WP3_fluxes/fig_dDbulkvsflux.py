@@ -134,6 +134,7 @@ for ax, nclds, c in zip(axset, [ncld_g1, ncld_g2, ncld_g3], pltcolors):
     
     
 for ax in axset:
+    ax.set_xlim(-200, 50)
     ax.set_ylim(-100, 3300)
     
 yticks = np.arange(0, 3300, 500)
