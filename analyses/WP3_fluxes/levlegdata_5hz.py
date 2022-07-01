@@ -36,7 +36,7 @@ import iso
 
 
 
-def process_5hz(wind_50hz, mr_5hz, iso_5hz, roll_1hz, 
+def process_5hz(wind_50hz, mr_5hz, iso_5hz, roll_1hz, T_1hz, 
                 t1, t2, timesync_method='xcorr', timesync_results=False):
     """ 
     Returns processed wind, water, and isotope ratio data at 5Hz, collected 
@@ -79,11 +79,12 @@ def process_5hz(wind_50hz, mr_5hz, iso_5hz, roll_1hz,
     ##_________________________________________________________________________            
     print("Processing wind data.")
 
-    windkeys_new = ["u", "v", "w", "T"]
+    #windkeys_new = ["u", "v", "w", "T"]
+    windkeys_new = ["u", "v", "w"]
     wind_pro = varsubset(
         wind_50hz, t1, t2, 
         ["lon", "lat", "alt", "eastward_wind", 
-         "northward_wind", "vertical_wind", "total_air_temperature"
+         "northward_wind", "vertical_wind", #"total_air_temperature"
          ], 
         keys_new=["lon", "lat", "alt"] + windkeys_new
         )
@@ -127,7 +128,6 @@ def process_5hz(wind_50hz, mr_5hz, iso_5hz, roll_1hz,
         )    
     
     # Time shift to wind data:     
-    #mriso_pro, xcormax, tshift = timesync(
     tsyncresults = timesync(
         mriso_pro, wind_pro, "q'", "w'", 
         fs=5, method=timesync_method, leadmax=0, lagmax=7
@@ -156,8 +156,35 @@ def process_5hz(wind_50hz, mr_5hz, iso_5hz, roll_1hz,
     ## Aircraft roll QC
     
     
+    ## 1Hz temperature
+    ##_________________________________________________________________________            
+    print("Processing 1Hz temperature data.")
+
+     # Variable subset in the cloud leg interval:
+    tnew_T = [convert_time(dt64) for dt64 in T_1hz.time.values] # datetime to secs.
+    T_1hz = T_1hz.assign_coords(time=tnew_T)  
+    T_pro = varsubset(
+        T_1hz, t1, t2, 
+        ["Ta"], 
+        keys_new=["T"]
+        )
+    T_pro = perturbations(
+        T_pro, ["T"], 
+        ["T'"]
+        ) 
+    # Interpolate to 5Hz using nearest neighbor:
+    T_pro = T_pro.interp(time=wind_pro['time'], method='nearest')
+    # Time shift to wind data:     
+    T_pro = timesync(
+        T_pro, wind_pro, "T'", "w'", 
+        fs=5, method=timesync_method, leadmax=0, lagmax=7
+        )
+    ##_________________________________________________________________________            
+    ## 1Hz temperature
+    
+    
     ## Merge all datasets and return:
-    data_merged = xr.merge([wind_pro, mriso_pro, roll_leg], join='exact')
+    data_merged = xr.merge([wind_pro, mriso_pro, roll_leg, T_pro], join='exact')
         # Sometimes there are leading or lagging NANs in mriso from time alignment:
     data_merged = data_merged.dropna(dim='time', how='any')
     

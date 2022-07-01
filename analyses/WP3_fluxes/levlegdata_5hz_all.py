@@ -35,7 +35,7 @@ time_levlegs['tend_tstamp'] = time_levlegs['tend_leg'].apply(pd.Timestamp)
 # Paths to data sets:
 path_fastwind = "../../data/WP3/fast_wind_temp/" # High freq wind / temp
 path_fastwater = "../../data/WP3/fast_water_iso/" # high freq water / iso
-path_flightlev1hz = "../../data/WP3/flight_level_1Hz/" # files with roll data
+path_flightlev1hz = "../../data/WP3/flight_level_1Hz/" # files with roll and temperature data
 
 
 # Save results to these directories:
@@ -84,11 +84,12 @@ for i, row in time_levlegs.iterrows():
     iso = xr.load_dataset(fname_iso)
     
     
-    # Load 1 Hz flight level data and get roll var:
+    # Load 1 Hz flight level data, get roll and temperature:
     fnamehead_flev = "EUREC4A_ATOMIC_P3_Flight-level_"
     fname_flev = (path_flightlev1hz + fnamehead_flev + date + "_v1.0.nc")
     flightlev = xr.load_dataset(fname_flev)    
     roll = flightlev['roll']
+    T = flightlev['Ta'].to_dataset()
     
     
     # Get processed data and water-wind time sync results:
@@ -101,7 +102,7 @@ for i, row in time_levlegs.iterrows():
     #    )
         # With new linear function of altitude:
     data_proc = levlegdata_5hz.process_5hz(
-        wind, mr, iso, roll, 
+        wind, mr, iso, roll, T, 
         t1, t2, timesync_method='linear', timesync_results=False
         )
     
