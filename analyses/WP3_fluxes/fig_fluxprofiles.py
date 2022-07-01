@@ -67,7 +67,7 @@ def get_fluxprofiles(ncld_list, keyalts_table, dir_flux,
     # Each DataFrame will contain all profiles for a specific var.
     fluxvarkeys = ["u'u'_bar", "v'v'_bar", "w'w'_bar", "TKE", "TKE_h",
                    "flux_sh", "flux_lh", "flux_b", "dD_flux", 
-                   "q'w'_bar"
+                   "q'w'_bar", "T'w'_bar"
                    ]
     fluxprfs_dict = {}
     for k in fluxvarkeys: fluxprfs_dict[k] = pd.DataFrame({})
@@ -506,8 +506,8 @@ def fig_LCLscaling():
     #fig_windcheck, axset_windcheck = plt.subplots(1, 2, figsize=(6, 4.5))
     #fig_scalarcheck = plt.figure(figsize=(4, 5)) 
     #axset_scalarcheck = fig_scalarcheck.add_axes([0.25, 0.2, 0.7, 0.7])
-    fig_scalar, axset_scalar = plt.subplots(1, 2, figsize=(6, 4.5))
-    fig_wind, axset_wind = plt.subplots(1, 2, figsize=(6, 4.5))
+    fig_scalar, axset_scalar = plt.subplots(1, 3, figsize=(6.5, 4.5))
+    fig_wind, axset_wind = plt.subplots(1, 2, figsize=(6.5, 4.5))
     
     #fig_wind, axset_wind = plt.subplots(1, 3, figsize=(10, 5))
     #fig_scalar, axset_scalar = plt.subplots(1, 4, figsize=(10, 5))
@@ -526,6 +526,8 @@ def fig_LCLscaling():
 
         scatterwithmean(fpgroup["flux_lh"], axset_scalar[0], c, altbinwidth)        
         scatterwithmean(fpgroup["dD_flux"], axset_scalar[1], c, altbinwidth)        
+        #scatterwithmean(fpgroup["flux_sh"], axset_scalar[2], c, altbinwidth)        
+        scatterwithmean(fpgroup["T'w'_bar"], axset_scalar[2], c, altbinwidth)        
 
         
     # RHB surface flux means, stds for the P-3 sampling time period:
