@@ -90,6 +90,19 @@ def createimages(path_goescldmoddir, path_savedir):
         fnameirmask_save = "G16V04.0.ATOMIC.PX.02K_IRmask_%s.png" % ncld_str
         fig_irmask.savefig(os.path.join(path_savedir, fnameirmask_save), bbox_inches='tight')   
         plt.close(fig=fig_irmask)
+        
+        
+        fig_ctt = plt.figure(figsize=(1.25, 1.25))
+        ax_ctt = fig_ctt.add_axes([0.2, 0.2, 0.7, 0.7])
+        ax_ctt.pcolor(
+            goesdata['longitude'], goesdata['latitude'], 
+            goesdata['cloud_top_temperature'], 
+            cmap = 'gray', #vmin=0, vmax=0.8
+            )
+        set_imageticklabels(ax_ctt)
+        fnamectt_save = "G16V04.0.ATOMIC.PX.02K_cloudtop-temperature_%s.png" % ncld_str
+        fig_ctt.savefig(os.path.join(path_savedir, fnamectt_save), bbox_inches='tight')
+        plt.close(fig=fig_ctt)
     
 
 
