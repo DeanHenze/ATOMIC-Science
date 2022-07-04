@@ -80,11 +80,11 @@ def process_5hz(wind_50hz, mr_5hz, iso_5hz, roll_1hz, T_1hz,
     print("Processing wind data.")
 
     #windkeys_new = ["u", "v", "w", "T"]
-    windkeys_new = ["u", "v", "w"]
+    windkeys_new = ["u", "v", "w", "P"]
     wind_pro = varsubset(
         wind_50hz, t1, t2, 
         ["lon", "lat", "alt", "eastward_wind", 
-         "northward_wind", "vertical_wind", #"total_air_temperature"
+         "northward_wind", "vertical_wind", "air_pressure", #"total_air_temperature"
          ], 
         keys_new=["lon", "lat", "alt"] + windkeys_new
         )
