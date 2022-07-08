@@ -599,7 +599,7 @@ def fig_scatter():
     lhf_meanprfs = []
     bf_meanprfs = []
     dDf_meanprfs = []
-    gridalt = np.arange(100, 3400, 250)
+    gridalt = np.arange(200, 3400, 250)
 
     
     save_dir = "./mean_profiles/" # Save mean profiles here
