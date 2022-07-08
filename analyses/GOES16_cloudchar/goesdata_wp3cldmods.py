@@ -135,11 +135,11 @@ if __name__=="__main__":
     
     
     # Things that may want to be modified:
-    dlat = 2 # half-width of latitude for desired GOES region.
-    dlon = 2 # half-width of longitude for desired region.
+    dlat = 1.25 # half-width of latitude for desired GOES region.
+    dlon = 1.25 # half-width of longitude for desired region.
     varsubset = [ # subset of GOES variables to save.
         'reflectance_vis', 'temperature_ir', 
-        'cloud_top_height'
+        'cloud_top_height', 'cloud_top_temperature'
         ]
     
 

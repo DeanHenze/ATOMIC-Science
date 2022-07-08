@@ -169,9 +169,9 @@ def addthetacontours(dir_drpsnd, ncld, varkey, fig, ax, xplot):
 
 if __name__=="__main__":
     
-    ncld_g1 = [1, 5, 4, 8]
-    ncld_g2 = [7, 9, 11, 10, 12, 6]
-    ncld_g3 = [15, 3, 2, 13, 16, 14]
+    ncld_g1 = [1, 5, 4]
+    ncld_g2 = [8, 7, 9, 11, 10, 6]
+    ncld_g3 = [12, 15, 3, 2, 13, 16, 14]
     ncld_g1.sort()
     ncld_g2.sort()
     ncld_g3.sort()
