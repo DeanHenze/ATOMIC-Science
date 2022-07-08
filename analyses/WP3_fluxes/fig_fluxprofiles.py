@@ -22,6 +22,7 @@ import profileplotter
 import rangescaler
 import prfrestructure
 import thermo_deSzoeke
+import oversampler
 
 
 
@@ -493,35 +494,79 @@ def fig_scatter():
         
     ## Plot turbulence and flux profiles
     ##_________________________________________________________________________
-    def scatterwithmean(data_prfs, ax, color, altbinwidth):
+    def scatterwithmean(data_prfs, varkey, ax, color, altbinwidth, gridalt, n):
         """
         """
         for key_prf in data_prfs.columns:
             prf = data_prfs[key_prf]
-            ax.scatter(prf, data_prfs.index, color=c, s=8)
+            ax.scatter(prf, data_prfs.index, color=c, s=8, alpha=0.4)
         
+
+        # Get mean and std prfiles using oversampling:
+        df = data_prfs.stack().reset_index()
+        if 'level_0' in df.columns:
+            ovs = oversampler.oversample_1d(df[0], df['level_0'], gridalt, ffact=0.7, return_stdev='yes')
+        elif 'level_1' in df.columns:
+            ovs = oversampler.oversample_1d(df[0], df['altleg'], gridalt, ffact=0.7, return_stdev='yes')
+        
+        # Plot mean and std of mean:
+        ax.plot(ovs['mean'], gridalt, color=color)
+        ax.fill_betweenx(
+            gridalt, 
+            ovs['mean']-ovs['stdev']/3,  # ~3 observations per mean
+            ovs['mean']+ovs['stdev']/3, 
+            color=color, alpha=0.2
+            )
+        
+        return ovs['mean']
+        
+    
+        """
         altgrouped = np.round(data_prfs.index/altbinwidth)*altbinwidth # vertical binning.
         fluxvar_grouped = data_prfs.groupby(altgrouped, axis=0, as_index=True)
         alt_bincenter = []
         meanprf = []
+        stdprf = []
         for altbc, grp in fluxvar_grouped:
             alt_bincenter.append(altbc)
             grpvals_1d = grp.values.flatten()
             meanprf.append(np.nanmean(grpvals_1d))
+            stdprf.append(np.nanstd(grpvals_1d))
         
-        df = pd.DataFrame({'data_prfs':meanprf}, index=alt_bincenter)
+        # Collect into pandas dfs:
+        dfmean = pd.DataFrame({'data_prfs':meanprf}, index=alt_bincenter)
         refalt = pd.DataFrame(
             index=pd.Index(np.arange(0, np.nanmax(data_prfs), altbinwidth)))
-        df = df.merge(refalt, 
+        dfmean = dfmean.merge(refalt, 
                       left_index=True, right_index=True, how='outer')
-        #df = data_prfs.stack().reset_index()[['level_0', 0]]
-        test = df.rolling(
+        
+        dfstd = pd.DataFrame({'data_prfs':stdprf}, index=alt_bincenter)
+        refalt = pd.DataFrame(
+            index=pd.Index(np.arange(0, np.nanmax(data_prfs), altbinwidth)))
+        dfstd = dfstd.merge(refalt, 
+                      left_index=True, right_index=True, how='outer')
+        
+        
+        # Rolling means to smooth profiles:
+        meanprf_roll = dfmean.rolling(
             window=4, min_periods=1, win_type='hamming', 
             center=True, closed='neither'
             )
-        test = test.mean()
-        ax.plot(test.iloc[1:], test.index[1:], color=c, linewidth=2)
+        meanprf_roll = meanprf_roll.mean()
+        stdprf_roll = dfstd.rolling(
+            window=4, min_periods=1, win_type='hamming', 
+            center=True, closed='neither'
+            )
+        stdprf_roll = stdprf_roll.std()
+        ax.plot(meanprf_roll.iloc[1:], meanprf_roll.index[1:], color=c, linewidth=2)
+        ax.fill_betweenx(
+            meanprf_roll.index[1:].values,
+            (meanprf_roll.iloc[1:] - stdprf_roll.iloc[1:]).values.T.squeeze(), 
+            (meanprf_roll.iloc[1:] + stdprf_roll.iloc[1:]).values.T.squeeze(), 
+            color=c, alpha=0.3
+            )
         #ax.plot(test[0].iloc[1:], test['level_0'][1:], color=c, linewidth=2)
+        """
         
 
     fig_scalar = plt.figure(figsize=(6.5, 3))
@@ -546,18 +591,37 @@ def fig_scatter():
     
     
     colors = ['red', 'grey', 'blue']
-    for fpgroup, c in zip(fluxprfs_grouped, colors):
+    cldgrps_n = [1,2,3]
+    tkeh_meanprfs = []
+    ww_meanprfs = []
+    tke_meanprfs = []
+    shf_meanprfs = []
+    lhf_meanprfs = []
+    bf_meanprfs = []
+    dDf_meanprfs = []
+    gridalt = np.arange(100, 3400, 250)
 
-        scatterwithmean(fpgroup["TKE_h"], axset_wind[0], c, altbinwidth)                  
-        scatterwithmean(fpgroup["w'w'_bar"], axset_wind[1], c, altbinwidth)                  
-        scatterwithmean(fpgroup["TKE"], axset_wind[2], c, altbinwidth)                  
+    
+    save_dir = "./mean_profiles/" # Save mean profiles here
+    if not os.path.isdir(save_dir): os.mkdir(save_dir)
+    for fpgroup, c, n in zip(fluxprfs_grouped, colors, cldgrps_n):
 
-        scatterwithmean(fpgroup["flux_sh"], axset_scalar[0], c, altbinwidth)        
-        scatterwithmean(fpgroup["flux_lh"], axset_scalar[1], c, altbinwidth)        
-        scatterwithmean(fpgroup["flux_b"], axset_scalar[2], c, altbinwidth)        
-        scatterwithmean(fpgroup["dD_flux"], axset_scalar[3], c, altbinwidth)        
+        tkeh_meanprfs.append(
+            scatterwithmean(fpgroup["TKE_h"], "TKE_h", axset_wind[0], c, altbinwidth, gridalt, n))
+        ww_meanprfs.append(
+            scatterwithmean(fpgroup["w'w'_bar"], "w'w'_bar", axset_wind[1], c, altbinwidth, gridalt, n))
+        tke_meanprfs.append(
+            scatterwithmean(fpgroup["TKE"], "TKE", axset_wind[2], c, altbinwidth, gridalt, n))
+        shf_meanprfs.append(
+            scatterwithmean(fpgroup["flux_sh"], "flux_sh", axset_scalar[0], c, altbinwidth, gridalt, n))
+        lhf_meanprfs.append(
+            scatterwithmean(fpgroup["flux_lh"], "flux_lh", axset_scalar[1], c, altbinwidth, gridalt, n))
+        bf_meanprfs.append(
+            scatterwithmean(fpgroup["flux_b"], "flux_b", axset_scalar[2], c, altbinwidth, gridalt, n))
+        dDf_meanprfs.append(
+            scatterwithmean(fpgroup["dD_flux"], "dD_flux", axset_scalar[3], c, altbinwidth, gridalt, n))
 
-        
+
     # RHB surface flux means, stds for the P-3 sampling time period:
     plot_RHBmeanfluxes(path_rhbflux, axset_scalar[0], axset_scalar[1], axset_scalar[2])
     
@@ -591,8 +655,10 @@ def fig_scatter():
             )
         
     # Plot skewness profiles:
-    for prfs, c in zip(wmomprfs, colors):  
-            scatterwithmean(prfs, axset_wind[3], c, altbinwidth)
+    wskew_meanprfs = []
+    for prfs, c, n in zip(wmomprfs, colors, cldgrps_n):  
+            wskew_meanprfs.append(
+                scatterwithmean(prfs, 'wskew', axset_wind[3], c, altbinwidth, gridalt, n))
             
     # Ref line at x=0:
     axset_wind[3].vlines(
@@ -602,6 +668,21 @@ def fig_scatter():
     ##_________________________________________________________________________
 
     
+    ## Save mean profiles as .csv files:
+    ##_________________________________________________________________________
+    varprfs = [tkeh_meanprfs, ww_meanprfs, tke_meanprfs, shf_meanprfs, 
+               lhf_meanprfs, bf_meanprfs, dDf_meanprfs, wskew_meanprfs]
+    varkeys = ["TKE_h", "wp2_bar", "TKE", "flux_sh", 
+               "flux_lh", "flux_b", "dD_flux", "wp3_bar"]
+    for prfs, varkey in zip(varprfs, varkeys): 
+        cgkeys = ["cg%i" %n for n in cldgrps_n]
+        df_save = pd.DataFrame(dict(zip(cgkeys, prfs)))
+        df_save['alt'] = gridalt
+        df_save.to_csv(save_dir + "meanprf_%s_cg%i.csv" % tuple([varkey, n]), index=False)
+    ##_________________________________________________________________________
+        
+
+
     axset_wind[0].set_yticks(axset_wind[0].get_yticks())
     axset_wind[0].set_yticklabels(['' for t in axset_wind[1].get_yticks()])
     axset_wind[0].set_ylim(-100, 3300)
