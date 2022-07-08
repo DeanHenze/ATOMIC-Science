@@ -46,9 +46,9 @@ fnames_cldinsituremote = [f for f in os.listdir(path_cldinsituremote_dir)
 
 
 # Cloud module number groupings:
-ncld_g1 = [7, 9, 11, 10, 12, 6]
-ncld_g2 = [15, 3, 2, 13, 16, 14]
-ncld_g3 = [1, 5, 4, 8]
+ncld_g1 = [8, 7, 9, 11, 10, 6]
+ncld_g2 = [12, 15, 3, 2, 13, 16, 14]
+ncld_g3 = [1, 5, 4]
 
 ncld_g1.sort()
 ncld_g2.sort()
