@@ -5,10 +5,8 @@ Created on Sun Jun 19 13:28:09 2022
 @author: Dean
 
 Synoptic time series of 600 mb vertical velocity, surface windspeed, 
-wind shear in the lower 3 km, surface pressure, and lower tropospheric stability. 
-
-Other options:
-    - windsheer over mixed layer and trade cumulus layer.
+wind shear in the lower 3 km, surface pressure, and lower tropospheric 
+stability. 
 """
 
 
@@ -78,6 +76,8 @@ def extra_era5vars(era5):
         (1000-700)*10 # 1000 m / 100 hPa
         )    
     era5['LTS'] = (era5['theta'].sel(level=650) - era5['theta'].sel(level=1000))   
+    era5['gph_700hPa'] = era5['z'].sel(level=700)/9.8 # divide by gravitational accel.
+    era5['gph_500hPa'] = era5['z'].sel(level=500)/9.8
     return era5
 
 
@@ -90,15 +90,18 @@ lonbnds = (-60, -48)
 
 # List storage for date and large scale forcing variables:
 date = []
+date_2dvars = [] # To make sure it matches 'date' for 3d vars.
 usfc_stats = []
 lts_stats = []
 omega_stats = []
 dudz_stats = []
 psfc_stats = []
+gph_stats = []
 
+# ERA5 3D vars:
 for f in fnames_era5plevs:
     
-    # Load era5 3D data and add some variables:
+    # Load era5 3D data then add some variables:
     era5_3d = xr.load_dataset(os.path.join(path_era5dir+f))
     era5_3d = extra_era5vars(era5_3d)
     
@@ -118,12 +121,40 @@ for f in fnames_era5plevs:
     lts_stats.append(getstats(era5_3d_atomic['LTS']))
         # Upper level vertical velocity:
     omega_stats.append(getstats(era5_3d_atomic['w_600hPa']))
-        # Surface pressure:
-    #psfc_stats.append(getstats(era5_3d_atomic['w_600hPa']))
         # Wind shear:
     dudz_stats.append(getstats(era5_3d_atomic['windshear_sfc700hpa']))
+        # 500 hPa geopotential height:
+    gph_stats.append(getstats(era5_3d_atomic['gph_700hPa']))
     
     era5_3d.close()
+    
+    
+# ERA5 2D vars:
+for f in fnames_era5singlelev:
+    
+    # Load era5 3D data then add some variables:
+    era5_2d = xr.load_dataset(os.path.join(path_era5dir+f))
+    
+    # data trimmed for ATOMIC region:
+    era5_2d_atomic = era5_2d.sel(
+        latitude = slice(latbnds[0], latbnds[1]), 
+        longitude = slice(lonbnds[0], lonbnds[1]), 
+        )
+    
+    # Compute and append date and forcing statistics:
+        # date:
+    dtime0 = pd.Timestamp(era5_2d['time'].values[0])
+    date_2dvars.append(str(dtime0.date()))
+        # Surface pressure:
+    psfc_stats.append(getstats(era5_2d_atomic['sp']/100)) # 1/100 to convert to hPa.
+        
+    era5_2d.close()
+    
+
+# Verify that date lists for 3D and 2D vars match:
+if date != date_2dvars:
+    print("Warning: date lists from the 2D and 3D ERA5 vars do not match. "
+          "This could result in an incorrect surface pressure time series.")
 ##_____________________________________________________________________________
 ## Get timeseries of statistics for large scale forcing from ERA5
 
@@ -184,46 +215,61 @@ psfc_p3 = np.array(psfc_p3)
     
 ## Shaded regions for ERA5 time series stats    
 ##_____________________________________________________________________________
-fig, axset = plt.subplots(4, 1, figsize=(6.5, 6))
+fig, axset = plt.subplots(5, 1, figsize=(6.5, 6))
 
-date = [pd.Timestamp(d) for d in date]
+date_ts = [pd.Timestamp(d) for d in date]
+
+# Vertical velocity:
 omega_stats = np.array(omega_stats)
 axset[0].fill_between(
-    date, omega_stats[:,2], omega_stats[:,3], 
+    date_ts, omega_stats[:,2], omega_stats[:,3], 
     color='orange', alpha=0.3
     )
-axset[0].plot(date, omega_stats[:,0], color='black')
+axset[0].plot(date_ts, omega_stats[:,0], color='black')
     # Reference line at y=0:
 axset[0].hlines(
     0, min(axset[0].get_xticks()), max(axset[0].get_xticks()), 
     colors='black', linestyles='solid', linewidth=1, zorder=10
     )
 
+# LTS:
 lts_stats = np.array(lts_stats)
 axset[1].fill_between(
-    date, lts_stats[:,2], lts_stats[:,3], 
+    date_ts, lts_stats[:,2], lts_stats[:,3], 
     color='orange', alpha=0.3
     )
-axset[1].plot(date, lts_stats[:,0], color='black')
+axset[1].plot(date_ts, lts_stats[:,0], color='black')
 
+# Surface windspeed:
 usfc_stats = np.array(usfc_stats)
 axset[2].fill_between(
-    date, usfc_stats[:,2], usfc_stats[:,3], 
+    date_ts, usfc_stats[:,2], usfc_stats[:,3], 
     color='orange', alpha=0.3
     )
-axset[2].plot(date, usfc_stats[:,0], color='black')
+axset[2].plot(date_ts, usfc_stats[:,0], color='black')
 
-dudz_stats = np.array(dudz_stats)
+# Wind shear:
+psfc_stats = np.array(psfc_stats)
 axset[3].fill_between(
-    date, dudz_stats[:,2], dudz_stats[:,3], 
+    date_ts, psfc_stats[:,2], psfc_stats[:,3], 
     color='orange', alpha=0.3
     )
-p = axset[3].plot(date, dudz_stats[:,0], color='black')
-    # Reference line at y=0.002:
-axset[3].hlines(
-    0.002, min(axset[3].get_xticks()), max(axset[3].get_xticks()), 
-    colors='black', linestyles='solid', linewidth=1, zorder=10
+p = axset[3].plot(date_ts, psfc_stats[:,0], color='black')
+
+# Wind shear:
+dudz_stats = np.array(dudz_stats)
+axset[4].fill_between(
+    date_ts, dudz_stats[:,2], dudz_stats[:,3], 
+    color='orange', alpha=0.3
     )
+p = axset[4].plot(date_ts, dudz_stats[:,0], color='black')
+
+#gph_stats = np.array(gph_stats)
+#axset[4].fill_between(
+#    date_ts, gph_stats[:,2], gph_stats[:,3], 
+#    color='orange', alpha=0.3
+#    )
+#p = axset[4].plot(date_ts, gph_stats[:,0], color='black')
 ##_____________________________________________________________________________
 ## Shaded regions for ERA5 time series stats  
 
@@ -231,7 +277,7 @@ axset[3].hlines(
 
 # Axes labels, limits, legend
 ##_____________________________________________________________________________
-for ax in axset[0:3]: 
+for ax in axset[0:4]: 
     ax.set_xticks(ax.get_xticks())
     ax.set_xticklabels(['' for t in ax.get_xticks()])
     
@@ -239,29 +285,33 @@ for ax in axset:
     ax.set_xlim(pd.Timestamp("2020-01-15"), pd.Timestamp("2020-02-13"))
 
     
-axset[0].set_ylabel(r'$\omega_{600}$ (Pa * s$^{-1}$)', fontsize=12)
+axset[0].set_ylabel(r'$\omega_{600}$ (Pa s$^{-1}$)', fontsize=11, labelpad=8)
 
 axset[1].set_ylim(14, 23)
 axset[1].set_yticks(np.arange(15, 22, 2))
-axset[1].set_ylabel(r'LTS (K)', fontsize=12)
+axset[1].set_ylabel(r'LTS (K)', fontsize=11, labelpad=20)
 
 axset[2].set_ylim(2, 13)
 axset[2].set_yticks(np.arange(3, 13, 3))
-axset[2].set_ylabel(r'$|U|_{sfc}$ (m/s)', fontsize=12)
+axset[2].set_ylabel(r'$|U|_{sfc}$ (m/s)', fontsize=11, labelpad=20)
 
-axset[3].set_ylim(0.0007, 0.0037)
-axset[3].set_yticks([0.001, 0.002, 0.003])
-axset[3].set_ylabel(r'$(dU/dz)_{h}$ (s$^{-1}$)', fontsize=12)
+axset[3].set_ylim(1011.5, 1019.5)
+axset[3].set_yticks([1012, 1015, 1018])
+axset[3].set_ylabel(r'$P_{sfc}$ (hPa)', fontsize=11, labelpad=8)
+
+axset[4].set_ylim(0.0007, 0.0037)
+axset[4].set_yticks([0.001, 0.002, 0.003])
+axset[4].set_ylabel(r'dU/dz (s$^{-1}$)', fontsize=11)
 
 xticklabels = [
     text.Text(*ticklab.get_position(), ticklab.get_text()[5:])
-    for ticklab in axset[3].get_xticklabels()
+    for ticklab in axset[4].get_xticklabels()
     ]
-axset[3].set_xticks(axset[3].get_xticks())
-axset[3].set_xticklabels(xticklabels, rotation=45, rotation_mode=None, 
+axset[4].set_xticks(axset[4].get_xticks())
+axset[4].set_xticklabels(xticklabels, rotation=45, rotation_mode=None, 
                          horizontalalignment='right')
-#axset[3].tick_params(axis='x', labelrotation=30, labelright=True)
-axset[3].set_xlabel('date', fontsize=12)
+#axset[4].tick_params(axis='x', labelrotation=30, labelright=True)
+axset[4].set_xlabel('2022 date', fontsize=11)
 ##_____________________________________________________________________________
 # Axes labels, limits, legend
 
@@ -286,13 +336,14 @@ for xpos, x_off, txt in zip(ha_locs, ha_offsets, cld_annot):
         ha='center', va='bottom'
         )
     
-# Vertical lines at each day with cloud modules:
+# Vertical lines at each day with cloud modules, colored by cloud group:
+linecolors = ['red', 'blue', 'red', 'grey', 'grey', 'blue', 'blue', 'blue']
 for ax in axset:
     ylims = ax.get_ylim()
     ax.vlines(
         ha_locs + ha_offsets, 
         np.ones(len(ha_locs))*ylims[0], np.ones(len(ha_locs))*ylims[1], 
-        colors='red', linewidths=0.5
+        colors=linecolors, linewidths=1.
         )
 ##_____________________________________________________________________________
 ## Annotations for P-3 cloud modules
