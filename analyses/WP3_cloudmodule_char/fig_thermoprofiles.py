@@ -46,9 +46,9 @@ fnames_cldinsituremote = [f for f in os.listdir(path_cldinsituremote_dir)
 
 
 # Cloud module number groupings:
-ncld_g1 = [8, 7, 9, 11, 10, 6]
-ncld_g2 = [12, 15, 3, 2, 13, 16, 14]
-ncld_g3 = [1, 5, 4]
+ncld_g1 = [1, 5, 4]
+ncld_g2 = [8, 7, 9, 11, 10, 6]
+ncld_g3 = [12, 15, 3, 2, 13, 16, 14]
 
 ncld_g1.sort()
 ncld_g2.sort()
@@ -143,7 +143,7 @@ scale_altkeys = ['z_lcl', 'z_tib']
 
 ## Get insitu mean profiles as a list of xr.Datasets, one for each cloud group: 
 insitu_grouped = [] # Will be list of xr.Datasets:
-for ncld_list in [ncld_g2, ncld_g3, ncld_g1]:
+for ncld_list in [ncld_g1, ncld_g2, ncld_g3]:
     fnames_cldgroup = [f for f in fnames_cldinsituremote if int(f[-5:-3]) in ncld_list]
     fpaths = [path_clddrpsnds_dir+f for f in fnames_cldgroup]
     insitu_grouped.append(
@@ -157,7 +157,7 @@ for ncld_list in [ncld_g2, ncld_g3, ncld_g1]:
 
 ## Get dropsonde mean profiles as a list of xr.Datasets, one for each cloud group:  
 drpsnds_grouped = [] # Will be list of xr.Datasets:
-for ncld_list in [ncld_g2, ncld_g3, ncld_g1]:
+for ncld_list in [ncld_g1, ncld_g2, ncld_g3]:
     fnames_cldgroup = [f for f in fnames_clddrpsnds if int(f[-5:-3]) in ncld_list]
     fpaths = [path_clddrpsnds_dir+f for f in fnames_cldgroup]
     drpsnds_grouped.append(
@@ -166,6 +166,39 @@ for ncld_list in [ncld_g2, ncld_g3, ncld_g1]:
             keyalts_table, scale_altkeys
             )
         )
+    
+    
+## Save mean profiles:
+def get_meanprfs(data_grouped, varkey, avg_over):
+    """
+    data_grouped: list (length=3) of xarray datasets.
+    varkey: key of variable to get profiles for
+    avg_over: key of dimension to take mean over in the datasets.
+    """
+    # Mean profile for each cloud group as a dataframe with altitude as index:
+    ng_cloudgroups = [1, 2, 3]
+    meanprfs_list = [] # Mean profiles go here.
+    for data, ng in zip(data_grouped, ng_cloudgroups):
+        meanprf_ng = data[varkey].mean(dim=avg_over).to_dataframe()
+        meanprf_ng.rename(columns={varkey:'cg%i' % ng}, inplace=True)
+        meanprfs_list.append(meanprf_ng)
+    
+    # Return profiles merged into a single dataframe:
+    meanprfs = pd.merge(meanprfs_list[0], meanprfs_list[1], how='outer', 
+                        left_index=True, right_index=True)
+    meanprfs = pd.merge(meanprfs, meanprfs_list[2], how='outer', 
+                        left_index=True, right_index=True)
+    return meanprfs
+
+path_savedir = "./mean_profiles/"
+if not os.path.isdir(path_savedir): os.mkdir(path_savedir)
+    # In-situe dD:  
+dD_meanprf = get_meanprfs(insitu_grouped, 'dD', 'ncld')
+dD_meanprf.to_csv(path_savedir + "meanprf_dD_WP3.csv")
+    # Dropsonde T, theta, q, RH:
+for varkey in ['ta', 'theta', 'q', 'rh']:
+    meanprf = get_meanprfs(drpsnds_grouped, varkey, 'ncld')
+    meanprf.to_csv(path_savedir + "meanprf_%s_WP3.csv" % varkey)
     
 
 
@@ -178,7 +211,7 @@ axset = [
     for x in [lmarge, lmarge + w + 0.01, lmarge + 2*w + 2*0.01, lmarge + 3*w + 3*0.01]
     ]
 
-pltcolors=['blue','red','grey']
+pltcolors=['red','grey', 'blue']
 for drpsnds, c in zip(drpsnds_grouped, pltcolors):
 
     for ax, varkey in zip(axset, ['theta','q','rh']):
