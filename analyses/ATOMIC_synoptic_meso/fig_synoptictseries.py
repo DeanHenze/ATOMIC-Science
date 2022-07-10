@@ -31,9 +31,12 @@ import thermo
 ## I/O paths and filenames
 ##_____________________________________________________________________________
 path_era5dir = r"../../data/reanalysis/ECMWF_ERA5/"
-fnames_era5 = [f for f in os.listdir(path_era5dir) 
-               if "_plevs_hourly" in f and ".nc" in f]
-fnames_era5.sort()
+fnames_era5plevs = [f for f in os.listdir(path_era5dir) 
+                    if "_plevs_hourly" in f and ".nc" in f]
+fnames_era5plevs.sort()
+fnames_era5singlelev = [f for f in os.listdir(path_era5dir) 
+                        if "_single-lev_hourly" in f and ".nc" in f]
+fnames_era5singlelev.sort()
 
 path_cldmodtab = r"../WP3_cloudmodule_char/p3_cloudmodules.csv"
 ##_____________________________________________________________________________
@@ -93,34 +96,34 @@ omega_stats = []
 dudz_stats = []
 psfc_stats = []
 
-for f in fnames_era5:
+for f in fnames_era5plevs:
     
-    # Load era5 data and add some variables:
-    era5 = xr.load_dataset(os.path.join(path_era5dir+f))
-    era5 = extra_era5vars(era5)
+    # Load era5 3D data and add some variables:
+    era5_3d = xr.load_dataset(os.path.join(path_era5dir+f))
+    era5_3d = extra_era5vars(era5_3d)
     
     # data trimmed for ATOMIC region:
-    era5_atomic = era5.sel(
+    era5_3d_atomic = era5_3d.sel(
         latitude = slice(latbnds[0], latbnds[1]), 
         longitude = slice(lonbnds[0], lonbnds[1]), 
         )
     
     # Compute and append date and forcing statistics:
         # date:
-    dtime0 = pd.Timestamp(era5['time'].values[0])
+    dtime0 = pd.Timestamp(era5_3d['time'].values[0])
     date.append(str(dtime0.date()))
         # Surface wind speed:
-    usfc_stats.append(getstats(era5_atomic['usfc']))
+    usfc_stats.append(getstats(era5_3d_atomic['usfc']))
         # Lower tropo stability:
-    lts_stats.append(getstats(era5_atomic['LTS']))
+    lts_stats.append(getstats(era5_3d_atomic['LTS']))
         # Upper level vertical velocity:
-    omega_stats.append(getstats(era5_atomic['w_600hPa']))
+    omega_stats.append(getstats(era5_3d_atomic['w_600hPa']))
         # Surface pressure:
-    #psfc_stats.append(getstats(era5_atomic['w_600hPa']))
+    #psfc_stats.append(getstats(era5_3d_atomic['w_600hPa']))
         # Wind shear:
-    dudz_stats.append(getstats(era5_atomic['windshear_sfc700hpa']))
+    dudz_stats.append(getstats(era5_3d_atomic['windshear_sfc700hpa']))
     
-    era5.close()
+    era5_3d.close()
 ##_____________________________________________________________________________
 ## Get timeseries of statistics for large scale forcing from ERA5
 
@@ -128,6 +131,7 @@ for f in fnames_era5:
 
 ## ERA5 data nearest the each cloud module time/lat/lon
 ##_____________________________________________________________________________
+"""
 # List storage for date and large scale forcing variables:
 date_p3 = []
 usfc_p3 = []
@@ -138,14 +142,20 @@ psfc_p3 = []
 
 for i, row in cldmods.iterrows():
     
-    # ERA5 data on P-3 flight date with extra forcing variables: 
-    fname_date = [f for f in fnames_era5 if "_%i" % row['flight_date'] in f]
-    fname_date = fname_date[0]
-    era5 = xr.load_dataset(os.path.join(path_era5dir+fname_date))
-    era5 = extra_era5vars(era5)
+    # ERA5 pressure level data on P-3 flight date with extra forcing variables: 
+    f_plev = [f for f in fnames_era5plevs if "_%i" % row['flight_date'] in f]
+    f_plev = f_plev[0]
+    era5_plev = xr.load_dataset(os.path.join(path_era5dir+f_plev))
+    era5_plev = extra_era5vars(era5_plev)
+    
+    # Get ERA5 surface pressure from single level data on P-3 flight date: 
+    f_singlelev = [f for f in fnames_era5singlelev if "_%i" % row['flight_date'] in f]
+    f_singlelev = f_singlelev[0]
+    era5_psfc = xr.load_dataset(os.path.join(path_era5dir+f_singlelev))
+    
 
     # ERA5 point nearest P-3 sampling time/location:
-    era5_nearp3 = era5.sel(
+    era5_nearp3 = era5_plev.sel(
         time=row['start_datetime'],
         longitude=row['lon_mean'], latitude=row['lat_mean'],
         method='nearest'
@@ -166,6 +176,7 @@ lts_p3 = np.array(lts_p3)
 omega_p3 = np.array(omega_p3)
 dudz_p3 = np.array(dudz_p3)
 psfc_p3 = np.array(psfc_p3)
+"""
 ##_____________________________________________________________________________
 ## ERA5 data nearest the each cloud module time/lat/lon
 
