@@ -505,16 +505,16 @@ def fig_scatter():
         # Get mean and std prfiles using oversampling:
         df = data_prfs.stack().reset_index()
         if 'level_0' in df.columns:
-            ovs = oversampler.oversample_1d(df[0], df['level_0'], gridalt, ffact=0.7, return_stdev='yes')
+            ovs = oversampler.oversample_1d(df[0], df['level_0'], gridalt, ffact=0.5, return_stdev='yes')
         elif 'level_1' in df.columns:
-            ovs = oversampler.oversample_1d(df[0], df['altleg'], gridalt, ffact=0.7, return_stdev='yes')
+            ovs = oversampler.oversample_1d(df[0], df['altleg'], gridalt, ffact=0.5, return_stdev='yes')
         
         # Plot mean and std of mean:
         ax.plot(ovs['mean'], gridalt, color=color)
         ax.fill_betweenx(
             gridalt, 
-            ovs['mean']-ovs['stdev']/3,  # ~3 observations per mean
-            ovs['mean']+ovs['stdev']/3, 
+            ovs['mean']-ovs['stdev']/3**0.5,  # ~3 observations per mean
+            ovs['mean']+ovs['stdev']/3**0.5, 
             color=color, alpha=0.2
             )
         
@@ -673,12 +673,12 @@ def fig_scatter():
     varprfs = [tkeh_meanprfs, ww_meanprfs, tke_meanprfs, shf_meanprfs, 
                lhf_meanprfs, bf_meanprfs, dDf_meanprfs, wskew_meanprfs]
     varkeys = ["TKE_h", "wp2_bar", "TKE", "flux_sh", 
-               "flux_lh", "flux_b", "dD_flux", "wp3_bar"]
+               "flux_lh", "flux_b", "dD_flux", "Sw"]
     for prfs, varkey in zip(varprfs, varkeys): 
         cgkeys = ["cg%i" %n for n in cldgrps_n]
         df_save = pd.DataFrame(dict(zip(cgkeys, prfs)))
         df_save['alt'] = gridalt
-        df_save.to_csv(save_dir + "meanprf_%s_cg%i.csv" % tuple([varkey, n]), index=False)
+        df_save.to_csv(save_dir + "meanprf_%s_WP3.csv" % varkey, index=False)
     ##_________________________________________________________________________
         
 
@@ -708,7 +708,8 @@ def fig_scatter():
 
     axset_wind[3].set_yticks(axset_wind[0].get_yticks())
     axset_wind[3].set_ylim(-100, 3300)
-    axset_wind[3].set_xlabel(r"$\bar{w'w'w'}$", fontsize=12)
+    #axset_wind[3].set_xlabel(r"$\bar{w'w'w'}$", fontsize=12)
+    axset_wind[3].set_xlabel(r"$S_w$", fontsize=12)
     axset_wind[3].set_xlim(-1.3, 3.1)
     axset_wind[3].set_xticks([-1.2, -0.6, 0, 0.6, 1.2, 1.8, 2.4, 3])
     axset_wind[3].set_xticklabels(['-1.2', '', '0', '', '1.2', '', '2.4', ''], fontsize=9)
