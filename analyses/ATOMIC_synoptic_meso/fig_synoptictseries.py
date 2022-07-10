@@ -299,8 +299,8 @@ axset[3].set_ylim(1011.5, 1019.5)
 axset[3].set_yticks([1012, 1015, 1018])
 axset[3].set_ylabel(r'$P_{sfc}$ (hPa)', fontsize=11, labelpad=8)
 
-axset[4].set_ylim(0.0007, 0.0037)
-axset[4].set_yticks([0.001, 0.002, 0.003])
+axset[4].set_ylim(0.0007, 0.0045)
+axset[4].set_yticks([0.001, 0.002, 0.003, 0.004])
 axset[4].set_ylabel(r'dU/dz (s$^{-1}$)', fontsize=11)
 
 xticklabels = [
