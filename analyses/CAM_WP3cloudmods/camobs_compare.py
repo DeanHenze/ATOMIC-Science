@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 
 
 ## I/O paths:
-path_camdir = "./CAM_WP3cldmod_locs/"
+path_camdir = "./CAM_extracted/"
 path_p3drpsnd_dir = "../WP3_cloudmodule_char/cldmod_datafiles/"
 path_p3prfflux_dir = "../WP3_fluxes/mean_profiles/"
 path_p3prfthermo_dir = "../WP3_cloudmodule_char/mean_profiles/"
@@ -94,6 +94,28 @@ def plotflux_singlecldmod(ncld, color, axset, varkeys): # input str with zfill=2
         ax.set_ylim(100100, 70000)
         
         
+        
+def camstats(ncld_list, varkeys):
+    """
+    Return mean profiles and standard deviation on the mean.
+    """
+    prfs_list = []
+    # Load and append cam data for each cloud module:
+    for n in ncld_list:
+        n_str = str(n).zfill(2)
+        fnames_cam = os.listdir(path_camdir)
+        fname_cam = [f for f in fnames_cam if "_cld%s" % n_str in f]
+        fname_cam = fname_cam[0]
+        cam = xr.load_dataset(os.path.join(path_camdir, fname_cam))
+        prfs_list.append(cam[varkeys + ['P']])
+    
+    # Return mean, std:
+    prfs_all = xr.concat(prfs_list, dim='profile')
+    meanprfs = prfs_all.mean(dim='profile')
+    stdprfs = prfs_all.std(dim='profile')/len(ncld_list)**0.5
+    return meanprfs, stdprfs
+
+
 
 def collect_prfs(ncld_list, varkeys):
     """
@@ -103,7 +125,7 @@ def collect_prfs(ncld_list, varkeys):
     # Load and append cam data for each cloud module:
     for n in ncld_list:
         n_str = str(n).zfill(2)
-        fnames_cam = os.listdir(path_camdir)
+        fnames_cam = [f for f in os.listdir(path_camdir) if "_cldextract" in f]
         fname_cam = [f for f in fnames_cam if "_cld%s" % n_str in f]
         fname_cam = fname_cam[0]
         cam = xr.load_dataset(os.path.join(path_camdir, fname_cam))
