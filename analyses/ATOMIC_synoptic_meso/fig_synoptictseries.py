@@ -215,7 +215,7 @@ psfc_p3 = np.array(psfc_p3)
     
 ## Shaded regions for ERA5 time series stats    
 ##_____________________________________________________________________________
-fig, axset = plt.subplots(5, 1, figsize=(6.5, 6))
+fig, axset = plt.subplots(4, 1, figsize=(6.5, 6))
 
 date_ts = [pd.Timestamp(d) for d in date]
 
@@ -257,12 +257,16 @@ axset[3].fill_between(
 p = axset[3].plot(date_ts, psfc_stats[:,0], color='black')
 
 # Wind shear:
-dudz_stats = np.array(dudz_stats)
-axset[4].fill_between(
-    date_ts, dudz_stats[:,2], dudz_stats[:,3], 
-    color='orange', alpha=0.3
-    )
-p = axset[4].plot(date_ts, dudz_stats[:,0], color='black')
+#dudz_stats = np.array(dudz_stats)
+#axset[4].fill_between(
+#    date_ts, dudz_stats[:,2], dudz_stats[:,3], 
+#    color='orange', alpha=0.3
+#    )
+#p = axset[4].plot(date_ts, dudz_stats[:,0], color='black')
+
+
+
+
 
 #gph_stats = np.array(gph_stats)
 #axset[4].fill_between(
@@ -277,7 +281,7 @@ p = axset[4].plot(date_ts, dudz_stats[:,0], color='black')
 
 # Axes labels, limits, legend
 ##_____________________________________________________________________________
-for ax in axset[0:4]: 
+for ax in axset[0:3]: 
     ax.set_xticks(ax.get_xticks())
     ax.set_xticklabels(['' for t in ax.get_xticks()])
     
@@ -299,19 +303,29 @@ axset[3].set_ylim(1011.5, 1019.5)
 axset[3].set_yticks([1012, 1015, 1018])
 axset[3].set_ylabel(r'$P_{sfc}$ (hPa)', fontsize=11, labelpad=8)
 
-axset[4].set_ylim(0.0007, 0.0045)
-axset[4].set_yticks([0.001, 0.002, 0.003, 0.004])
-axset[4].set_ylabel(r'dU/dz (s$^{-1}$)', fontsize=11)
+#axset[4].set_ylim(0.0007, 0.0045)
+#axset[4].set_yticks([0.001, 0.002, 0.003, 0.004])
+#axset[4].set_ylabel(r'dU/dz (s$^{-1}$)', fontsize=11)
+
+#xticklabels = [
+#    text.Text(*ticklab.get_position(), ticklab.get_text()[5:])
+#    for ticklab in axset[4].get_xticklabels()
+#    ]
+#axset[4].set_xticks(axset[4].get_xticks())
+#axset[4].set_xticklabels(xticklabels, rotation=45, rotation_mode=None, 
+#                         horizontalalignment='right')
+##axset[4].tick_params(axis='x', labelrotation=30, labelright=True)
+#axset[4].set_xlabel('2022 date', fontsize=11)
 
 xticklabels = [
     text.Text(*ticklab.get_position(), ticklab.get_text()[5:])
-    for ticklab in axset[4].get_xticklabels()
+    for ticklab in axset[3].get_xticklabels()
     ]
-axset[4].set_xticks(axset[4].get_xticks())
-axset[4].set_xticklabels(xticklabels, rotation=45, rotation_mode=None, 
+axset[3].set_xticks(axset[3].get_xticks())
+axset[3].set_xticklabels(xticklabels, rotation=45, rotation_mode=None, 
                          horizontalalignment='right')
 #axset[4].tick_params(axis='x', labelrotation=30, labelright=True)
-axset[4].set_xlabel('2022 date', fontsize=11)
+axset[3].set_xlabel('2022 date', fontsize=11)
 ##_____________________________________________________________________________
 # Axes labels, limits, legend
 
@@ -354,6 +368,13 @@ fig.savefig("./fig_synoptic_timeseries.png")
 
 
 
+## Correlations between large scale variables
+##_____________________________________________________________________________
+df_means = pd.DataFrame({
+    'omega': omega_stats[:,0], 
+    
+    })
+##_____________________________________________________________________________
 
 
 
