@@ -176,6 +176,8 @@ def test_scatter2(dir_5hzdata, fnames_levlegs, nclds,
     dD_up = []
     dD_down = []
     dD = []
+    T_up = []
+    T_down = []
     alt = []
     ncld_list = []
     
@@ -244,6 +246,9 @@ def test_scatter2(dir_5hzdata, fnames_levlegs, nclds,
             dD_down.append(data_down["dD"].mean())
             dD.append(data_env["dD"].mean())
             
+            T_up.append(data_up["T"].mean())
+            T_down.append(data_down["T"].mean())
+            
             alt.append(data_qc["alt"].mean())
             ncld_list.append(np.ones(len(fnames_grp))*n)
             
@@ -252,7 +257,7 @@ def test_scatter2(dir_5hzdata, fnames_levlegs, nclds,
     results = {
         'qup':np.array(q_up), 'qdown':np.array(q_down), 'q':np.array(q), 
         'dDup':np.array(dD_up), 'dDdown':np.array(dD_down), 'dD':np.array(dD),  
-        'alt':np.array(alt)                       
+        'Tup':np.array(T_up), 'Tdown':np.array(T_down), 'alt':np.array(alt)                       
         } 
     return results
 
@@ -404,7 +409,7 @@ if __name__=="__main__":
         ax.set_ylim(-50, 3300)
     
 
-    axset[1].set_xlabel(r'$\Delta \delta D$'+u'(\u2030)', fontsize=12)
+    axset[1].set_xlabel(r'$\Delta\delta D_{env}$'+u' (\u2030)', fontsize=12)
     axset[0].set_ylabel('altitude (m)', fontsize=12)
     
     axlabels = ['cg1', 'cg2', 'cg3']
@@ -421,31 +426,44 @@ if __name__=="__main__":
     
     
     
-    ## Plot deviations of updrafts and downdrafts from mean
+    ## Plot differences between updrafts and downdrafts
     ##_________________________________________________________________________
     fig = plt.figure(figsize=(6.5, 3.5))
     ax1 = fig.add_axes([0.11, 0.15, 0.275, 0.75])
     ax2 = fig.add_axes([0.41, 0.15, 0.275, 0.75])
     ax3 = fig.add_axes([0.71, 0.15, 0.275, 0.75])
+    cbax = fig.add_axes([0.3, 0.5, 0.02, 0.3])
     axset = [ax1, ax2, ax3]
     scattersize = 15
-    axset[0].scatter(
+    s0 = axset[0].scatter(
         results_g1['dDup']-results_g1['dDdown'], results_g1['alt'], 
-        color='black', s=scattersize
+        #color='black', s=scattersize
+        c=results_g1['Tup']-results_g1['Tdown'], s=scattersize, 
+        vmin=-0.6, vmax=0.4
         )  
-    axset[1].scatter(
+    #fig.colorbar(s0, ax=axset[0])
+    s1 = axset[1].scatter(
         results_g2['dDup']-results_g2['dDdown'], results_g2['alt'], 
-        color='black', s=scattersize
+        #color='black', s=scattersize
+        c=results_g2['Tup']-results_g2['Tdown'], s=scattersize,
+        vmin=-0.6, vmax=0.4
         )
-    axset[2].scatter(
+    #fig.colorbar(s1, ax=axset[1])
+    s2 = axset[2].scatter(
         results_g3['dDup']-results_g3['dDdown'], results_g3['alt'], 
-        color='black', s=scattersize
+        #color='black', s=scattersize
+        c=results_g3['Tup']-results_g3['Tdown'], s=scattersize,
+        vmin=-0.6, vmax=0.4
         )
+    #fig.colorbar(s2, ax=axset[2])
+    cbar = fig.colorbar(s2, cax=cbax, ticks=[-0.5, -0.25, 0, 0.25])
+
     
     
-    axset[1].set_yticks(axset[1].get_yticks())
+    axset[0].set_yticks(np.arange(0, 3001, 500))
+    axset[1].set_yticks(axset[0].get_yticks())
     axset[1].set_yticklabels(['' for t in axset[1].get_yticks()])
-    axset[2].set_yticks(axset[2].get_yticks())
+    axset[2].set_yticks(axset[0].get_yticks())
     axset[2].set_yticklabels(['' for t in axset[2].get_yticks()])
 
 
@@ -456,9 +474,12 @@ if __name__=="__main__":
         ax.vlines(0, -100, 3500, colors='black')
         
         ax.set_ylim(-50, 3300)
-    
+        
+    #cbax.set_yticks([-0.5, 0.25, 0, 0.25])
+    cbar.ax.set_yticklabels(cbax.get_yticks().astype(str), fontsize=8.5)
+    cbar.ax.set_title(r"$\Delta\theta_{u-d}$")
 
-    axset[1].set_xlabel(r'$\Delta \delta D(up-down) $'+u'(\u2030)', fontsize=12)
+    axset[1].set_xlabel(r'$\Delta\delta D_{(u-d)}$'+u'(\u2030)', fontsize=12)
     axset[0].set_ylabel('altitude (m)', fontsize=12)
     
     axlabels = ['cg1', 'cg2', 'cg3']
@@ -470,6 +491,6 @@ if __name__=="__main__":
         
     fig.savefig("./dD_updraft-downdraft_diff.png")
     ##_________________________________________________________________________
-    ## Plot deviations of updrafts and downdrafts from mean
+    ## Plot differences between updrafts and downdrafts
 
 
