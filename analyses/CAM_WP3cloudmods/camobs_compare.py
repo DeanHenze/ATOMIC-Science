@@ -99,21 +99,22 @@ def camstats(ncld_list, varkeys):
     """
     Return mean profiles and standard deviation on the mean.
     """
-    prfs_list = []
+    cam_list = []
     # Load and append cam data for each cloud module:
     for n in ncld_list:
         n_str = str(n).zfill(2)
-        fnames_cam = os.listdir(path_camdir)
+        fnames_cam = [f for f in os.listdir(path_camdir) if "_ATOMICextract" in f]
         fname_cam = [f for f in fnames_cam if "_cld%s" % n_str in f]
         fname_cam = fname_cam[0]
         cam = xr.load_dataset(os.path.join(path_camdir, fname_cam))
-        prfs_list.append(cam[varkeys + ['P']])
+        cam_list.append(cam[varkeys + ['P']])
     
     # Return mean, std:
-    prfs_all = xr.concat(prfs_list, dim='profile')
-    meanprfs = prfs_all.mean(dim='profile')
-    stdprfs = prfs_all.std(dim='profile')/len(ncld_list)**0.5
-    return meanprfs, stdprfs
+    cam_all = xr.concat(cam_list, dim='ncld')
+    #cam_mean = cam_all.mean(dim=['ncld','lat','lon'])
+    cam_mean = cam_all.max(dim=['ncld','lat','lon'])
+    cam_std = cam_all.std(dim=['ncld','lat','lon'])/len(ncld_list)**0.5
+    return cam_mean, cam_std
 
 
 
@@ -143,7 +144,8 @@ def plot_meanprf_mlevs(ncld_list, color, axset, varkeys, alpha):
     """
     For CAM quantities on mid-levels.
     """
-    meanprfs, stdprfs = collect_prfs(ncld_list, varkeys)
+    #meanprfs, stdprfs = collect_prfs(ncld_list, varkeys)
+    meanprfs, stdprfs = camstats(ncld_list, varkeys)
     
     z = (meanprfs['P'][-1]-meanprfs['P'])/10 # Rough altitude estimation, needs later revision.
 
@@ -163,7 +165,8 @@ def plot_meanprf_ilevs(ncld_list, color, axset, varkeys, alpha):
     """
     For CAM quantities on interface-levels.
     """
-    meanprfs, stdprfs = collect_prfs(ncld_list, varkeys)
+    #meanprfs, stdprfs = collect_prfs(ncld_list, varkeys)
+    meanprfs, stdprfs = camstats(ncld_list, varkeys)
     
     z = (meanprfs['P'][-1]-meanprfs['P'])/10 # Rough altitude estimation, needs later revision.
     
@@ -180,7 +183,9 @@ def plot_meanprf_ilevs(ncld_list, color, axset, varkeys, alpha):
 
 
 
-def plot_p3prfs(path_p3prfdir, varkey, ax, colors=['red', 'grey', 'blue']):
+def plot_p3prfs(path_p3prfdir, varkey, ax, 
+                colors=['red', 'grey', 'blue'], 
+                binning=False):
     """
     Plot P-3 mean profiles of a quantity on the specified axes. Plot  one 
     variable, 3 profiles (one for each cloud group).
@@ -188,6 +193,8 @@ def plot_p3prfs(path_p3prfdir, varkey, ax, colors=['red', 'grey', 'blue']):
     for n, c in zip([1, 2, 3], colors):
         fname = "meanprf_%s_WP3.csv" % varkey
         p3data = pd.read_csv(path_p3prfdir + fname)
+        if binning:
+            p3data = p3data.groupby(150*np.round(p3data['alt']/150)).mean()
         ax.plot(
             p3data['cg%i' % n], p3data['alt'], 
             color=c, linestyle='dashed', linewidth=1.
@@ -211,7 +218,7 @@ plot_meanprf_mlevs(ncld_g1, 'red', axset, varkeys_thermo, 0.4)
 # Plot P-3:
 p3_prfvarkeys = ["theta", "q", "RH", "dD"]
 for ax, vk in zip(axset, p3_prfvarkeys):
-    plot_p3prfs(path_p3prfthermo_dir, vk, ax)    
+    plot_p3prfs(path_p3prfthermo_dir, vk, ax, binning=True)    
     
 
 axset[0].set_xlim(294, 315)
