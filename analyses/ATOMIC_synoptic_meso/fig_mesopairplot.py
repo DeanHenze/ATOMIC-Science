@@ -22,9 +22,11 @@ import os
 
 # Third party
 import numpy as np
+import pandas as pd
 import xarray as xr
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
+import seaborn as sns
 
 # Local code
 import thermo
@@ -48,9 +50,13 @@ winddirection = lambda u, v: np.arctan(u/v)*(180/np.pi)
 windshear = lambda u1, u2, v1, v2, dz: (1/dz)*((u2-u1)**2 + (v2-v1)**2)**0.5
 
 
-ncld_g1 = [1, 5, 4]
-ncld_g2 = [8, 7, 9, 11, 10, 6]
-ncld_g3= [12, 15, 3, 2, 13, 16, 14]
+#ncld_g1 = [1, 5, 4]
+#ncld_g2 = [8, 7, 9, 11, 10, 6]
+#ncld_g3= [12, 15, 3, 2, 13, 16, 14]
+ncld_g1 = [1, 5, 4, 8]
+ncld_g2 = [7, 9, 11, 10, 6]
+ncld_g3= [12, 15, 13, 16, 14]
+ncld_g3_lowp = [3, 2]
 
 
 def lsforce_tseries(ncld, pltcolor, axset):
@@ -104,7 +110,7 @@ def lsforce_tseries(ncld, pltcolor, axset):
     
     
     
-def lsforce_pairplot(ncld, pltcolor, axset):
+def lsforce_pairplot(ncld, pltcolor, axset, pltmarker='o'):
     """
     """
     # Load data:
@@ -137,16 +143,28 @@ def lsforce_pairplot(ncld, pltcolor, axset):
         )
     axset[1].plot(
         era5mean['windshear_sfc700hpa'], era5mean['LTS'], 
-        marker='o', markersize=4, color=pltcolor
+        marker=pltmarker, markersize=4, color=pltcolor
         )
-    #axset[2].plot(
-    #    era5mean['LTS'], era5mean['w_600hPa'], 
-    #    marker='o', markersize=4, color=pltcolor
-    #    )
     axset[2].plot(
         era5mean['LTS'], era5mean['wspd_sfc'], 
-        marker='o', markersize=4, color=pltcolor
+        marker=pltmarker, markersize=4, color=pltcolor
         )  
+    axset[3].plot(
+        era5mean['wspd_sfc'], era5mean['w_600hPa'], 
+        marker=pltmarker, markersize=4, color=pltcolor
+        )
+    
+    
+    return (
+        [era5mean['wspd_sfc'].item(), era5mean['wdiv_950hPa'].item(), 
+        era5mean['LTS'].item(), era5mean['w_600hPa'].item()],
+        
+        (r'$|U|_{sfc}$ (m/s)', r'$D_{950}$ (s$^{-1}$ * 10$^{-5}$)', 
+         'LTS (K)', r'$\omega_{600}$ (Pa s$^{-1}$)')
+        )
+
+    
+    
     
 """
 ## Time series plot
@@ -193,23 +211,25 @@ fig.savefig("./fig_mesoscale_timeseries.png")
 ## Pair plot
 ##_____________________________________________________________________________
 # Plot:
-#fig = plt.figure(figsize=(6.5, 3))
-#ax1 = fig.add_axes([0.125, 0.2, 0.35, 0.7])
-#ax2 = fig.add_axes([0.625, 0.2, 0.35, 0.7])
+fig, axset = plt.subplots(1, 4, figsize=(6.5, 2))
+#fig = plt.figure(figsize=(6.5, 2.5))
+#ax1 = fig.add_axes([0.1, 0.2, 0.225, 0.7])
+#ax2 = fig.add_axes([0.425, 0.2, 0.225, 0.7])
+#ax3 = fig.add_axes([0.75, 0.2, 0.225, 0.7])
+#axset = (ax1, ax2, ax3)
 
-fig = plt.figure(figsize=(6.5, 2.5))
-ax1 = fig.add_axes([0.1, 0.2, 0.225, 0.7])
-ax2 = fig.add_axes([0.425, 0.2, 0.225, 0.7])
-ax3 = fig.add_axes([0.75, 0.2, 0.225, 0.7])
-axset = (ax1, ax2, ax3)
-
-
-ncldgroups = [ncld_g1, ncld_g2, ncld_g3]
-pltcolors = ['red', 'grey', 'blue']
-for ngroup, c in zip(ncldgroups, pltcolors):
+results = []
+n_cldgrouplabels = ['1', '1', '1', '1', '2', '2', '2', '2', '2', 
+              '3', '3', '3', '3', '3', '3*', '3*']
+ncldgroups = [ncld_g1, ncld_g2, ncld_g3, ncld_g3_lowp]
+vkeys = None
+pltcolors = ['red', 'grey', 'blue', 'blue']
+pltmarkers = ['o', 'o', 'o', 'x']
+for ngroup, c, m in zip(ncldgroups, pltcolors, pltmarkers):
     for n in ngroup:
-        lsforce_pairplot(n, c, axset)
-
+        results_n, vkeys = lsforce_pairplot(n, c, axset, pltmarker=m)
+        results.append(results_n)
+        
 
 # Axes labels, limits, legend:
 axset[0].set_xlabel(r'$|U|_{sfc}$ (m/s)', fontsize=12)
@@ -257,10 +277,66 @@ fig.savefig("./fig_mesoscale_pairplot.png")
 
 
 
+## Try out a seaborn pairplot:
+results_df = pd.DataFrame(results, columns=vkeys)  
+results_df['CG#'] = n_cldgrouplabels
+
+palette = ['tab:red', 'tab:grey', 'tab:blue', 'tab:blue']
+#sns.set(rc={"figure.figsize":(2, 2)}) #width=8, height=4
+#fig = plt.figure(figsize=(4, 4))
+g = sns.pairplot(
+    data=results_df, hue='CG#', 
+    markers=['o', 'o', 'o', 'D'], palette=palette, 
+    diag_kind='None', corner=True, 
+    #height=6, aspect=1.5, #figsize=(4, 4)
+    )
+def hide_current_axis(*args, **kwds):
+    ax = plt.gca()
+    ax.set_visible(False)
+    ax.spines['bottom'].set_visible(False)
+    ax.spines['left'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+    
+g.map_diag(hide_current_axis)
+
+# Divergence ticks, labels:
+ticks_D = np.array([-1.5e-05, -1.0e-05, -5.0e-06,  
+                    0.0e+00,  5.0e-06, 1.0e-05,  1.5e-05])
+g.axes[1,0].set_yticks(ticks_D)
+g.axes[1,0].set_yticklabels((ticks_D/10**-5).astype(str), fontsize=10)
+g.axes[3,1].set_xticks(ticks_D)
+g.axes[3,1].set_xticklabels((ticks_D/10**-5).astype(str), fontsize=10)
+
+# LTS ticks, labels:
+ticks_lts = np.array([15, 17, 19])
+g.axes[2,0].set_yticks(ticks_lts)
+g.axes[2,0].set_yticklabels((ticks_lts).astype(str), fontsize=10)
+g.axes[3,2].set_xticks(ticks_lts)
+g.axes[3,2].set_xticklabels((ticks_lts).astype(str), fontsize=10)
+
+# Subsidence rate ticks, labels:
+ticks_omega = np.array([-0.1, -0.05, 0, 0.05, 0.1])
+g.axes[3,0].set_yticks(ticks_omega)
+g.axes[3,0].set_yticklabels((ticks_omega).astype(str), fontsize=10)
+
+# Surface windspeed ticks, labels:
+ticks_lts = np.array([6, 8, 10, 12])
+g.axes[3,0].set_xticks(ticks_lts)
+g.axes[3,0].set_xticklabels((ticks_lts).astype(str), fontsize=10)
 
 
 
 
+## Correlation heatmap:
+fig_corr = plt.figure(figsize=(3, 3))
+ax = fig_corr.add_axes([0.2, 0.2, 0.75, 0.75])
+sns.heatmap(
+    results_df.corr(), annot=True, cbar=False, ax=ax, 
+    xticklabels=(r'$|U|_{sfc}$', r'$D_{950}$', 'LTS', r'$\omega_{600}$'),
+    yticklabels=(r'$|U|_{sfc}$', r'$D_{950}$', 'LTS', r'$\omega_{600}$')    
+    )
+fig_corr.savefig("./fig_lsforce_correlations.png")
 
-
+        
 
