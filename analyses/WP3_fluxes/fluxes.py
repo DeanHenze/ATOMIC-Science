@@ -125,11 +125,13 @@ for n in ncldmod_unique:
         q=flux_ds["q_mean"]/1000
         )
     flux_ds['flux_b'] = buoyflx[0]
+    flux_ds['ratio_Fb_sensible'] = buoyflx[1]/buoyflx[0]
     
     
-    # Add total kinetic energy and horizontal kinetic energy:
+    # Add total kinetic energy, horizontal kinetic energy, anisotropy ratio:
     flux_ds['TKE'] = 0.5*(flux_ds["u'u'_bar"] + flux_ds["v'v'_bar"] + flux_ds["w'w'_bar"])
     flux_ds['TKE_h'] = 0.5*(flux_ds["u'u'_bar"] + flux_ds["v'v'_bar"])
+    flux_ds['anisotropy_ratio'] = 2*flux_ds["w'w'_bar"]/(flux_ds["u'u'_bar"] + flux_ds["v'v'_bar"])
     
     
     # Add dD of flux:

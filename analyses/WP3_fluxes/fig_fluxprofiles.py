@@ -593,6 +593,7 @@ def fig_scatter():
     colors = ['red', 'grey', 'blue']
     cldgrps_n = [1,2,3]
     tkeh_meanprfs = []
+    anisotropy_ratio = []
     ww_meanprfs = []
     tke_meanprfs = []
     shf_meanprfs = []
