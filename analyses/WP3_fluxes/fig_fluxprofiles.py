@@ -70,7 +70,7 @@ def get_fluxprofiles(ncld_list, keyalts_table, dir_flux,
     # Each DataFrame will contain all profiles for a specific var.
     fluxvarkeys = ["u'u'_bar", "v'v'_bar", "w'w'_bar", "TKE", "TKE_h",
                    "flux_sh", "flux_lh", "flux_b", "dD_flux", 
-                   "q'w'_bar", "T'w'_bar"
+                   "q'w'_bar", "T'w'_bar", "anisotropy_ratio", "ratio_Fb_sensible"
                    ]
     fluxprfs_dict = {}
     for k in fluxvarkeys: fluxprfs_dict[k] = pd.DataFrame({})
@@ -116,32 +116,6 @@ def get_fluxprofiles(ncld_list, keyalts_table, dir_flux,
             
     return fluxprfs_dict
 
-
-
-def plot_fluxprofiles(fluxprfs_dict, varkeysplot, axset, pcolor='grey'):
-    """
-    Plot both individual profiles and mean profile for passed data.
-    
-    Inputs
-    ------
-    flux_prfs_dict: dictionary of pandas.DataFrame's.
-        Each DataFrame contains profile data for one of the variables. The 
-        index of the DataFrames is altitude and each column corresponds to one 
-        of the profiles.
-        
-    varkeysplot: list of str's.
-        Keys in flux_prfs_dict to plot.
-        
-    axset: list of matplotlib.pyplot.Axes.
-        Same length as varkeysplot. Axes to plot on.
-    """
-    for varkey, ax in zip(varkeysplot, axset):        
-        #profileplotter.plotprf_singlevar(fluxprfs_dict[varkey], ax, pcolor=pcolor)
-        profileplotter.plotprf_singlevar(
-            fluxprfs_dict[varkey], ax, pcolor=pcolor, 
-            altbinwidth=0.5, npts_thresh=2, 
-            cubic_interp=False
-            )
 
 
 
@@ -242,219 +216,6 @@ def yaxes_cleanup(axset_wind, axset_scalar, yticks, yticklabels):
 
 
 
-def analyzeplotgroupings(ncld_groups, colors, scale_altkeys, keyalts_table, 
-                         axset_wind, axset_scalar):
-    """
-    """
-    # Get flux profiles grouped; groups are elements of a list:
-    fluxprfs_grouped = []
-    for cg in ncld_groups:
-        fluxprfs_grouped.append(
-            get_fluxprofiles(       # Returns flux profiles as a dictionary of 
-                cg, keyalts_table,  # pandas.DataFrame's. 
-                dir_flux, scale_altkeys=scale_altkeys
-                )
-            )
-        
-        
-    # Plot wind / turbulence profiles with means overlain:
-    windkeys = ["u'u'_bar", "v'v'_bar", "w'w'_bar", "TKE"] # vars to plot.   
-    for fpgroup, c in zip(fluxprfs_grouped, colors):
-        plot_fluxprofiles(fpgroup, windkeys, axset_wind, pcolor=c)
-
-    # Plot scalar flux profiles with means overlain:
-    scalarfluxkeys = ["flux_sh", "flux_lh", "flux_b", "dD_flux"]
-    for fpgroup, c in zip(fluxprfs_grouped, colors):
-        plot_fluxprofiles(fpgroup, scalarfluxkeys, axset_scalar, pcolor=c)
-        
-        
-        
-def analyzeplotgroupings_nonscaled(ncld_groups, colors, keyalts_table,
-                         axset_wind, axset_scalar):
-    """
-    """
-    # Get flux profiles grouped; groups are elements of a list:
-    fluxprfs_grouped = []
-    for cg in ncld_groups:
-        fluxprfs_grouped.append(
-            get_fluxprofiles(       # Returns flux profiles as a dictionary of 
-                cg, keyalts_table,  # pandas.DataFrame's. 
-                dir_flux, scale_altkeys=[]
-                )
-            )
-        
-    
-    def plotprfs(fluxprfs_dict, varkeysplot, axset, pcolor='grey'):
-        for varkey, ax in zip(varkeysplot, axset):        
-            profileplotter.plotprf_singlevar(
-                fluxprfs_dict[varkey], ax, 
-                altbinwidth=400, npts_thresh=1, cubic_interp=False, 
-                pcolor=pcolor
-                )
-        
-        
-    # Plot wind / turbulence profiles with means overlain:
-    windkeys = ["u'u'_bar", "v'v'_bar", "w'w'_bar", "TKE"] # vars to plot.   
-    for fpgroup, c in zip(fluxprfs_grouped, colors):
-        plotprfs(fpgroup, windkeys, axset_wind, pcolor=c)
-
-    # Plot scalar flux profiles with means overlain:
-    scalarfluxkeys = ["flux_sh", "flux_lh", "flux_b", "dD_flux"]
-    for fpgroup, c in zip(fluxprfs_grouped, colors):
-        plotprfs(fpgroup, scalarfluxkeys, axset_scalar, pcolor=c)
-        
-        
-    xaxes_cleanup(axset_wind, axset_scalar)
-    yticks = np.arange(0, 3001, 500)
-    yaxes_cleanup(
-        axset_wind, axset_scalar, 
-        yticks, yticks.astype(str)
-        )
-    for ax in axset_wind.flatten(): ax.set_ylim(-100, 3200)
-    for ax in axset_scalar.flatten(): ax.set_ylim(-100, 3200)
-        
-
-
-def fig_noscaling():
-    """
-    Create and save figures for turbulence and flux profiles with altitude 
-    in meters.
-    """
-    
-    keyalts_table = pd.read_csv(path_keyaltstable) # key altitudes for each cld mod.
-    
-    # Cloud module number groupings:
-    ncld_g1 = [7, 9, 11, 10, 12, 6]
-    ncld_g2 = [15, 3, 2, 13, 16, 14]
-    ncld_g3 = [1, 5, 4, 8]
-    
-    ncld_g1.sort()
-    ncld_g2.sort()
-    ncld_g3.sort()
-    ncld_groups = [ncld_g1, ncld_g2, ncld_g3]
-    
-
-    # Plot:
-    fig_wind, axset_wind = plt.subplots(1, 4, figsize=(10, 5))
-    fig_scalar, axset_scalar = plt.subplots(1, 4, figsize=(10, 5))
-        # Profiles:
-    analyzeplotgroupings_nonscaled(
-        ncld_groups, ['grey', 'blue', 'red'], 
-        keyalts_table, 
-        axset_wind, axset_scalar
-        )
-        # RHB surface flux means, stds for the P-3 sampling time period:
-    plot_RHBmeanfluxes(path_rhbflux, axset_scalar[0], axset_scalar[1])
-        # Axes limits, labels, etc.
-    xaxes_cleanup(axset_wind, axset_scalar)
-
-
-    ## Save figures:
-    fig_wind.savefig("./fig_wind+turb_profiles.png")
-    fig_scalar.savefig("./fig_scalarflux_profiles.png")
-
-
-
-def fig_LCLCTscaling():
-    """
-    Create and save figures for turbulence and flux profiles where altitude 
-    is scaled by LCL and cloud top height.
-    """
-    
-    keyalts_table = pd.read_csv(path_keyaltstable) # key altitudes for each cld mod.
-    
-    # Cloud module number groupings:
-    ncld_g1 = [7, 9, 11, 10, 12, 6]
-    ncld_g2 = [15, 3, 2, 13, 16, 14]
-    #ncld_g1 = [7, 9, 11, 10, 12, 6]
-    #ncld_g2 = [8, 15, 3, 2, 13, 16, 14]
-    ncld_g3 = [1, 5, 4, 8]
-    
-    ncld_g1.sort()
-    ncld_g2.sort()
-    ncld_g3.sort()
-    ncld_groups = [ncld_g1, ncld_g2, ncld_g3]
-    
-    scale_altkeys = ["z_lcl", "z_ctmean_50p95p"] # scale altitude by these quantities.
-
-
-    # Plot:
-    fig_wind, axset_wind = plt.subplots(1, 4, figsize=(10, 5))
-    fig_scalar, axset_scalar = plt.subplots(1, 4, figsize=(10, 5))
-        # Profiles:
-    analyzeplotgroupings(
-        ncld_groups, ['grey', 'blue', 'red'], 
-        scale_altkeys, keyalts_table, 
-        axset_wind, axset_scalar
-        )
-        # RHB surface flux means, stds for the P-3 sampling time period:
-    plot_RHBmeanfluxes(path_rhbflux, axset_scalar[0], axset_scalar[1])
-        # Axes limits, labels, etc.
-    xaxes_cleanup(axset_wind, axset_scalar)
-    yticks = [0,1,2,3]
-    yticklabels = ["0", r"$z_{LCL}$", r"$z_{CT}$", 
-                   r"$z_{LCL}$+2$\Delta z_{(CT-LCL)}$"
-                   ]  
-    yaxes_cleanup(axset_wind, axset_scalar, yticks, yticklabels)       
-      
-
-    ## Save figure:
-    fig_wind.savefig("./fig_wind+turb_profiles_LCLCTscaling.png")
-    fig_scalar.savefig("./fig_scalarflux_profiles_LCLTCTscaling.png")
-    
-    
-    
-def fig_LCLTIBscaling():
-    """
-    Create and save figures for turbulence and flux profiles where altitude 
-    is scaled by LCL and trade inversion bottom.
-    """
-    
-    keyalts_table = pd.read_csv(path_keyaltstable) # key altitudes for each cld mod.
-    
-    # Cloud module number groupings:
-    ncld_g1 = [7, 9, 11, 10, 12, 6]
-    ncld_g2 = [15, 3, 2, 13, 16, 14]
-    #ncld_g1 = [7, 9, 11, 10, 12, 6]
-    #ncld_g2 = [8, 15, 3, 2, 13, 16, 14]
-    ncld_g3 = [1, 5, 4, 8]
-    
-    ncld_g1.sort()
-    ncld_g2.sort()
-    ncld_g3.sort()
-    ncld_groups = [ncld_g1, ncld_g2, ncld_g3]
-    
-    #scale_altkeys = ["z_lcl", "z_madev"] # scale altitude by these quantities.
-    scale_altkeys = ["z_lcl"] # scale altitude by these quantities.
-
-
-    # Plot:
-    fig_wind, axset_wind = plt.subplots(1, 4, figsize=(10, 5))
-    fig_scalar, axset_scalar = plt.subplots(1, 4, figsize=(10, 5))
-        
-        # Profiles:
-    analyzeplotgroupings(
-        ncld_groups, ['grey', 'blue', 'red'], 
-        scale_altkeys, keyalts_table, 
-        axset_wind, axset_scalar
-        )
-        # RHB surface flux means, stds for the P-3 sampling time period:
-    plot_RHBmeanfluxes(path_rhbflux, axset_scalar[0], axset_scalar[1])
-        # Axes limits, labels, etc.
-    xaxes_cleanup(axset_wind, axset_scalar)
-    yticks = [0,1,2,3]
-    yticklabels = ["0", r"$z_{LCL}$", r"$z_{IB}$", 
-                   r"$z_{LCL} + 2\Delta z_{(IB-LCL)}$", 
-                   ]  
-    yaxes_cleanup(axset_wind, axset_scalar, yticks, yticklabels)       
-      
-
-    ## Save figure:
-    fig_wind.savefig("./fig_wind+turb_profiles_LCLTIBscaling.png")
-    fig_scalar.savefig("./fig_scalarflux_profiles_LCLTIBscaling.png")
-    
-    
-
 def fig_scatter():
     """
     Create and save figures for turbulence and flux profiles where altitude 
@@ -505,9 +266,9 @@ def fig_scatter():
         # Get mean and std prfiles using oversampling:
         df = data_prfs.stack().reset_index()
         if 'level_0' in df.columns:
-            ovs = oversampler.oversample_1d(df[0], df['level_0'], gridalt, ffact=0.5, return_stdev='yes')
+            ovs = oversampler.oversample_1d(df[0], df['level_0'], gridalt, ffact=0.6, return_stdev='yes')
         elif 'level_1' in df.columns:
-            ovs = oversampler.oversample_1d(df[0], df['altleg'], gridalt, ffact=0.5, return_stdev='yes')
+            ovs = oversampler.oversample_1d(df[0], df['altleg'], gridalt, ffact=0.6, return_stdev='yes')
         
         # Plot mean and std of mean:
         ax.plot(ovs['mean'], gridalt, color=color)
@@ -519,62 +280,10 @@ def fig_scatter():
             )
         
         return ovs['mean']
-        
     
-        """
-        altgrouped = np.round(data_prfs.index/altbinwidth)*altbinwidth # vertical binning.
-        fluxvar_grouped = data_prfs.groupby(altgrouped, axis=0, as_index=True)
-        alt_bincenter = []
-        meanprf = []
-        stdprf = []
-        for altbc, grp in fluxvar_grouped:
-            alt_bincenter.append(altbc)
-            grpvals_1d = grp.values.flatten()
-            meanprf.append(np.nanmean(grpvals_1d))
-            stdprf.append(np.nanstd(grpvals_1d))
-        
-        # Collect into pandas dfs:
-        dfmean = pd.DataFrame({'data_prfs':meanprf}, index=alt_bincenter)
-        refalt = pd.DataFrame(
-            index=pd.Index(np.arange(0, np.nanmax(data_prfs), altbinwidth)))
-        dfmean = dfmean.merge(refalt, 
-                      left_index=True, right_index=True, how='outer')
-        
-        dfstd = pd.DataFrame({'data_prfs':stdprf}, index=alt_bincenter)
-        refalt = pd.DataFrame(
-            index=pd.Index(np.arange(0, np.nanmax(data_prfs), altbinwidth)))
-        dfstd = dfstd.merge(refalt, 
-                      left_index=True, right_index=True, how='outer')
-        
-        
-        # Rolling means to smooth profiles:
-        meanprf_roll = dfmean.rolling(
-            window=4, min_periods=1, win_type='hamming', 
-            center=True, closed='neither'
-            )
-        meanprf_roll = meanprf_roll.mean()
-        stdprf_roll = dfstd.rolling(
-            window=4, min_periods=1, win_type='hamming', 
-            center=True, closed='neither'
-            )
-        stdprf_roll = stdprf_roll.std()
-        ax.plot(meanprf_roll.iloc[1:], meanprf_roll.index[1:], color=c, linewidth=2)
-        ax.fill_betweenx(
-            meanprf_roll.index[1:].values,
-            (meanprf_roll.iloc[1:] - stdprf_roll.iloc[1:]).values.T.squeeze(), 
-            (meanprf_roll.iloc[1:] + stdprf_roll.iloc[1:]).values.T.squeeze(), 
-            color=c, alpha=0.3
-            )
-        #ax.plot(test[0].iloc[1:], test['level_0'][1:], color=c, linewidth=2)
-        """
         
 
     fig_scalar = plt.figure(figsize=(6.5, 3))
-    #axset_scalar = (
-    #    fig_scalar.add_axes([0.1, 0.2, 0.25, 0.75]),
-    #    fig_scalar.add_axes([0.4, 0.2, 0.25, 0.75]),
-    #    fig_scalar.add_axes([0.7, 0.2, 0.25, 0.75]),
-    #    )
     axset_scalar = (
         fig_scalar.add_axes([0.1, 0.2, 0.2, 0.75]),
         fig_scalar.add_axes([0.325, 0.2, 0.2, 0.75]),
@@ -593,7 +302,8 @@ def fig_scatter():
     colors = ['red', 'grey', 'blue']
     cldgrps_n = [1,2,3]
     tkeh_meanprfs = []
-    anisotropy_ratio = []
+    anisotropy_ratio_meanprfs = []
+    ratio_Fbsensible_meanprfs = []
     ww_meanprfs = []
     tke_meanprfs = []
     shf_meanprfs = []
@@ -613,12 +323,16 @@ def fig_scatter():
             scatterwithmean(fpgroup["w'w'_bar"], "w'w'_bar", axset_wind[1], c, altbinwidth, gridalt, n))
         tke_meanprfs.append(
             scatterwithmean(fpgroup["TKE"], "TKE", axset_wind[2], c, altbinwidth, gridalt, n))
+        anisotropy_ratio_meanprfs.append(
+            scatterwithmean(fpgroup["anisotropy_ratio"], "anisotropy_ratio", axset_wind[3], c, altbinwidth, gridalt, n))
         shf_meanprfs.append(
             scatterwithmean(fpgroup["flux_sh"], "flux_sh", axset_scalar[0], c, altbinwidth, gridalt, n))
         lhf_meanprfs.append(
             scatterwithmean(fpgroup["flux_lh"], "flux_lh", axset_scalar[1], c, altbinwidth, gridalt, n))
         bf_meanprfs.append(
             scatterwithmean(fpgroup["flux_b"], "flux_b", axset_scalar[2], c, altbinwidth, gridalt, n))
+        #ratio_Fbsensible_meanprfs.append(
+        #    scatterwithmean(fpgroup["ratio_Fb_sensible"], "ratio_Fb_sensible", axset_scalar[3], c, altbinwidth, gridalt, n))
         dDf_meanprfs.append(
             scatterwithmean(fpgroup["dD_flux"], "dD_flux", axset_scalar[3], c, altbinwidth, gridalt, n))
 
@@ -632,9 +346,14 @@ def fig_scatter():
         0, -100, 3300, 
         color='black', linewidth=1.5, linestyle='dashed', zorder=100
         )
+    
+    # Rectangle patches at altitude ranges of median cloud tops
+    axset_wind[1].plot((0.8, 0.8), (1400,2000), linewidth=3, color='red')
+    axset_wind[1].plot((0.75, 0.75), (1600,2000), linewidth=3, color='grey')
+    axset_wind[1].plot((0.8, 0.8), (2500,2800), linewidth=3, color='blue')
     ##_________________________________________________________________________    
     
-    
+    """
     ## Plot w' skewness
     ##_________________________________________________________________________
     # Load and merge data tables:
@@ -667,14 +386,16 @@ def fig_scatter():
         color='black', linewidth=1.5, linestyle='dashed', zorder=100
         )
     ##_________________________________________________________________________
-
+    """
     
     ## Save mean profiles as .csv files:
     ##_________________________________________________________________________
     varprfs = [tkeh_meanprfs, ww_meanprfs, tke_meanprfs, shf_meanprfs, 
-               lhf_meanprfs, bf_meanprfs, dDf_meanprfs, wskew_meanprfs]
+               lhf_meanprfs, bf_meanprfs, dDf_meanprfs, 
+               anisotropy_ratio_meanprfs, ratio_Fbsensible_meanprfs]
     varkeys = ["TKE_h", "wp2_bar", "TKE", "flux_sh", 
-               "flux_lh", "flux_b", "dD_flux", "Sw"]
+               "flux_lh", "flux_b", "dD_flux",
+               "anisotropy_ratio", "ratio_Fbsensible"] 
     for prfs, varkey in zip(varprfs, varkeys): 
         cgkeys = ["cg%i" %n for n in cldgrps_n]
         df_save = pd.DataFrame(dict(zip(cgkeys, prfs)))
@@ -707,13 +428,21 @@ def fig_scatter():
     axset_wind[2].set_xticks([0, 0.2, 0.4, 0.6, 0.8, 1., 1.2])
     axset_wind[2].set_xticklabels(['0', '', '0.4', '', '0.8', '', '1.2'], fontsize=9)
 
+    #axset_wind[3].set_yticks(axset_wind[0].get_yticks())
+    #axset_wind[3].set_ylim(-100, 3300)
+    ##axset_wind[3].set_xlabel(r"$\bar{w'w'w'}$", fontsize=12)
+    #axset_wind[3].set_xlabel(r"$S_w$", fontsize=12)
+    #axset_wind[3].set_xlim(-1.3, 3.1)
+    #axset_wind[3].set_xticks([-1.2, -0.6, 0, 0.6, 1.2, 1.8, 2.4, 3])
+    #axset_wind[3].set_xticklabels(['-1.2', '', '0', '', '1.2', '', '2.4', ''], fontsize=9)
     axset_wind[3].set_yticks(axset_wind[0].get_yticks())
     axset_wind[3].set_ylim(-100, 3300)
-    #axset_wind[3].set_xlabel(r"$\bar{w'w'w'}$", fontsize=12)
-    axset_wind[3].set_xlabel(r"$S_w$", fontsize=12)
-    axset_wind[3].set_xlim(-1.3, 3.1)
-    axset_wind[3].set_xticks([-1.2, -0.6, 0, 0.6, 1.2, 1.8, 2.4, 3])
-    axset_wind[3].set_xticklabels(['-1.2', '', '0', '', '1.2', '', '2.4', ''], fontsize=9)
+    axset_wind[3].set_xlabel("anisotropy \nratio", fontsize=12)
+    axset_wind[3].set_xlim(0, 1.8)
+    axset_wind[3].set_xticks([0, 0.5, 1, 1.5])
+    axset_wind[3].set_xticklabels(['0', '0.5', '1.0', '1.5'], fontsize=9)
+
+
 
     axset_scalar[0].set_yticks(axset_wind[0].get_yticks())
     axset_scalar[0].set_xlim(-25, 25) 
@@ -735,6 +464,10 @@ def fig_scatter():
     axset_scalar[3].set_ylim(-100, 3300) 
     axset_scalar[3].set_xlim(-170, 50) 
     axset_scalar[3].set_xlabel(r"$\delta D_{flux}$"+u'(\u2030)', fontsize=12)
+    #axset_scalar[3].set_yticks(axset_wind[0].get_yticks())
+    #axset_scalar[3].set_ylim(-100, 3300) 
+    #axset_scalar[3].set_xlim(-2.5, 2.5) 
+    #axset_scalar[3].set_xlabel(r"$F_{b,s}/F_{b}$", fontsize=12)
     
     yticklabels = axset_wind[0].get_yticks().astype(int).astype(str)
     axset_wind[0].set_yticklabels(yticklabels, fontsize=9)
@@ -754,7 +487,4 @@ def fig_scatter():
 
 
 if __name__=="__main__":
-    #fig_LCLCTscaling()
-    #fig_LCLTIBscaling()
-    #fig_noscaling()
     fig_scatter()

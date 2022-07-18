@@ -183,7 +183,7 @@ def plot_prfs(ncld_list, color, axset, varkeys, alpha,
     
     for ax, vk in zip(axset, varkeys):
         #ax.plot(meanprfs[vk][1:], meanprfs['P']/100, color=color)
-        ax.plot(mean[vk], z, color=color, linewidth=3)
+        ax.plot(mean[vk], z, color=color, linewidth=2)
         ax.fill_betweenx(
             #meanprfs['P']/100, 
             z, 
@@ -276,75 +276,121 @@ fig.savefig("./fig_thermoprofiles_CAM.png")
 def turbulenceflux_figure(prftype='region'):
     """
     """
-    fig, axset = plt.subplots(2, 4, figsize=(10, 8))
+    #fig, axset = plt.subplots(2, 4, figsize=(10, 8))
+    fig = plt.figure(figsize=(6.5, 5))
+    axset_toprow = [
+        fig.add_axes([0.1, 0.6, 0.2, 0.375]),
+        fig.add_axes([0.325, 0.6, 0.2, 0.375]),
+        fig.add_axes([0.55, 0.6, 0.2, 0.375]),
+        fig.add_axes([0.775, 0.6, 0.2, 0.375]),
+        ]
+    axset_bottomrow = [
+        fig.add_axes([0.2, 0.1, 0.2, 0.375]),
+        fig.add_axes([0.45, 0.1, 0.2, 0.375]),
+        fig.add_axes([0.7, 0.1, 0.2, 0.375]),
+        ]
 
 
     # Plot CAM top row:
     camvarkeys_toprow = ['TKE_h', 'WP2_CLUBB', 'TKE', 'anisotropy_ratio']
     plot_prfs(
-        ncld_g3, 'blue', axset[0, :], camvarkeys_toprow, 0.2, 
+        ncld_g3, 'blue', axset_toprow, camvarkeys_toprow, 0.2, 
         levs='int', prftype=prftype
         )
     plot_prfs(
-        ncld_g2, 'grey', axset[0, :], camvarkeys_toprow, 0.4, 
+        ncld_g2, 'grey', axset_toprow, camvarkeys_toprow, 0.4, 
         levs='int', prftype=prftype
         )
     plot_prfs(
-        ncld_g1, 'red', axset[0, :], camvarkeys_toprow, 0.4, 
+        ncld_g1, 'red', axset_toprow, camvarkeys_toprow, 0.4, 
         levs='int', prftype=prftype
         )
     
     
     # Plot P-3 top row:
-    p3varkeys_toprow = ["TKE_h", "wp2_bar", "TKE"]
-    for ax, vk in zip(axset[0, 0:3], p3varkeys_toprow):
+    p3varkeys_toprow = ["TKE_h", "wp2_bar", "TKE", "anisotropy_ratio"]
+    #for ax, vk in zip(axset[0, :], p3varkeys_toprow):
+    for ax, vk in zip(axset_toprow, p3varkeys_toprow):
         plot_p3prfs(path_p3prfflux_dir, vk, ax)
         
         
     # Plot CAM bottom row:
     camvarkeys_bottomrow = ['WPTHLP_CLUBB', 'WPRTP_CLUBB', 'Fb_m2s3']
     plot_prfs(
-        ncld_g3, 'blue', axset[1, 0:2], camvarkeys_bottomrow[0:2], 0.2, 
+        ncld_g3, 'blue', axset_bottomrow[0:2], camvarkeys_bottomrow[0:2], 0.2, 
         levs='int', prftype=prftype
         )
     plot_prfs(
-        ncld_g2, 'grey', axset[1, 0:2], camvarkeys_bottomrow[0:2], 0.4, 
+        ncld_g2, 'grey', axset_bottomrow[0:2], camvarkeys_bottomrow[0:2], 0.4, 
         levs='int', prftype=prftype
         )
     plot_prfs(
-        ncld_g1, 'red', axset[1, 0:2], camvarkeys_bottomrow[0:2], 0.4, 
+        ncld_g1, 'red', axset_bottomrow[0:2], camvarkeys_bottomrow[0:2], 0.4, 
         levs='int', prftype=prftype
         )
     plot_prfs(
-        ncld_g3, 'blue', [axset[1, 2]], [camvarkeys_bottomrow[2]], 0.2, 
+        ncld_g3, 'blue', [axset_bottomrow[2]], [camvarkeys_bottomrow[2]], 0.2, 
         levs='mid', prftype=prftype
         )
     plot_prfs(
-        ncld_g2, 'grey', [axset[1, 2]], [camvarkeys_bottomrow[2]], 0.4, 
+        ncld_g2, 'grey', [axset_bottomrow[2]], [camvarkeys_bottomrow[2]], 0.4, 
         levs='mid', prftype=prftype
         )
     plot_prfs(
-        ncld_g1, 'red', [axset[1, 2]], [camvarkeys_bottomrow[2]], 0.4, 
+        ncld_g1, 'red', [axset_bottomrow[2]], [camvarkeys_bottomrow[2]], 0.4, 
         levs='mid', prftype=prftype
         )
     
     
     # Plot P-3 bottom row:
     p3varkeys_bottomrow = ["flux_sh", "flux_lh", "flux_b"]
-    for ax, vk in zip(axset[1, 0:3], p3varkeys_bottomrow):
+    #for ax, vk in zip(axset[1, 0:3], p3varkeys_bottomrow):
+    for ax, vk in zip(axset_bottomrow, p3varkeys_bottomrow):
         plot_p3prfs(path_p3prfflux_dir, vk, ax)
 
 
-    for ax in axset.flatten():
+    for ax in axset_toprow + axset_bottomrow:
         ax.set_ylim(0, 3200)
         ax.set_yticks(np.arange(0, 3200, 500))
-    axset[0,0].set_yticklabels(ax.get_yticks().astype(str), fontsize=9)
-    axset[0,0].set_ylabel('altitude (m)', fontsize=12)
-    for ax in axset[:, 1:].flatten(): 
+    axset_toprow[0].set_yticklabels(axset_toprow[0].get_yticks().astype(str), fontsize=9)
+    axset_toprow[0].set_ylabel('altitude (m)', fontsize=12)
+    axset_bottomrow[0].set_yticklabels(axset_bottomrow[0].get_yticks().astype(str), fontsize=9)
+    axset_bottomrow[0].set_ylabel('altitude (m)', fontsize=12)
+    for ax in axset_toprow[1:] + axset_bottomrow[1:]: 
         ax.set_yticklabels(['' for t in ax.get_yticks()], fontsize=9)
 
 
+    axset_toprow[0].set_xlabel(r"TKE$_h$ (m$^2$ s$^{-2}$)", fontsize=12)
+    axset_toprow[0].set_xlim(0, 1.2)
+    axset_toprow[0].set_xticks([0, 0.2, 0.4, 0.6, 0.8, 1., 1.2])
+    axset_toprow[0].set_xticklabels(['0', '', '0.4', '', '0.8', '', '1.2'], fontsize=9)
+ 
+    axset_toprow[1].set_xlabel(r"$\bar{w'w'}$ (m$^2$ s$^{-2}$)", fontsize=12)
+    axset_toprow[1].set_xlim(0, 0.84)
+    axset_toprow[1].set_xticks([0, 0.2, 0.4, 0.6, 0.8])
+    axset_toprow[1].set_xticklabels(['0', '0.2', '0.4', '0.6', '0.8'], fontsize=9)
+    
+    axset_toprow[2].set_xlabel(r"TKE (m$^2$ s$^{-2}$)", fontsize=12)
+    axset_toprow[2].set_xlim(0, 1.3)
+    axset_toprow[2].set_xticks([0, 0.2, 0.4, 0.6, 0.8, 1., 1.2])
+    axset_toprow[2].set_xticklabels(['0', '', '0.4', '', '0.8', '', '1.2'], fontsize=9)
 
+    axset_toprow[3].set_xlabel("anisotropy \nratio", fontsize=12)
+    axset_toprow[3].set_xlim(0, 2.5)
+    axset_toprow[3].set_xticks([0, 0.5, 1, 1.5, 2])
+    axset_toprow[3].set_xticklabels(['0', '0.5', '1.0', '1.5', '2.0'], fontsize=9)
+
+
+    axset_bottomrow[0].set_ylabel('altitude (m)', fontsize=12)
+    axset_bottomrow[0].set_xlabel(r"SHF (W m$^{-2}$)", fontsize=12)
+
+    axset_bottomrow[1].set_xlim(-60, 490) 
+    axset_bottomrow[1].set_ylim(-100, 3300) 
+    axset_bottomrow[1].set_xlabel(r"LHF (W m$^{-2}$)", fontsize=12)
+
+    axset_bottomrow[2].set_xlim(-0.0005, 0.002) 
+    axset_bottomrow[2].set_ylim(-100, 3300) 
+    axset_bottomrow[2].set_xlabel(r"F$_b$ ($m^2/s^3$)", fontsize=12)
 
 
 
