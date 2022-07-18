@@ -94,10 +94,26 @@ def plotflux_singlecldmod(ncld, color, axset, varkeys): # input str with zfill=2
         ax.set_ylim(100100, 70000)
         
         
-        
+
+def max_prf(camdata, varkey):
+    """
+    Return vertical profile at CAM grid point (gp) with the maximum value at 
+    any one of its levels across the passed domain.
+    """
+    varmax = camdata[varkey].max()
+    camcoords_gpmax = camdata.where(camdata[varkey]==varmax, drop=True).coords
+    return camdata.sel(lon=camcoords_gpmax['lon'], lat=camcoords_gpmax['lat'])
+    
+    
+
 def camstats(ncld_list, varkeys):
     """
-    Return mean profiles and standard deviation on the mean.
+    Returns follow for CAM output at timestamps for each of the input cloud 
+    module numbers:
+        (1) mean and standard deviation of CAM data over the ATOMIC study 
+            region and the set of cloud modules.
+        (2) mean and standard deviation of gridpoint profiles with maximum 
+            vertical velocity variance for the set of cloud modules.
     """
     cam_list = []
     # Load and append cam data for each cloud module:
@@ -107,14 +123,21 @@ def camstats(ncld_list, varkeys):
         fname_cam = [f for f in fnames_cam if "_cld%s" % n_str in f]
         fname_cam = fname_cam[0]
         cam = xr.load_dataset(os.path.join(path_camdir, fname_cam))
-        cam_list.append(cam[varkeys + ['P']])
-    
-    # Return mean, std:
+        cam_list.append(cam[varkeys + ['P', 'P_ilevs', 'WP2_CLUBB']])
+        
+    # All data over P-3 region for all cloud modules:
     cam_all = xr.concat(cam_list, dim='ncld')
-    #cam_mean = cam_all.mean(dim=['ncld','lat','lon'])
-    cam_mean = cam_all.max(dim=['ncld','lat','lon'])
-    cam_std = cam_all.std(dim=['ncld','lat','lon'])/len(ncld_list)**0.5
-    return cam_mean, cam_std
+        
+    # Gridpoint profiles with maximum vertical velocity variance for each 
+    # cloud module:
+    cam_maxprfs = [max_prf(camdata, 'WP2_CLUBB') for camdata in cam_list]
+    cam_maxprfs = xr.concat(cam_maxprfs, dim='ncld')
+    
+
+    return (
+        (cam_all.mean(dim=['ncld','lat','lon']), cam_all.std(dim=['ncld','lat','lon'])), 
+        (cam_maxprfs.mean(dim=['ncld','lat','lon']), cam_maxprfs.std(dim=['ncld','lat','lon']))
+        )
 
 
 
@@ -140,44 +163,32 @@ def collect_prfs(ncld_list, varkeys):
 
 
 
-def plot_meanprf_mlevs(ncld_list, color, axset, varkeys, alpha):
-    """
-    For CAM quantities on mid-levels.
-    """
-    #meanprfs, stdprfs = collect_prfs(ncld_list, varkeys)
-    meanprfs, stdprfs = camstats(ncld_list, varkeys)
-    
-    z = (meanprfs['P'][-1]-meanprfs['P'])/10 # Rough altitude estimation, needs later revision.
 
-    for ax, vk in zip(axset, varkeys):
-        #ax.plot(meanprfs[vk], meanprfs['P']/100, color=color)
-        ax.plot(meanprfs[vk], z, color=color, linewidth=3)
-        ax.fill_betweenx(
-            #meanprfs['P']/100, 
-            z, 
-            meanprfs[vk] - stdprfs[vk], meanprfs[vk] + stdprfs[vk], 
-            color=color, alpha=alpha
-            )
-
-        
-        
-def plot_meanprf_ilevs(ncld_list, color, axset, varkeys, alpha):
+def plot_prfs(ncld_list, color, axset, varkeys, alpha, 
+              levs='mid', prftype='region'):
     """
     For CAM quantities on interface-levels.
     """
     #meanprfs, stdprfs = collect_prfs(ncld_list, varkeys)
-    meanprfs, stdprfs = camstats(ncld_list, varkeys)
+    regionstats, maxstats = camstats(ncld_list, varkeys)
+    if prftype=='region':
+        mean, std = regionstats
+    elif prftype=='max':
+        mean, std = maxstats
     
-    z = (meanprfs['P'][-1]-meanprfs['P'])/10 # Rough altitude estimation, needs later revision.
+    if levs=='mid':
+        z = (mean['P'][-1]-mean['P'])/10 # Rough altitude estimation, needs later revision.
+    elif levs=='int':
+        z = (mean['P_ilevs'][-1]-mean['P_ilevs'])/10 # Rough altitude estimation, needs later revision.
     
     for ax, vk in zip(axset, varkeys):
         #ax.plot(meanprfs[vk][1:], meanprfs['P']/100, color=color)
-        ax.plot(meanprfs[vk][1:], z, color=color, linewidth=3)
+        ax.plot(mean[vk], z, color=color, linewidth=3)
         ax.fill_betweenx(
             #meanprfs['P']/100, 
             z, 
-            meanprfs[vk][1:] - stdprfs[vk][1:], 
-            meanprfs[vk][1:] + stdprfs[vk][1:], 
+            mean[vk] - std[vk], 
+            mean[vk] + std[vk], 
             color=color, alpha=alpha
             )
 
@@ -207,13 +218,14 @@ def plot_p3prfs(path_p3prfdir, varkey, ax,
 varkeys_thermo = ['theta', 'H216OV', 'RH', 'dD']
 fig, axset = plt.subplots(1, 4, figsize=(10, 4))
 
+
 # Plot CAM:
 #for n in ncld_g1: plotthermo_singlecldmod(str(n).zfill(2), 'red', axset, varkeys_thermo)
 #for n in ncld_g2: plotthermo_singlecldmod(str(n).zfill(2), 'grey', axset, varkeys_thermo)
 #for n in ncld_g3: plotthermo_singlecldmod(str(n).zfill(2), 'blue', axset, varkeys_thermo)
-plot_meanprf_mlevs(ncld_g3, 'blue', axset, varkeys_thermo, 0.2)
-plot_meanprf_mlevs(ncld_g2, 'grey', axset, varkeys_thermo, 0.4)
-plot_meanprf_mlevs(ncld_g1, 'red', axset, varkeys_thermo, 0.4)
+plot_prfs(ncld_g3, 'blue', axset, varkeys_thermo, 0.2, levs='mid')
+plot_prfs(ncld_g2, 'grey', axset, varkeys_thermo, 0.4, levs='mid')
+plot_prfs(ncld_g1, 'red', axset, varkeys_thermo, 0.4, levs='mid')
 
 # Plot P-3:
 p3_prfvarkeys = ["theta", "q", "RH", "dD"]
@@ -261,22 +273,100 @@ fig.savefig("./fig_thermoprofiles_CAM.png")
 
 
 
-## Turbulence profiles
+def turbulenceflux_figure(prftype='region'):
+    """
+    """
+    fig, axset = plt.subplots(2, 4, figsize=(10, 8))
+
+
+    # Plot CAM top row:
+    camvarkeys_toprow = ['TKE_h', 'WP2_CLUBB', 'TKE', 'anisotropy_ratio']
+    plot_prfs(
+        ncld_g3, 'blue', axset[0, :], camvarkeys_toprow, 0.2, 
+        levs='int', prftype=prftype
+        )
+    plot_prfs(
+        ncld_g2, 'grey', axset[0, :], camvarkeys_toprow, 0.4, 
+        levs='int', prftype=prftype
+        )
+    plot_prfs(
+        ncld_g1, 'red', axset[0, :], camvarkeys_toprow, 0.4, 
+        levs='int', prftype=prftype
+        )
+    
+    
+    # Plot P-3 top row:
+    p3varkeys_toprow = ["TKE_h", "wp2_bar", "TKE"]
+    for ax, vk in zip(axset[0, 0:3], p3varkeys_toprow):
+        plot_p3prfs(path_p3prfflux_dir, vk, ax)
+        
+        
+    # Plot CAM bottom row:
+    camvarkeys_bottomrow = ['WPTHLP_CLUBB', 'WPRTP_CLUBB', 'Fb_m2s3']
+    plot_prfs(
+        ncld_g3, 'blue', axset[1, 0:2], camvarkeys_bottomrow[0:2], 0.2, 
+        levs='int', prftype=prftype
+        )
+    plot_prfs(
+        ncld_g2, 'grey', axset[1, 0:2], camvarkeys_bottomrow[0:2], 0.4, 
+        levs='int', prftype=prftype
+        )
+    plot_prfs(
+        ncld_g1, 'red', axset[1, 0:2], camvarkeys_bottomrow[0:2], 0.4, 
+        levs='int', prftype=prftype
+        )
+    plot_prfs(
+        ncld_g3, 'blue', [axset[1, 2]], [camvarkeys_bottomrow[2]], 0.2, 
+        levs='mid', prftype=prftype
+        )
+    plot_prfs(
+        ncld_g2, 'grey', [axset[1, 2]], [camvarkeys_bottomrow[2]], 0.4, 
+        levs='mid', prftype=prftype
+        )
+    plot_prfs(
+        ncld_g1, 'red', [axset[1, 2]], [camvarkeys_bottomrow[2]], 0.4, 
+        levs='mid', prftype=prftype
+        )
+    
+    
+    # Plot P-3 bottom row:
+    p3varkeys_bottomrow = ["flux_sh", "flux_lh", "flux_b"]
+    for ax, vk in zip(axset[1, 0:3], p3varkeys_bottomrow):
+        plot_p3prfs(path_p3prfflux_dir, vk, ax)
+
+
+    for ax in axset.flatten():
+        ax.set_ylim(0, 3200)
+        ax.set_yticks(np.arange(0, 3200, 500))
+    axset[0,0].set_yticklabels(ax.get_yticks().astype(str), fontsize=9)
+    axset[0,0].set_ylabel('altitude (m)', fontsize=12)
+    for ax in axset[:, 1:].flatten(): 
+        ax.set_yticklabels(['' for t in ax.get_yticks()], fontsize=9)
+
+
+
+
+
+
+turbulenceflux_figure(prftype='region')
+turbulenceflux_figure(prftype='max')
+
+"""
+## Mean turbulence/flux profiles for ATOMIC region
 ##_____________________________________________________________________________
-varkeys_turb = ['WP2_CLUBB', 'Sw']
+varkeys_turb = ['TKE_h', 'WP2_CLUBB', 'TKE']
 fig, axset_turb = plt.subplots(1, 4, figsize=(10, 4))
 
 # Plot CAM:
-#for n in ncld_g1: plotflux_singlecldmod(str(n).zfill(2), 'red', axset, varkeys_turb)
-#for n in ncld_g2: plotflux_singlecldmod(str(n).zfill(2), 'grey', axset, varkeys_turb)
-#for n in ncld_g3: plotflux_singlecldmod(str(n).zfill(2), 'blue', axset, varkeys_turb)
-plot_meanprf_ilevs(ncld_g3, 'blue', axset_turb[[1,3]], varkeys_turb, 0.2)
-plot_meanprf_ilevs(ncld_g2, 'grey', axset_turb[[1,3]], varkeys_turb, 0.4)
-plot_meanprf_ilevs(ncld_g1, 'red', axset_turb[[1,3]], varkeys_turb, 0.4)
+plot_prfs(ncld_g3, 'blue', axset_turb[0:3], varkeys_turb, 0.2, levs='int')
+plot_prfs(ncld_g2, 'grey', axset_turb[0:3], varkeys_turb, 0.4, levs='int')
+plot_prfs(ncld_g1, 'red', axset_turb[0:3], varkeys_turb, 0.4, levs='int')
 
 # Plot P-3:
-varkeys = ["wp2_bar", "Sw"]
-for ax, vk in zip(axset_turb[[1,3]], varkeys):
+#varkeys = ["wp2_bar", "Sw"]
+varkeys = ["TKE_h", "wp2_bar", "TKE"]
+#for ax, vk in zip(axset_turb[[1,3]], varkeys):
+for ax, vk in zip(axset_turb[0:3], varkeys):
     plot_p3prfs(path_p3prfflux_dir, vk, ax)    
 
 
@@ -288,12 +378,12 @@ for ax, vk in zip(axset_turb[[1,3]], varkeys):
 #axset_turb[0].set_xticks([0, 0.2, 0.4, 0.6, 0.8, 1., 1.2])
 #axset_turb[0].set_xticklabels(['0', '', '0.4', '', '0.8', '', '1.2'], fontsize=9)
 
-axset_turb[1].set_yticks(axset_turb[0].get_yticks())
-axset_turb[1].set_ylim(-100, 3300) 
-axset_turb[1].set_xlabel(r"$\bar{w'w'}$ (m$^2$ s$^{-2}$)", fontsize=12)
-axset_turb[1].set_xlim(0, 0.84)
-axset_turb[1].set_xticks([0, 0.2, 0.4, 0.6, 0.8])
-axset_turb[1].set_xticklabels(['0', '0.2', '0.4', '0.6', '0.8'], fontsize=9)
+#axset_turb[1].set_yticks(axset_turb[0].get_yticks())
+#axset_turb[1].set_ylim(-100, 3300) 
+#axset_turb[1].set_xlabel(r"$\bar{w'w'}$ (m$^2$ s$^{-2}$)", fontsize=12)
+#axset_turb[1].set_xlim(0, 0.84)
+#axset_turb[1].set_xticks([0, 0.2, 0.4, 0.6, 0.8])
+#axset_turb[1].set_xticklabels(['0', '0.2', '0.4', '0.6', '0.8'], fontsize=9)
 
 #axset_turb[2].set_yticks(axset_turb[0].get_yticks())
 #axset_turb[2].set_yticklabels(['' for t in axset_turb[1].get_yticks()])
@@ -303,13 +393,13 @@ axset_turb[1].set_xticklabels(['0', '0.2', '0.4', '0.6', '0.8'], fontsize=9)
 #axset_turb[2].set_xticks([0, 0.2, 0.4, 0.6, 0.8, 1., 1.2])
 #axset_turb[2].set_xticklabels(['0', '', '0.4', '', '0.8', '', '1.2'], fontsize=9)
 
-axset_turb[3].set_yticks(axset_turb[0].get_yticks())
-axset_turb[3].set_ylim(-100, 3300)
-#axset_turb[3].set_xlabel(r"$\bar{w'w'w'}$", fontsize=12)
-axset_turb[3].set_xlabel(r"$S_w$", fontsize=12)
-axset_turb[3].set_xlim(-1.3, 3.1)
-axset_turb[3].set_xticks([-1.2, -0.6, 0, 0.6, 1.2, 1.8, 2.4, 3])
-axset_turb[3].set_xticklabels(['-1.2', '', '0', '', '1.2', '', '2.4', ''], fontsize=9)
+#axset_turb[3].set_yticks(axset_turb[0].get_yticks())
+#axset_turb[3].set_ylim(-100, 3300)
+##axset_turb[3].set_xlabel(r"$\bar{w'w'w'}$", fontsize=12)
+#axset_turb[3].set_xlabel(r"$S_w$", fontsize=12)
+#axset_turb[3].set_xlim(-1.3, 3.1)
+#axset_turb[3].set_xticks([-1.2, -0.6, 0, 0.6, 1.2, 1.8, 2.4, 3])
+#axset_turb[3].set_xticklabels(['-1.2', '', '0', '', '1.2', '', '2.4', ''], fontsize=9)
 
 for ax in axset_turb:
     ax.set_ylim(0, 3200)
@@ -321,10 +411,10 @@ for ax in axset_turb[1:]:
     
 fig.savefig("./fig_wind+turb_profiles_CAM.png")
 ##_____________________________________________________________________________
-## Turbulence profiles
-
+## Mean turbulence/flux profiles for ATOMIC region
+"""
     
- 
+""" 
 ## Flux profiles
 ##_____________________________________________________________________________
 varkeys_flux = ['WPTHLP_CLUBB', 'WPRTP_CLUBB', 'WPTHVP_CLUBB']
@@ -334,12 +424,12 @@ fig, axset_flux = plt.subplots(1, 4, figsize=(10, 4))
 #for n in ncld_g1: plotflux_singlecldmod(str(n).zfill(2), 'red', axset, varkeys_flux)
 #for n in ncld_g2: plotflux_singlecldmod(str(n).zfill(2), 'grey', axset, varkeys_flux)
 #for n in ncld_g3: plotflux_singlecldmod(str(n).zfill(2), 'blue', axset, varkeys_flux)
-plot_meanprf_ilevs(ncld_g3, 'blue', axset_flux[[0,1]], varkeys_flux[slice(0,2)], 0.2)
-plot_meanprf_ilevs(ncld_g2, 'grey', axset_flux[[0,1]], varkeys_flux[slice(0,2)], 0.4)
-plot_meanprf_ilevs(ncld_g1, 'red', axset_flux[[0,1]], varkeys_flux[slice(0,2)], 0.4)
-plot_meanprf_mlevs(ncld_g3, 'blue', [axset_flux[2]], [varkeys_flux[2]], 0.2)
-plot_meanprf_mlevs(ncld_g2, 'grey', [axset_flux[2]], [varkeys_flux[2]], 0.4)
-plot_meanprf_mlevs(ncld_g1, 'red', [axset_flux[2]], [varkeys_flux[2]], 0.4)
+plot_prfs(ncld_g3, 'blue', axset_flux[[0,1]], varkeys_flux[slice(0,2)], 0.2, levs='int')
+plot_prfs(ncld_g2, 'grey', axset_flux[[0,1]], varkeys_flux[slice(0,2)], 0.4, levs='int')
+plot_prfs(ncld_g1, 'red', axset_flux[[0,1]], varkeys_flux[slice(0,2)], 0.4, levs='int')
+plot_prfs(ncld_g3, 'blue', [axset_flux[2]], [varkeys_flux[2]], 0.2, levs='mid')
+plot_prfs(ncld_g2, 'grey', [axset_flux[2]], [varkeys_flux[2]], 0.4, levs='mid')
+plot_prfs(ncld_g1, 'red', [axset_flux[2]], [varkeys_flux[2]], 0.4, levs='mid')
 
 # Plot P-3:
 varkeys = ["flux_sh", "flux_lh"]
@@ -378,7 +468,7 @@ axset_flux[2].set_xlabel(r"F$_b$ (W/$m^2$)", fontsize=12)
 fig.savefig("./fig_scalarflux_profiles.png")
 ##_____________________________________________________________________________
 ## Flux profiles
-
+"""
 
 
 
