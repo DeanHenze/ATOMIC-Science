@@ -14,6 +14,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 
 
 
@@ -216,16 +217,22 @@ def plot_p3prfs(path_p3prfdir, varkey, ax,
 ## Thermodynamic quantity profiles
 ##_____________________________________________________________________________
 varkeys_thermo = ['theta', 'H216OV', 'RH', 'dD']
-fig, axset = plt.subplots(1, 4, figsize=(10, 4))
-
+#fig, axset = plt.subplots(1, 4, figsize=(10, 4))
+fig_thermo = plt.figure(figsize=(6.5, 2.5))
+axset = [
+    fig_thermo.add_axes([0.1, 0.2, 0.2, 0.75]),
+    fig_thermo.add_axes([0.325, 0.2, 0.2, 0.75]),
+    fig_thermo.add_axes([0.55, 0.2, 0.2, 0.75]),
+    fig_thermo.add_axes([0.775, 0.2, 0.2, 0.75]),
+    ]
 
 # Plot CAM:
 #for n in ncld_g1: plotthermo_singlecldmod(str(n).zfill(2), 'red', axset, varkeys_thermo)
 #for n in ncld_g2: plotthermo_singlecldmod(str(n).zfill(2), 'grey', axset, varkeys_thermo)
 #for n in ncld_g3: plotthermo_singlecldmod(str(n).zfill(2), 'blue', axset, varkeys_thermo)
-plot_prfs(ncld_g3, 'blue', axset, varkeys_thermo, 0.2, levs='mid')
-plot_prfs(ncld_g2, 'grey', axset, varkeys_thermo, 0.4, levs='mid')
-plot_prfs(ncld_g1, 'red', axset, varkeys_thermo, 0.4, levs='mid')
+plot_prfs(ncld_g3, 'blue', axset, varkeys_thermo, 0.1, levs='mid')
+plot_prfs(ncld_g2, 'grey', axset, varkeys_thermo, 0.2, levs='mid')
+plot_prfs(ncld_g1, 'red', axset, varkeys_thermo, 0.2, levs='mid')
 
 # Plot P-3:
 p3_prfvarkeys = ["theta", "q", "RH", "dD"]
@@ -267,7 +274,14 @@ axset[0].set_ylabel('altitude (m)', fontsize=12)
 for ax in axset[1:]: 
     ax.set_yticklabels(['' for t in ax.get_yticks()], fontsize=9)
     
-fig.savefig("./fig_thermoprofiles_CAM.png")
+
+legend_lines = [Line2D([0], [0], color='grey', lw=1.5, linestyle='dashed'),
+                Line2D([0], [0], color='grey', lw=2, linestyle='solid')]
+axset[0].legend(legend_lines, ['P-3', 'CAM'], loc='lower right', 
+                handletextpad=0.3, frameon=False)    
+    
+    
+fig_thermo.savefig("./fig_thermoprofiles_CAM.png")
 ##_____________________________________________________________________________
 ## Thermodynamic quantity profiles
 
@@ -276,33 +290,32 @@ fig.savefig("./fig_thermoprofiles_CAM.png")
 def turbulenceflux_figure(prftype='region'):
     """
     """
-    #fig, axset = plt.subplots(2, 4, figsize=(10, 8))
-    fig = plt.figure(figsize=(6.5, 5))
+    fig_turb = plt.figure(figsize=(6.5, 5))
     axset_toprow = [
-        fig.add_axes([0.1, 0.6, 0.2, 0.375]),
-        fig.add_axes([0.325, 0.6, 0.2, 0.375]),
-        fig.add_axes([0.55, 0.6, 0.2, 0.375]),
-        fig.add_axes([0.775, 0.6, 0.2, 0.375]),
+        fig_turb.add_axes([0.1, 0.6, 0.2, 0.375]),
+        fig_turb.add_axes([0.325, 0.6, 0.2, 0.375]),
+        fig_turb.add_axes([0.55, 0.6, 0.2, 0.375]),
+        fig_turb.add_axes([0.775, 0.6, 0.2, 0.375]),
         ]
     axset_bottomrow = [
-        fig.add_axes([0.2, 0.1, 0.2, 0.375]),
-        fig.add_axes([0.45, 0.1, 0.2, 0.375]),
-        fig.add_axes([0.7, 0.1, 0.2, 0.375]),
+        fig_turb.add_axes([0.2, 0.1, 0.2, 0.375]),
+        fig_turb.add_axes([0.45, 0.1, 0.2, 0.375]),
+        fig_turb.add_axes([0.7, 0.1, 0.2, 0.375]),
         ]
 
 
     # Plot CAM top row:
     camvarkeys_toprow = ['TKE_h', 'WP2_CLUBB', 'TKE', 'anisotropy_ratio']
     plot_prfs(
-        ncld_g3, 'blue', axset_toprow, camvarkeys_toprow, 0.2, 
+        ncld_g3, 'blue', axset_toprow, camvarkeys_toprow, 0.1, 
         levs='int', prftype=prftype
         )
     plot_prfs(
-        ncld_g2, 'grey', axset_toprow, camvarkeys_toprow, 0.4, 
+        ncld_g2, 'grey', axset_toprow, camvarkeys_toprow, 0.2, 
         levs='int', prftype=prftype
         )
     plot_prfs(
-        ncld_g1, 'red', axset_toprow, camvarkeys_toprow, 0.4, 
+        ncld_g1, 'red', axset_toprow, camvarkeys_toprow, 0.2, 
         levs='int', prftype=prftype
         )
     
@@ -317,27 +330,27 @@ def turbulenceflux_figure(prftype='region'):
     # Plot CAM bottom row:
     camvarkeys_bottomrow = ['WPTHLP_CLUBB', 'WPRTP_CLUBB', 'Fb_m2s3']
     plot_prfs(
-        ncld_g3, 'blue', axset_bottomrow[0:2], camvarkeys_bottomrow[0:2], 0.2, 
+        ncld_g3, 'blue', axset_bottomrow[0:2], camvarkeys_bottomrow[0:2], 0.1, 
         levs='int', prftype=prftype
         )
     plot_prfs(
-        ncld_g2, 'grey', axset_bottomrow[0:2], camvarkeys_bottomrow[0:2], 0.4, 
+        ncld_g2, 'grey', axset_bottomrow[0:2], camvarkeys_bottomrow[0:2], 0.2, 
         levs='int', prftype=prftype
         )
     plot_prfs(
-        ncld_g1, 'red', axset_bottomrow[0:2], camvarkeys_bottomrow[0:2], 0.4, 
+        ncld_g1, 'red', axset_bottomrow[0:2], camvarkeys_bottomrow[0:2], 0.2, 
         levs='int', prftype=prftype
         )
     plot_prfs(
-        ncld_g3, 'blue', [axset_bottomrow[2]], [camvarkeys_bottomrow[2]], 0.2, 
+        ncld_g3, 'blue', [axset_bottomrow[2]], [camvarkeys_bottomrow[2]], 0.1, 
         levs='mid', prftype=prftype
         )
     plot_prfs(
-        ncld_g2, 'grey', [axset_bottomrow[2]], [camvarkeys_bottomrow[2]], 0.4, 
+        ncld_g2, 'grey', [axset_bottomrow[2]], [camvarkeys_bottomrow[2]], 0.2, 
         levs='mid', prftype=prftype
         )
     plot_prfs(
-        ncld_g1, 'red', [axset_bottomrow[2]], [camvarkeys_bottomrow[2]], 0.4, 
+        ncld_g1, 'red', [axset_bottomrow[2]], [camvarkeys_bottomrow[2]], 0.2, 
         levs='mid', prftype=prftype
         )
     
@@ -388,14 +401,27 @@ def turbulenceflux_figure(prftype='region'):
     axset_bottomrow[1].set_ylim(-100, 3300) 
     axset_bottomrow[1].set_xlabel(r"LHF (W m$^{-2}$)", fontsize=12)
 
-    axset_bottomrow[2].set_xlim(-0.0005, 0.002) 
+    axset_bottomrow[2].set_xlim(-0.00025, 0.0015) 
+    axset_bottomrow[2].set_xticks([0, 0.0005, 0.001, 0.0015]) 
+    axset_bottomrow[2].set_xticklabels(['0', '0.5', '1.0', '1.5']) 
     axset_bottomrow[2].set_ylim(-100, 3300) 
-    axset_bottomrow[2].set_xlabel(r"F$_b$ ($m^2/s^3$)", fontsize=12)
+    axset_bottomrow[2].set_xlabel(r"F$_b$ ($m^2/s^3$ $10^{-3}$)", fontsize=12)
+    
+    legend_lines = [Line2D([0], [0], color='grey', lw=1.5, linestyle='dashed'),
+                    Line2D([0], [0], color='grey', lw=2, linestyle='solid')]
+    axset_toprow[0].legend(legend_lines, ['P-3', 'CAM'], loc='upper right', 
+                    handletextpad=0.3, frameon=False)      
 
 
+    return fig_turb
 
-turbulenceflux_figure(prftype='region')
-turbulenceflux_figure(prftype='max')
+
+fig_turbregion = turbulenceflux_figure(prftype='region')
+fig_turbregion.savefig("./fig_turbulence+flux_profiles_CAM_region.png")
+
+fig_turbmax = turbulenceflux_figure(prftype='max')
+fig_turbmax.savefig("./fig_turbulence+flux_profiles_CAM_max.png")
+
 
 """
 ## Mean turbulence/flux profiles for ATOMIC region
