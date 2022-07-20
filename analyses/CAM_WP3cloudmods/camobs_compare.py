@@ -142,6 +142,43 @@ def camstats(ncld_list, varkeys):
 
 
 
+def camstats_v2(ncld_list, varkeys):
+    """
+    Returns follow for CAM output at timestamps for each of the input cloud 
+    module numbers:
+        (1) mean and standard deviation of CAM data over the ATOMIC study 
+            region and the set of cloud modules.
+        (2) mean and standard deviation of gridpoint profiles with maximum 
+            vertical velocity variance for the set of cloud modules.
+    """
+    cam_list = []
+    # Load and append cam data for each cloud module:
+    for n in ncld_list:
+        n_str = str(n).zfill(2)
+        fnames_cam = [f for f in os.listdir(path_camdir) if "_ATOMICextract" in f]
+        fname_cam = [f for f in fnames_cam if "_cld%s" % n_str in f]
+        fname_cam = fname_cam[0]
+        cam = xr.load_dataset(os.path.join(path_camdir, fname_cam))
+        cam_list.append(cam[varkeys + ['P', 'P_ilevs', 'WP2_CLUBB']])
+        
+    # All data over P-3 region for all cloud modules:
+    cam_all = xr.concat(cam_list, dim='ncld')
+    
+    # Top/bottom quantiles of column integrated vertical velocity variance:
+    cam_all['WP2_CLUBB_column'] = cam_all['WP2_CLUBB'].sum(dim='ilev')
+    q_15p = np.quantile(cam_all['WP2_CLUBB_column'], 0.15)
+    q_85p = np.quantile(cam_all['WP2_CLUBB_column'], 0.85)
+    cam_wp15p = cam_all.where(cam_all['WP2_CLUBB_column'] < q_15p, drop=True)
+    cam_wp85p = cam_all.where(cam_all['WP2_CLUBB_column'] > q_85p, drop=True)
+    cam_wp15p = cam_wp15p.mean(dim=['lon','lat','ncld'])
+    cam_wp85p = cam_wp85p.mean(dim=['lon','lat','ncld'])
+
+    cam_mean = cam_all.mean(dim=['ncld','lat','lon'])
+
+    return (cam_mean, cam_wp15p, cam_wp85p)
+
+
+
 def collect_prfs(ncld_list, varkeys):
     """
     Return mean profiles and standard deviation on the mean.
@@ -542,9 +579,38 @@ fig.savefig("./fig_scalarflux_profiles.png")
 ## Flux profiles
 """
 
+fig_turb = plt.figure(figsize=(6.5, 5))
+axset_toprow = [
+    fig_turb.add_axes([0.1, 0.6, 0.2, 0.375]),
+    fig_turb.add_axes([0.325, 0.6, 0.2, 0.375]),
+    fig_turb.add_axes([0.55, 0.6, 0.2, 0.375]),
+    fig_turb.add_axes([0.775, 0.6, 0.2, 0.375]),
+    ]
+axset_bottomrow = [
+    fig_turb.add_axes([0.2, 0.1, 0.2, 0.375]),
+    fig_turb.add_axes([0.45, 0.1, 0.2, 0.375]),
+    fig_turb.add_axes([0.7, 0.1, 0.2, 0.375]),
+    ]
+
+varkeys = ['TKE_h', 'WP2_CLUBB', 'TKE', 'anisotropy_ratio',
+           'WPTHLP_CLUBB', 'WPRTP_CLUBB', 'WPTHVP_CLUBB']
+levtype = ['int', 'int', 'int', 'int', 'int', 'int', 'mid']
+ncld_list = list(range(1,17))
+results = camstats_v2(ncld_list, varkeys)
 
 
+for ds in results:
+    ds['z_mid'] = (ds['P'][-1]-ds['P'])/10 # Rough altitude estimation, needs later revision.
+    ds['z_int'] = (ds['P_ilevs'][-1]-ds['P_ilevs'])/10 # Rough altitude estimation, needs later revision.
+    
 
+for vk, lvt, ax in zip(varkeys, levtype, axset_toprow + axset_bottomrow):
+    
+    ax.plot(results[0][vk], results[0]['z_'+lvt], color='black')
+    ax.plot(results[1][vk], results[1]['z_'+lvt], color='grey')
+    ax.plot(results[2][vk], results[2]['z_'+lvt], color='red')
+
+    ax.set_ylim(0, 3500)
 
 
 
