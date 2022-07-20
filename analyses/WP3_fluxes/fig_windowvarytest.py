@@ -104,7 +104,7 @@ ax1.set_xticks(range(1, 7))
 ax1.set_xticklabels([str(i) for i in windows_unique[0:6]], fontsize=10)
 ax1.set_xlabel("W (s)", fontsize=11)
 ax1.set_ylim(-1.5, 2.1)
-ax1.set_ylabel(r"$f_{30s}(W)$", fontsize=11)
+ax1.set_ylabel(r"$f_{30s}(W, \bar{w'q'})$", fontsize=11)
 
 ax2.set_xticks(range(1, 14))
 ax2.set_xticklabels(
@@ -113,7 +113,7 @@ ax2.set_xticklabels(
     )
 ax2.set_xlabel("W (s)", fontsize=11)
 ax2.set_ylim(-1.5, 2.1)
-ax2.set_ylabel(r"$f_{105s}(W)$", fontsize=11)
+ax2.set_ylabel(r"$f_{105s}(W, \bar{w'q'})$", fontsize=11)
 
 
 fig.savefig("./fig_spectrawindowvary.png")
