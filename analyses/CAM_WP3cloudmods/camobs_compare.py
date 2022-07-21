@@ -160,22 +160,30 @@ def camstats_v2(ncld_list, varkeys):
         fname_cam = fname_cam[0]
         cam = xr.load_dataset(os.path.join(path_camdir, fname_cam))
         cam_list.append(cam[varkeys + ['P', 'P_ilevs', 'WP2_CLUBB']])
-        
-    # All data over P-3 region for all cloud modules:
     cam_all = xr.concat(cam_list, dim='ncld')
+    
+    # Mean profiles:
+    cam_mean = cam_all.mean(dim=['ncld','lat','lon'])
     
     # Top/bottom quantiles of column integrated vertical velocity variance:
     cam_all['WP2_CLUBB_column'] = cam_all['WP2_CLUBB'].sum(dim='ilev')
-    q_15p = np.quantile(cam_all['WP2_CLUBB_column'], 0.15)
-    q_85p = np.quantile(cam_all['WP2_CLUBB_column'], 0.85)
+    q_15p = np.quantile(cam_all['WP2_CLUBB_column'], 0.10)
+    q_85p = np.quantile(cam_all['WP2_CLUBB_column'], 0.90)
     cam_wp15p = cam_all.where(cam_all['WP2_CLUBB_column'] < q_15p, drop=True)
     cam_wp85p = cam_all.where(cam_all['WP2_CLUBB_column'] > q_85p, drop=True)
     cam_wp15p = cam_wp15p.mean(dim=['lon','lat','ncld'])
     cam_wp85p = cam_wp85p.mean(dim=['lon','lat','ncld'])
 
-    cam_mean = cam_all.mean(dim=['ncld','lat','lon'])
+    # Gridpoint profiles with maximum vertical velocity variance for each 
+    # cloud module:
+    cam_maxprfs = [max_prf(camdata, 'WP2_CLUBB') for camdata in cam_list]
+    cam_maxprfs = xr.concat(cam_maxprfs, dim='ncld')
 
-    return (cam_mean, cam_wp15p, cam_wp85p)
+    return (
+        cam_mean, cam_wp15p, cam_wp85p, 
+        cam_maxprfs.mean(dim=['ncld','lat','lon']), 
+        cam_maxprfs.std(dim=['ncld','lat','lon'])
+        )
 
 
 
@@ -233,7 +241,7 @@ def plot_prfs(ncld_list, color, axset, varkeys, alpha,
 
 
 def plot_p3prfs(path_p3prfdir, varkey, ax, 
-                colors=['red', 'grey', 'blue'], 
+                colors=['red', 'grey', 'blue'], linestyle='dashed', 
                 binning=False):
     """
     Plot P-3 mean profiles of a quantity on the specified axes. Plot  one 
@@ -246,7 +254,7 @@ def plot_p3prfs(path_p3prfdir, varkey, ax,
             p3data = p3data.groupby(150*np.round(p3data['alt']/150)).mean()
         ax.plot(
             p3data['cg%i' % n], p3data['alt'], 
-            color=c, linestyle='dashed', linewidth=1.
+            color=c, linestyle=linestyle, linewidth=1.
             )    
 
 
@@ -453,11 +461,11 @@ def turbulenceflux_figure(prftype='region'):
     return fig_turb
 
 
-fig_turbregion = turbulenceflux_figure(prftype='region')
-fig_turbregion.savefig("./fig_turbulence+flux_profiles_CAM_region.png")
+#fig_turbregion = turbulenceflux_figure(prftype='region')
+#fig_turbregion.savefig("./fig_turbulence+flux_profiles_CAM_region.png")
 
-fig_turbmax = turbulenceflux_figure(prftype='max')
-fig_turbmax.savefig("./fig_turbulence+flux_profiles_CAM_max.png")
+#fig_turbmax = turbulenceflux_figure(prftype='max')
+#fig_turbmax.savefig("./fig_turbulence+flux_profiles_CAM_max.png")
 
 
 """
@@ -579,21 +587,21 @@ fig.savefig("./fig_scalarflux_profiles.png")
 ## Flux profiles
 """
 
-fig_turb = plt.figure(figsize=(6.5, 5))
-axset_toprow = [
-    fig_turb.add_axes([0.1, 0.6, 0.2, 0.375]),
-    fig_turb.add_axes([0.325, 0.6, 0.2, 0.375]),
-    fig_turb.add_axes([0.55, 0.6, 0.2, 0.375]),
-    fig_turb.add_axes([0.775, 0.6, 0.2, 0.375]),
+fig1 = plt.figure(figsize=(6.5, 5))
+axset_toprow1 = [
+    fig1.add_axes([0.1, 0.6, 0.2, 0.375]),
+    fig1.add_axes([0.325, 0.6, 0.2, 0.375]),
+    fig1.add_axes([0.55, 0.6, 0.2, 0.375]),
+    fig1.add_axes([0.775, 0.6, 0.2, 0.375]),
     ]
-axset_bottomrow = [
-    fig_turb.add_axes([0.2, 0.1, 0.2, 0.375]),
-    fig_turb.add_axes([0.45, 0.1, 0.2, 0.375]),
-    fig_turb.add_axes([0.7, 0.1, 0.2, 0.375]),
+axset_bottomrow1 = [
+    fig1.add_axes([0.2, 0.1, 0.2, 0.375]),
+    fig1.add_axes([0.45, 0.1, 0.2, 0.375]),
+    fig1.add_axes([0.7, 0.1, 0.2, 0.375]),
     ]
 
 varkeys = ['TKE_h', 'WP2_CLUBB', 'TKE', 'anisotropy_ratio',
-           'WPTHLP_CLUBB', 'WPRTP_CLUBB', 'WPTHVP_CLUBB']
+           'WPTHLP_CLUBB', 'WPRTP_CLUBB', 'Fb_m2s3']
 levtype = ['int', 'int', 'int', 'int', 'int', 'int', 'mid']
 ncld_list = list(range(1,17))
 results = camstats_v2(ncld_list, varkeys)
@@ -604,13 +612,58 @@ for ds in results:
     ds['z_int'] = (ds['P_ilevs'][-1]-ds['P_ilevs'])/10 # Rough altitude estimation, needs later revision.
     
 
-for vk, lvt, ax in zip(varkeys, levtype, axset_toprow + axset_bottomrow):
+for vk, lvt, ax in zip(varkeys, levtype, axset_toprow1 + axset_bottomrow1):
     
-    ax.plot(results[0][vk], results[0]['z_'+lvt], color='black')
-    ax.plot(results[1][vk], results[1]['z_'+lvt], color='grey')
-    ax.plot(results[2][vk], results[2]['z_'+lvt], color='red')
+    ax.plot(results[0][vk], results[0]['z_'+lvt], color='black', linestyle='-')
+    ax.plot(results[1][vk], results[1]['z_'+lvt], color='black', linestyle='--')
+    ax.plot(results[2][vk], results[2]['z_'+lvt], color='black', linestyle='-.')
+    ax.fill_betweenx(
+        results[0]['z_'+lvt], results[1][vk], results[2][vk], 
+        color='grey', alpha=0.25
+        )
 
     ax.set_ylim(0, 3500)
+
+
+p3varkeys = ["TKE_h", "wp2_bar", "TKE", "anisotropy_ratio", 
+             "flux_sh", "flux_lh", "flux_b"]
+for ax, vk in zip(axset_toprow1 + axset_bottomrow1, p3varkeys):
+    plot_p3prfs(path_p3prfflux_dir, vk, ax, linestyle='solid')
+
+
+
+fig2 = plt.figure(figsize=(6.5, 5))
+axset_toprow2 = [
+    fig2.add_axes([0.1, 0.6, 0.2, 0.375]),
+    fig2.add_axes([0.325, 0.6, 0.2, 0.375]),
+    fig2.add_axes([0.55, 0.6, 0.2, 0.375]),
+    fig2.add_axes([0.775, 0.6, 0.2, 0.375]),
+    ]
+axset_bottomrow2 = [
+    fig2.add_axes([0.2, 0.1, 0.2, 0.375]),
+    fig2.add_axes([0.45, 0.1, 0.2, 0.375]),
+    fig2.add_axes([0.7, 0.1, 0.2, 0.375]),
+    ]
+
+
+#maxprf_mean = results[3].mean(dim=['lat','lon','ncld'])
+#maxprf_std = results[3].std(dim=['lat','lon','ncld'])
+for vk, lvt, ax in zip(varkeys, levtype, axset_toprow2 + axset_bottomrow2):
+    
+    #ax.plot(maxprf_mean[vk], maxprf_mean['z_'+lvt], color='black', linestyle='-')
+    ax.plot(results[3][vk], results[3]['z_'+lvt], color='black', linestyle='--')
+    #ax.plot(results[2][vk], results[2]['z_'+lvt], color='black', linestyle='-.')
+    #ax.fill_betweenx(
+    #    results[0]['z_'+lvt], results[1][vk], results[2][vk], 
+    #    color='grey', alpha=0.25
+    #    )
+
+    ax.set_ylim(0, 3500)
+
+
+
+
+
 
 
 
