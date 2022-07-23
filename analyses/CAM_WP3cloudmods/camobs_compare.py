@@ -107,6 +107,24 @@ def max_prf(camdata, varkey):
     
     
 
+def load_camdata(ncld_list, varkeys):
+    """
+    Returns list of camdata as xarrays.
+    """
+    cam_list = []
+    # Load and append cam data for each cloud module:
+    for n in ncld_list:
+        n_str = str(n).zfill(2)
+        fnames_cam = [f for f in os.listdir(path_camdir) if "_ATOMICextract" in f]
+        fname_cam = [f for f in fnames_cam if "_cld%s" % n_str in f]
+        fname_cam = fname_cam[0]
+        cam = xr.load_dataset(os.path.join(path_camdir, fname_cam))
+        cam_list.append(cam[varkeys + ['P', 'P_ilevs', 'WP2_CLUBB']])    
+    
+    return cam_list
+
+    
+
 def camstats(ncld_list, varkeys):
     """
     Returns follow for CAM output at timestamps for each of the input cloud 
@@ -166,11 +184,14 @@ def camstats_v2(ncld_list, varkeys):
     cam_mean = cam_all.mean(dim=['ncld','lat','lon'])
     
     # Top/bottom quantiles of column integrated vertical velocity variance:
-    cam_all['WP2_CLUBB_column'] = cam_all['WP2_CLUBB'].sum(dim='ilev')
-    q_15p = np.quantile(cam_all['WP2_CLUBB_column'], 0.10)
-    q_85p = np.quantile(cam_all['WP2_CLUBB_column'], 0.90)
-    cam_wp15p = cam_all.where(cam_all['WP2_CLUBB_column'] < q_15p, drop=True)
-    cam_wp85p = cam_all.where(cam_all['WP2_CLUBB_column'] > q_85p, drop=True)
+    #levslice = slice(650, 1000)
+    ilevslice = slice(650, 1000)
+    cam_all['WP2_CLUBB_3kcolumn'] = \
+        cam_all['WP2_CLUBB'].sel(ilev=ilevslice).sum(dim='ilev')
+    q_15p = np.quantile(cam_all['WP2_CLUBB_3kcolumn'], 0.10)
+    q_85p = np.quantile(cam_all['WP2_CLUBB_3kcolumn'], 0.90)
+    cam_wp15p = cam_all.where(cam_all['WP2_CLUBB_3kcolumn'] < q_15p, drop=True)
+    cam_wp85p = cam_all.where(cam_all['WP2_CLUBB_3kcolumn'] > q_85p, drop=True)
     cam_wp15p = cam_wp15p.mean(dim=['lon','lat','ncld'])
     cam_wp85p = cam_wp85p.mean(dim=['lon','lat','ncld'])
 
@@ -185,6 +206,24 @@ def camstats_v2(ncld_list, varkeys):
         cam_maxprfs.std(dim=['ncld','lat','lon'])
         )
 
+
+
+def cam_summarystats(camdata_list):
+    """
+    General CAM statistics in the lower 3 km.
+    """
+    means = []
+    stds = []
+    stds_frac = []
+    
+    for camdata in camdata_list:
+        camdata_lower3k = camdata.sel(lev=slice(650, 1000), ilev=slice(650, 1000))
+        means.append(camdata_lower3k.mean())
+        stds.append(camdata_lower3k.std())
+        stds_frac.append(camdata_lower3k.std()/camdata_lower3k.mean())
+    
+    return (means, stds, stds_frac)
+    
 
 
 def collect_prfs(ncld_list, varkeys):
@@ -622,7 +661,7 @@ for vk, lvt, ax in zip(varkeys, levtype, axset_toprow1 + axset_bottomrow1):
         color='grey', alpha=0.25
         )
 
-    ax.set_ylim(0, 3500)
+    ax.set_ylim(-100, 3500)
 
 
 p3varkeys = ["TKE_h", "wp2_bar", "TKE", "anisotropy_ratio", 
@@ -631,7 +670,97 @@ for ax, vk in zip(axset_toprow1 + axset_bottomrow1, p3varkeys):
     plot_p3prfs(path_p3prfflux_dir, vk, ax, linestyle='solid')
 
 
+axset_toprow1[0].set_yticks(axset_toprow1[0].get_yticks())
+axset_toprow1[0].set_yticklabels(['' for t in axset_toprow1[1].get_yticks()])
+axset_toprow1[0].set_ylim(-100, 3500)
+axset_toprow1[0].set_xlabel(r"TKE$_h$ (m$^2$ s$^{-2}$)", fontsize=12)
+axset_toprow1[0].set_xlim(0, 0.5)
+axset_toprow1[0].set_xticks([0, 0.1, 0.2, 0.3, 0.4, 0.5])
+axset_toprow1[0].set_xticklabels(['0', '', '0.2', '', '0.4', ''], fontsize=9)
 
+axset_toprow1[1].set_yticks(axset_toprow1[0].get_yticks())
+axset_toprow1[1].set_ylim(-100, 3500) 
+axset_toprow1[1].set_xlabel(r"$\bar{w'w'}$ (m$^2$ s$^{-2}$)", fontsize=12)
+axset_toprow1[1].set_xlim(0, 0.5)
+axset_toprow1[1].set_xticks([0, 0.1, 0.2, 0.3, 0.4, 0.5])
+axset_toprow1[1].set_xticklabels(['0', '', '0.2', '', '0.4', ''], fontsize=9)
+
+axset_toprow1[2].set_yticks(axset_toprow1[0].get_yticks())
+axset_toprow1[2].set_yticklabels(['' for t in axset_toprow1[1].get_yticks()])
+axset_toprow1[2].set_ylim(-100, 3500)
+axset_toprow1[2].set_xlabel(r"TKE (m$^2$ s$^{-2}$)", fontsize=12)
+axset_toprow1[2].set_xlim(0, 0.7)
+axset_toprow1[2].set_xticks([0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7])
+axset_toprow1[2].set_xticklabels(['0', '', '0.2', '', '0.4', '', '0.6', ''], fontsize=9)
+
+axset_toprow1[3].set_yticks(axset_toprow1[0].get_yticks())
+axset_toprow1[3].set_ylim(-100, 3500)
+#axset_toprow1[3].set_xlabel(r"$\bar{w'w'w'}$", fontsize=12)
+axset_toprow1[3].set_xlabel("anisotropy ratio", fontsize=12, labelpad=8)
+axset_toprow1[3].set_xlim(0, 1.8)
+axset_toprow1[3].set_xticks([0, 0.25, 0.5, 0.75, 1., 1.25, 1.5, 1.75])
+axset_toprow1[3].set_xticklabels(['0', '', '0.5', '', '1.0', '', '1.5', ''], fontsize=9)
+
+for ax in axset_toprow1:
+    ax.set_ylim(0, 3300)
+    ax.set_yticks(np.arange(0, 3500, 500))
+axset_toprow1[0].set_yticklabels(axset_toprow1[0].get_yticks().astype(str), fontsize=9)
+axset_toprow1[0].set_ylabel('altitude (m)', fontsize=12)
+for ax in axset_toprow1[1:]: 
+    ax.set_yticklabels(['' for t in ax.get_yticks()], fontsize=9)
+
+
+for ax in axset_bottomrow1:
+    ax.set_ylim(0, 3300)
+    ax.set_yticks(np.arange(0, 3300, 500))
+axset_bottomrow1[0].set_yticklabels(ax.get_yticks().astype(str), fontsize=9)
+axset_bottomrow1[0].set_ylabel('altitude (m)', fontsize=12)
+for ax in axset_bottomrow1[1:]: 
+    ax.set_yticklabels(['' for t in ax.get_yticks()], fontsize=9)
+    
+axset_bottomrow1[0].set_yticks(axset_bottomrow1[0].get_yticks())
+axset_bottomrow1[0].set_xlim(-25, 25) 
+#axset_bottomrow1[0].set_ylim(-100, 3500) 
+axset_bottomrow1[0].set_ylabel('altitude (m)', fontsize=12)
+axset_bottomrow1[0].set_xlabel(r"SHF (W m$^{-2}$)", fontsize=12)
+axset_bottomrow1[0].set_xticks([-20, -10, 0, 10, 20])
+axset_bottomrow1[0].set_xticklabels(['-20', '', '0', '', '20'], fontsize=9)
+
+axset_bottomrow1[1].set_yticks(axset_bottomrow1[0].get_yticks())
+axset_bottomrow1[1].set_xlim(-60, 490) 
+#axset_bottomrow1[1].set_ylim(-100, 3500) 
+axset_bottomrow1[1].set_xlabel(r"LHF (W m$^{-2}$)", fontsize=12)
+axset_bottomrow1[1].set_xlim(-50, 400)
+axset_bottomrow1[1].set_xticks([0, 100, 200, 300, 400])
+axset_bottomrow1[1].set_xticklabels(['0', '100', '200', '300', '400'], fontsize=9)
+
+
+axset_bottomrow1[2].set_xlabel(r"F$_b$ ($m^2 s^{-3} 10^{-3}$)", fontsize=12)
+axset_bottomrow1[2].set_xticks(np.array([-0.25, 0, 0.25, 0.5, 0.75])*1e-3)
+axset_bottomrow1[2].set_xticklabels(['-0.25', '0', '0.25', '0.5', '0.75'], fontsize=9)
+
+fig1.savefig("./fluxprofiles_cam-obs_comparison.png")
+
+
+ncld_list = list(range(1, 17))
+varkeys = ['theta', 'H216OV', 'RH', 'dD', 
+           'TKE_h', 'WP2_CLUBB', 'TKE', 'anisotropy_ratio',
+           'WPTHLP_CLUBB', 'WPRTP_CLUBB', 'Fb_m2s3']
+camdata_list = load_camdata(ncld_list, varkeys)
+cam_sumstats = cam_summarystats(camdata_list)
+camstdfrac_concat = xr.concat(cam_sumstats[2], dim='ncld')
+print("CAM std as percentages"
+      "======================")
+print(camstdfrac_concat.mean()*100)
+camstd_concat = xr.concat(cam_sumstats[1], dim='ncld')
+print("CAM std as percentages"
+      "======================")
+print(camstdfrac_concat.mean()*100)
+
+
+  
+    
+"""
 fig2 = plt.figure(figsize=(6.5, 5))
 axset_toprow2 = [
     fig2.add_axes([0.1, 0.6, 0.2, 0.375]),
@@ -659,7 +788,7 @@ for vk, lvt, ax in zip(varkeys, levtype, axset_toprow2 + axset_bottomrow2):
     #    )
 
     ax.set_ylim(0, 3500)
-
+"""
 
 
 

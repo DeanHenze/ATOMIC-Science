@@ -348,9 +348,9 @@ def fig_scatter():
         )
     
     # Rectangle patches at altitude ranges of median cloud tops
-    axset_wind[1].plot((0.8, 0.8), (1400,2000), linewidth=3, color='red')
-    axset_wind[1].plot((0.75, 0.75), (1600,2000), linewidth=3, color='grey')
-    axset_wind[1].plot((0.8, 0.8), (2500,2800), linewidth=3, color='blue')
+    axset_wind[1].plot((0.55, 0.55), (1400,2000), linewidth=3, color='red')
+    axset_wind[1].plot((0.5, 0.5), (1600,2000), linewidth=3, color='grey')
+    axset_wind[1].plot((0.55, 0.55), (2500,2800), linewidth=3, color='blue')
     ##_________________________________________________________________________    
     
     """
@@ -409,24 +409,24 @@ def fig_scatter():
     axset_wind[0].set_yticklabels(['' for t in axset_wind[1].get_yticks()])
     axset_wind[0].set_ylim(-100, 3300)
     axset_wind[0].set_xlabel(r"TKE$_h$ (m$^2$ s$^{-2}$)", fontsize=12)
-    axset_wind[0].set_xlim(0, 1.2)
-    axset_wind[0].set_xticks([0, 0.2, 0.4, 0.6, 0.8, 1., 1.2])
-    axset_wind[0].set_xticklabels(['0', '', '0.4', '', '0.8', '', '1.2'], fontsize=9)
+    axset_wind[0].set_xlim(0, 0.8)
+    axset_wind[0].set_xticks([0, 0.2, 0.4, 0.6, 0.8])
+    axset_wind[0].set_xticklabels(['0', '0.2', '0.4', '0.6', '0.8'], fontsize=9)
 
     axset_wind[1].set_yticks(axset_wind[0].get_yticks())
     axset_wind[1].set_ylim(-100, 3300) 
     axset_wind[1].set_xlabel(r"$\bar{w'w'}$ (m$^2$ s$^{-2}$)", fontsize=12)
-    axset_wind[1].set_xlim(0, 0.84)
-    axset_wind[1].set_xticks([0, 0.2, 0.4, 0.6, 0.8])
-    axset_wind[1].set_xticklabels(['0', '0.2', '0.4', '0.6', '0.8'], fontsize=9)
+    axset_wind[1].set_xlim(0, 0.6)
+    axset_wind[1].set_xticks([0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6])
+    axset_wind[1].set_xticklabels(['0', '', '0.2', '', '0.4', '', '0.6'], fontsize=9)
     
     axset_wind[2].set_yticks(axset_wind[0].get_yticks())
     axset_wind[2].set_yticklabels(['' for t in axset_wind[1].get_yticks()])
     axset_wind[2].set_ylim(-100, 3300)
     axset_wind[2].set_xlabel(r"TKE (m$^2$ s$^{-2}$)", fontsize=12)
-    axset_wind[2].set_xlim(0, 1.3)
-    axset_wind[2].set_xticks([0, 0.2, 0.4, 0.6, 0.8, 1., 1.2])
-    axset_wind[2].set_xticklabels(['0', '', '0.4', '', '0.8', '', '1.2'], fontsize=9)
+    axset_wind[2].set_xlim(0, 1.)
+    axset_wind[2].set_xticks([0, 0.2, 0.4, 0.6, 0.8])
+    axset_wind[2].set_xticklabels(['0', '0.2', '0.4', '0.6', '0.8'], fontsize=9)
 
     #axset_wind[3].set_yticks(axset_wind[0].get_yticks())
     #axset_wind[3].set_ylim(-100, 3300)
@@ -449,21 +449,31 @@ def fig_scatter():
     axset_scalar[0].set_ylim(-100, 3300) 
     axset_scalar[0].set_ylabel('altitude (m)', fontsize=12)
     axset_scalar[0].set_xlabel(r"SHF (W m$^{-2}$)", fontsize=12)
+    axset_scalar[0].set_xticks([-20, -10, 0, 10, 20])
+    axset_scalar[0].set_xticklabels(['-20', '', '0', '', '20'], fontsize=9)
 
     axset_scalar[1].set_yticks(axset_wind[0].get_yticks())
-    axset_scalar[1].set_xlim(-60, 490) 
     axset_scalar[1].set_ylim(-100, 3300) 
     axset_scalar[1].set_xlabel(r"LHF (W m$^{-2}$)", fontsize=12)
+    axset_scalar[1].set_xlim(-60, 490)
+    axset_scalar[1].set_xticks([0, 100, 200, 300, 400])
+    axset_scalar[1].set_xticklabels(['0', '100', '200', '300', '400'], fontsize=9)
 
     axset_scalar[2].set_yticks(axset_wind[0].get_yticks())
-    axset_scalar[2].set_xlim(-0.0005, 0.002) 
+    axset_scalar[2].set_xlim(-0.0007, 0.00165) 
     axset_scalar[2].set_ylim(-100, 3300) 
-    axset_scalar[2].set_xlabel(r"F$_b$ ($m^2/s^3$)", fontsize=12)
+    axset_scalar[2].set_xlabel(r"F$_b$ ($m^2 s^{-3} 10^{-3}$)", fontsize=12)
+    axset_scalar[2].set_xticks(np.array([-0.5, -0.25, 0, 0.25, 0.5, 0.75, 1., 1.25, 1.5])*1e-3)
+    axset_scalar[2].set_xticklabels(['-0.5', '', '0', '', '0.5', '', '1.0', '', '1.5'], fontsize=9)
+
     
     axset_scalar[3].set_yticks(axset_wind[0].get_yticks())
     axset_scalar[3].set_ylim(-100, 3300) 
-    axset_scalar[3].set_xlim(-170, 50) 
+    axset_scalar[3].set_xlim(-250, 0) 
     axset_scalar[3].set_xlabel(r"$\delta D_{flux}$"+u'(\u2030)', fontsize=12)
+    axset_scalar[3].set_xticks([-250, -200, -150, -100, -50, 0])
+    axset_scalar[3].set_xticklabels(['', '-200', '', '-100', '', '0'], fontsize=9)
+
     #axset_scalar[3].set_yticks(axset_wind[0].get_yticks())
     #axset_scalar[3].set_ylim(-100, 3300) 
     #axset_scalar[3].set_xlim(-2.5, 2.5) 

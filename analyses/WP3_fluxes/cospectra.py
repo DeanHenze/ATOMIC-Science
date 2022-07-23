@@ -23,7 +23,7 @@ import thermo
 
 
 
-def cospectra(data_df, varkeypairs, dt_window=3*60):
+def cospectra(data_df, varkeypairs, dt_window=5*60):
     """
     Get cospectra of one or more set of variables. 
     QC data for high aircraft roll first.
@@ -54,7 +54,7 @@ def cospectra(data_df, varkeypairs, dt_window=3*60):
 
 
     # Butterworth high-pass filter (cutoff freq 1/60s ~ 8 km wavelength):
-    sos = signal.butter(10, 1/60, btype='highpass', fs=5, output='sos')    
+    sos = signal.butter(10, 1/120, btype='highpass', fs=5, output='sos')    
     for vk in data_df.columns:
         data_df[vk] = signal.sosfilt(sos, data_df[vk])
     
