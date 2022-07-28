@@ -107,7 +107,7 @@ def max_prf(camdata, varkey):
     
     
 
-def load_camdata(ncld_list, varkeys):
+def load_camdata(ncld_list, varkeys, producttype='extract'):
     """
     Returns list of camdata as xarrays.
     """
@@ -115,7 +115,8 @@ def load_camdata(ncld_list, varkeys):
     # Load and append cam data for each cloud module:
     for n in ncld_list:
         n_str = str(n).zfill(2)
-        fnames_cam = [f for f in os.listdir(path_camdir) if "_ATOMICextract" in f]
+        fnames_cam = [f for f in os.listdir(path_camdir) 
+                      if "_ATOMIC%s" % producttype in f]
         fname_cam = [f for f in fnames_cam if "_cld%s" % n_str in f]
         fname_cam = fname_cam[0]
         cam = xr.load_dataset(os.path.join(path_camdir, fname_cam))
@@ -173,7 +174,8 @@ def camstats_v2(ncld_list, varkeys):
     # Load and append cam data for each cloud module:
     for n in ncld_list:
         n_str = str(n).zfill(2)
-        fnames_cam = [f for f in os.listdir(path_camdir) if "_ATOMICextract" in f]
+        #fnames_cam = [f for f in os.listdir(path_camdir) if "_ATOMICextract" in f]
+        fnames_cam = [f for f in os.listdir(path_camdir) if "_ATOMICregion" in f]
         fname_cam = [f for f in fnames_cam if "_cld%s" % n_str in f]
         fname_cam = fname_cam[0]
         cam = xr.load_dataset(os.path.join(path_camdir, fname_cam))
@@ -181,19 +183,24 @@ def camstats_v2(ncld_list, varkeys):
     cam_all = xr.concat(cam_list, dim='ncld')
     
     # Mean profiles:
-    cam_mean = cam_all.mean(dim=['ncld','lat','lon'])
+    cam_mean = cam_all.mean(dim=['ncld','lat','lon','time'])
     
     # Top/bottom quantiles of column integrated vertical velocity variance:
     #levslice = slice(650, 1000)
     ilevslice = slice(650, 1000)
     cam_all['WP2_CLUBB_3kcolumn'] = \
         cam_all['WP2_CLUBB'].sel(ilev=ilevslice).sum(dim='ilev')
-    q_15p = np.quantile(cam_all['WP2_CLUBB_3kcolumn'], 0.10)
-    q_85p = np.quantile(cam_all['WP2_CLUBB_3kcolumn'], 0.90)
-    cam_wp15p = cam_all.where(cam_all['WP2_CLUBB_3kcolumn'] < q_15p, drop=True)
-    cam_wp85p = cam_all.where(cam_all['WP2_CLUBB_3kcolumn'] > q_85p, drop=True)
-    cam_wp15p = cam_wp15p.mean(dim=['lon','lat','ncld'])
-    cam_wp85p = cam_wp85p.mean(dim=['lon','lat','ncld'])
+    q_15p = np.quantile(cam_all['WP2_CLUBB_3kcolumn'].values.flatten(), 0.10)
+    q_95p = np.quantile(cam_all['WP2_CLUBB_3kcolumn'].values.flatten(), 0.95)
+    q_99p = np.quantile(cam_all['WP2_CLUBB_3kcolumn'].values.flatten(), 0.99)
+    
+    cam_wp15p = cam_all.where(cam_all['WP2_CLUBB_3kcolumn'] <= q_15p, drop=True)
+    cam_wp95p = cam_all.where(cam_all['WP2_CLUBB_3kcolumn'] >= q_95p, drop=True)
+    cam_wp99p = cam_all.where(cam_all['WP2_CLUBB_3kcolumn'] >= q_99p, drop=True)
+    
+    cam_wp15p = cam_wp15p.mean(dim=['lon','lat','ncld','time'])
+    cam_wp95p = cam_wp95p.mean(dim=['lon','lat','ncld','time'])
+    cam_wp99p = cam_wp99p.mean(dim=['lon','lat','ncld','time'])
 
     # Gridpoint profiles with maximum vertical velocity variance for each 
     # cloud module:
@@ -201,9 +208,9 @@ def camstats_v2(ncld_list, varkeys):
     cam_maxprfs = xr.concat(cam_maxprfs, dim='ncld')
 
     return (
-        cam_mean, cam_wp15p, cam_wp85p, 
-        cam_maxprfs.mean(dim=['ncld','lat','lon']), 
-        cam_maxprfs.std(dim=['ncld','lat','lon'])
+        cam_mean, cam_wp15p, cam_wp95p, cam_wp99p,  
+        cam_maxprfs.mean(dim=['ncld','lat','lon','time']), 
+        cam_maxprfs.std(dim=['ncld','lat','lon','time'])
         )
 
 
@@ -218,9 +225,11 @@ def cam_summarystats(camdata_list):
     
     for camdata in camdata_list:
         camdata_lower3k = camdata.sel(lev=slice(650, 1000), ilev=slice(650, 1000))
-        means.append(camdata_lower3k.mean())
-        stds.append(camdata_lower3k.std())
-        stds_frac.append(camdata_lower3k.std()/camdata_lower3k.mean())
+        mean = camdata_lower3k.mean(dim=['lat','lon','time'])
+        std = camdata_lower3k.std(dim=['lat','lon','time'])
+        means.append(mean)
+        stds.append(std)
+        stds_frac.append(std/mean)
     
     return (means, stds, stds_frac)
     
@@ -279,21 +288,23 @@ def plot_prfs(ncld_list, color, axset, varkeys, alpha,
 
 
 
-def plot_p3prfs(path_p3prfdir, varkey, ax, 
-                colors=['red', 'grey', 'blue'], linestyle='dashed', 
+def plot_p3prfs(path_p3prfdir, varkey, ax, cldgroups = [1, 2, 3], 
+                colors={1:'red', 2:'grey', 3:'blue'}, linestyle='dashed', 
                 binning=False):
     """
     Plot P-3 mean profiles of a quantity on the specified axes. Plot  one 
     variable, 3 profiles (one for each cloud group).
     """
-    for n, c in zip([1, 2, 3], colors):
+    #for n, c in zip(cldgroups, colors):
+    for n in cldgroups:
+        c = colors[n]
         fname = "meanprf_%s_WP3.csv" % varkey
         p3data = pd.read_csv(path_p3prfdir + fname)
         if binning:
             p3data = p3data.groupby(150*np.round(p3data['alt']/150)).mean()
         ax.plot(
             p3data['cg%i' % n], p3data['alt'], 
-            color=c, linestyle=linestyle, linewidth=1.
+            color=c, linestyle=linestyle, linewidth=1.5
             )    
 
 
@@ -642,6 +653,7 @@ axset_bottomrow1 = [
 varkeys = ['TKE_h', 'WP2_CLUBB', 'TKE', 'anisotropy_ratio',
            'WPTHLP_CLUBB', 'WPRTP_CLUBB', 'Fb_m2s3']
 levtype = ['int', 'int', 'int', 'int', 'int', 'int', 'mid']
+#levtype = ['int', 'int', 'int', 'int', 'int', 'int', 'int']
 ncld_list = list(range(1,17))
 results = camstats_v2(ncld_list, varkeys)
 
@@ -654,11 +666,11 @@ for ds in results:
 for vk, lvt, ax in zip(varkeys, levtype, axset_toprow1 + axset_bottomrow1):
     
     ax.plot(results[0][vk], results[0]['z_'+lvt], color='black', linestyle='-')
-    ax.plot(results[1][vk], results[1]['z_'+lvt], color='black', linestyle='--')
-    ax.plot(results[2][vk], results[2]['z_'+lvt], color='black', linestyle='-.')
+    ax.plot(results[2][vk], results[2]['z_'+lvt], color='black', linestyle='--')
+    ax.plot(results[3][vk], results[3]['z_'+lvt], color='black', linestyle='-.')
     ax.fill_betweenx(
-        results[0]['z_'+lvt], results[1][vk], results[2][vk], 
-        color='grey', alpha=0.25
+        results[0]['z_'+lvt], results[0][vk], results[3][vk], 
+        color='grey', alpha=0.15
         )
 
     ax.set_ylim(-100, 3500)
@@ -719,12 +731,12 @@ for ax in axset_bottomrow1[1:]:
     ax.set_yticklabels(['' for t in ax.get_yticks()], fontsize=9)
     
 axset_bottomrow1[0].set_yticks(axset_bottomrow1[0].get_yticks())
-axset_bottomrow1[0].set_xlim(-25, 25) 
+axset_bottomrow1[0].set_xlim(-40, 25) 
 #axset_bottomrow1[0].set_ylim(-100, 3500) 
 axset_bottomrow1[0].set_ylabel('altitude (m)', fontsize=12)
 axset_bottomrow1[0].set_xlabel(r"SHF (W m$^{-2}$)", fontsize=12)
-axset_bottomrow1[0].set_xticks([-20, -10, 0, 10, 20])
-axset_bottomrow1[0].set_xticklabels(['-20', '', '0', '', '20'], fontsize=9)
+axset_bottomrow1[0].set_xticks([-30, -20, -10, 0, 10, 20])
+axset_bottomrow1[0].set_xticklabels(['', '-20', '', '0', '', '20'], fontsize=9)
 
 axset_bottomrow1[1].set_yticks(axset_bottomrow1[0].get_yticks())
 axset_bottomrow1[1].set_xlim(-60, 490) 
@@ -736,17 +748,34 @@ axset_bottomrow1[1].set_xticklabels(['0', '100', '200', '300', '400'], fontsize=
 
 
 axset_bottomrow1[2].set_xlabel(r"F$_b$ ($m^2 s^{-3} 10^{-3}$)", fontsize=12)
-axset_bottomrow1[2].set_xticks(np.array([-0.25, 0, 0.25, 0.5, 0.75])*1e-3)
-axset_bottomrow1[2].set_xticklabels(['-0.25', '0', '0.25', '0.5', '0.75'], fontsize=9)
+axset_bottomrow1[2].set_xlim(-0.75*1e-3, 0.8*1e-3)
+axset_bottomrow1[2].set_xticks(np.array([-0.75, -0.5, -0.25, 0, 0.25, 0.5, 0.75])*1e-3)
+axset_bottomrow1[2].set_xticklabels(['', '-0.5', '', '0', '', '0.5', ''], fontsize=9)
 
-fig1.savefig("./fluxprofiles_cam-obs_comparison.png")
+
+legend_lines = [Line2D([0], [0], color='black', lw=1.5, linestyle='-'),
+                Line2D([0], [0], color='black', lw=1.5, linestyle='--'),
+                Line2D([0], [0], color='black', lw=1.5, linestyle='-.')]
+
+axset_bottomrow1[1].legend(
+    legend_lines, [r'CAM, $\mu$', r'CAM, $\mu_{95}$', r'CAM, $\mu_{99}$'], 
+    fontsize=9, loc='upper right',  bbox_to_anchor=(0.99, 0.99), handlelength=1.5, 
+    handletextpad=0.4, frameon=False,
+    )
+
+
+fig1.savefig("./fluxprofiles_cam-obs_comparison_cldgroupall.png")
+
+
+
+
 
 
 ncld_list = list(range(1, 17))
 varkeys = ['theta', 'H216OV', 'RH', 'dD', 
            'TKE_h', 'WP2_CLUBB', 'TKE', 'anisotropy_ratio',
            'WPTHLP_CLUBB', 'WPRTP_CLUBB', 'Fb_m2s3']
-camdata_list = load_camdata(ncld_list, varkeys)
+camdata_list = load_camdata(ncld_list, varkeys, producttype='region')
 cam_sumstats = cam_summarystats(camdata_list)
 camstdfrac_concat = xr.concat(cam_sumstats[2], dim='ncld')
 print("CAM std as percentages"
@@ -758,7 +787,10 @@ print("CAM std as percentages"
 print(camstdfrac_concat.mean()*100)
 
 
-  
+
+
+
+
     
 """
 fig2 = plt.figure(figsize=(6.5, 5))
@@ -789,6 +821,291 @@ for vk, lvt, ax in zip(varkeys, levtype, axset_toprow2 + axset_bottomrow2):
 
     ax.set_ylim(0, 3500)
 """
+
+
+
+
+## Only CG3 days
+##_____________________________________________________________________________
+fig2 = plt.figure(figsize=(6.5, 5))
+axset_toprow2 = [
+    fig2.add_axes([0.1, 0.6, 0.2, 0.375]),
+    fig2.add_axes([0.325, 0.6, 0.2, 0.375]),
+    fig2.add_axes([0.55, 0.6, 0.2, 0.375]),
+    fig2.add_axes([0.775, 0.6, 0.2, 0.375]),
+    ]
+axset_bottomrow2 = [
+    fig2.add_axes([0.2, 0.1, 0.2, 0.375]),
+    fig2.add_axes([0.45, 0.1, 0.2, 0.375]),
+    fig2.add_axes([0.7, 0.1, 0.2, 0.375]),
+    ]
+
+varkeys = ['TKE_h', 'WP2_CLUBB', 'TKE', 'anisotropy_ratio',
+           'WPTHLP_CLUBB', 'WPRTP_CLUBB', 'Fb_m2s3']
+levtype = ['int', 'int', 'int', 'int', 'int', 'int', 'mid']
+#levtype = ['int', 'int', 'int', 'int', 'int', 'int', 'int']
+ncld_list = [2, 3, 12, 13, 14, 15, 16]
+results = camstats_v2(ncld_list, varkeys)
+
+
+for ds in results:
+    ds['z_mid'] = (ds['P'][-1]-ds['P'])/10 # Rough altitude estimation, needs later revision.
+    ds['z_int'] = (ds['P_ilevs'][-1]-ds['P_ilevs'])/10 # Rough altitude estimation, needs later revision.
+    
+
+for vk, lvt, ax in zip(varkeys, levtype, axset_toprow2 + axset_bottomrow2):
+    
+    ax.plot(results[0][vk], results[0]['z_'+lvt], color='black', linestyle='-')
+    ax.plot(results[2][vk], results[2]['z_'+lvt], color='black', linestyle='--')
+    ax.plot(results[3][vk], results[3]['z_'+lvt], color='black', linestyle='-.')
+    #ax.fill_betweenx(
+    #    results[0]['z_'+lvt], results[0][vk], results[3][vk], 
+    #    color='grey', alpha=0.25
+    #    )
+
+    ax.set_ylim(-100, 3500)
+
+
+p3varkeys = ["TKE_h", "wp2_bar", "TKE", "anisotropy_ratio", 
+             "flux_sh", "flux_lh", "flux_b"]
+for ax, vk in zip(axset_toprow2 + axset_bottomrow2, p3varkeys):
+    plot_p3prfs(path_p3prfflux_dir, vk, ax, linestyle='solid', cldgroups=[3])
+
+
+axset_toprow2[0].set_yticks(axset_toprow2[0].get_yticks())
+axset_toprow2[0].set_yticklabels(['' for t in axset_toprow2[1].get_yticks()])
+axset_toprow2[0].set_ylim(-100, 3500)
+axset_toprow2[0].set_xlabel(r"TKE$_h$ (m$^2$ s$^{-2}$)", fontsize=12)
+axset_toprow2[0].set_xlim(0, 0.6)
+axset_toprow2[0].set_xticks([0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6])
+axset_toprow2[0].set_xticklabels(['0', '', '0.2', '', '0.4', '', '0.6'], fontsize=9)
+
+axset_toprow2[1].set_yticks(axset_toprow2[0].get_yticks())
+axset_toprow2[1].set_ylim(-100, 3500) 
+axset_toprow2[1].set_xlabel(r"$\bar{w'w'}$ (m$^2$ s$^{-2}$)", fontsize=12)
+axset_toprow2[1].set_xlim(0, 0.6)
+axset_toprow2[1].set_xticks([0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6])
+axset_toprow2[1].set_xticklabels(['0', '', '0.2', '', '0.4', '', '0.6'], fontsize=9)
+
+axset_toprow2[2].set_yticks(axset_toprow2[0].get_yticks())
+axset_toprow2[2].set_yticklabels(['' for t in axset_toprow2[1].get_yticks()])
+axset_toprow2[2].set_ylim(-100, 3500)
+axset_toprow2[2].set_xlabel(r"TKE (m$^2$ s$^{-2}$)", fontsize=12)
+axset_toprow2[2].set_xlim(0, 1.)
+axset_toprow2[2].set_xticks([0, 0.2, 0.4, 0.6, 0.8, 1.])
+axset_toprow2[2].set_xticklabels(['0', '0.2', '0.4', '0.6', '0.8', '1.'], fontsize=9)
+
+axset_toprow2[3].set_yticks(axset_toprow2[0].get_yticks())
+axset_toprow2[3].set_ylim(-100, 3500)
+#axset_toprow2[3].set_xlabel(r"$\bar{w'w'w'}$", fontsize=12)
+axset_toprow2[3].set_xlabel("anisotropy ratio", fontsize=12, labelpad=8)
+axset_toprow2[3].set_xlim(0, 1.8)
+axset_toprow2[3].set_xticks([0, 0.25, 0.5, 0.75, 1., 1.25, 1.5, 1.75])
+axset_toprow2[3].set_xticklabels(['0', '', '0.5', '', '1.0', '', '1.5', ''], fontsize=9)
+
+for ax in axset_toprow2:
+    ax.set_ylim(0, 3300)
+    ax.set_yticks(np.arange(0, 3500, 500))
+axset_toprow2[0].set_yticklabels(axset_toprow2[0].get_yticks().astype(str), fontsize=9)
+axset_toprow2[0].set_ylabel('altitude (m)', fontsize=12)
+for ax in axset_toprow2[1:]: 
+    ax.set_yticklabels(['' for t in ax.get_yticks()], fontsize=9)
+
+
+for ax in axset_bottomrow2:
+    ax.set_ylim(0, 3300)
+    ax.set_yticks(np.arange(0, 3300, 500))
+axset_bottomrow2[0].set_yticklabels(ax.get_yticks().astype(str), fontsize=9)
+axset_bottomrow2[0].set_ylabel('altitude (m)', fontsize=12)
+for ax in axset_bottomrow2[1:]: 
+    ax.set_yticklabels(['' for t in ax.get_yticks()], fontsize=9)
+    
+axset_bottomrow2[0].set_yticks(axset_bottomrow2[0].get_yticks())
+axset_bottomrow2[0].set_xlim(-60, 25) 
+#axset_bottomrow2[0].set_ylim(-100, 3500) 
+axset_bottomrow2[0].set_ylabel('altitude (m)', fontsize=12)
+axset_bottomrow2[0].set_xlabel(r"SHF (W m$^{-2}$)", fontsize=12)
+axset_bottomrow2[0].set_xticks([-60, -50, -40, -30, -20, -10, 0, 10, 20])
+axset_bottomrow2[0].set_xticklabels(['-60', '', '-40', '', '-20', '', '0', '', '20'], fontsize=9)
+
+axset_bottomrow2[1].set_yticks(axset_bottomrow2[0].get_yticks())
+axset_bottomrow2[1].set_xlim(-60, 490) 
+#axset_bottomrow2[1].set_ylim(-100, 3500) 
+axset_bottomrow2[1].set_xlabel(r"LHF (W m$^{-2}$)", fontsize=12)
+axset_bottomrow2[1].set_xlim(-50, 400)
+axset_bottomrow2[1].set_xticks([0, 100, 200, 300, 400])
+axset_bottomrow2[1].set_xticklabels(['0', '100', '200', '300', '400'], fontsize=9)
+
+
+axset_bottomrow2[2].set_xlabel(r"F$_b$ ($m^2 s^{-3} 10^{-3}$)", fontsize=12)
+axset_bottomrow2[2].set_xlim(-1.*1e-3, 0.8*1e-3)
+axset_bottomrow2[2].set_xticks(np.array([-1., -0.75, -0.5, -0.25, 0, 0.25, 0.5, 0.75])*1e-3)
+axset_bottomrow2[2].set_xticklabels(['-1.0', '', '-0.5', '', '0', '', '0.5', ''], fontsize=9)
+
+
+legend_lines = [Line2D([0], [0], color='black', lw=1.5, linestyle='-'),
+                Line2D([0], [0], color='black', lw=1.5, linestyle='--'),
+                Line2D([0], [0], color='black', lw=1.5, linestyle='-.')]
+
+axset_bottomrow2[1].legend(
+    legend_lines, [r'CAM, $\mu$', r'CAM, $\mu_{95}$', r'CAM, $\mu_{99}$'], 
+    fontsize=9, loc='upper right',  bbox_to_anchor=(0.99, 0.99), handlelength=1.5, 
+    handletextpad=0.4, frameon=False,
+    )
+
+
+fig2.savefig("./fluxprofiles_cam-obs_comparison_cldgroup3.png")
+##_____________________________________________________________________________
+## Only CG3 days
+
+
+
+
+
+
+
+
+## Only CG1 and CG2 days
+##_____________________________________________________________________________
+fig3 = plt.figure(figsize=(6.5, 5))
+axset_toprow3 = [
+    fig3.add_axes([0.1, 0.6, 0.2, 0.375]),
+    fig3.add_axes([0.325, 0.6, 0.2, 0.375]),
+    fig3.add_axes([0.55, 0.6, 0.2, 0.375]),
+    fig3.add_axes([0.775, 0.6, 0.2, 0.375]),
+    ]
+axset_bottomrow3 = [
+    fig3.add_axes([0.2, 0.1, 0.2, 0.375]),
+    fig3.add_axes([0.45, 0.1, 0.2, 0.375]),
+    fig3.add_axes([0.7, 0.1, 0.2, 0.375]),
+    ]
+
+varkeys = ['TKE_h', 'WP2_CLUBB', 'TKE', 'anisotropy_ratio',
+           'WPTHLP_CLUBB', 'WPRTP_CLUBB', 'Fb_m2s3']
+levtype = ['int', 'int', 'int', 'int', 'int', 'int', 'mid']
+#levtype = ['int', 'int', 'int', 'int', 'int', 'int', 'int']
+ncld_list = [1, 4, 5, 6, 7, 8, 9, 10, 11]
+results = camstats_v2(ncld_list, varkeys)
+
+
+for ds in results:
+    ds['z_mid'] = (ds['P'][-1]-ds['P'])/10 # Rough altitude estimation, needs later revision.
+    ds['z_int'] = (ds['P_ilevs'][-1]-ds['P_ilevs'])/10 # Rough altitude estimation, needs later revision.
+    
+
+for vk, lvt, ax in zip(varkeys, levtype, axset_toprow3 + axset_bottomrow3):
+    
+    ax.plot(results[0][vk], results[0]['z_'+lvt], color='black', linestyle='-')
+    ax.plot(results[2][vk], results[2]['z_'+lvt], color='black', linestyle='--')
+    ax.plot(results[3][vk], results[3]['z_'+lvt], color='black', linestyle='-.')
+    #ax.fill_betweenx(
+    #    results[0]['z_'+lvt], results[0][vk], results[3][vk], 
+    #    color='grey', alpha=0.25
+    #    )
+
+    ax.set_ylim(-100, 3500)
+
+
+p3varkeys = ["TKE_h", "wp2_bar", "TKE", "anisotropy_ratio", 
+             "flux_sh", "flux_lh", "flux_b"]
+for ax, vk in zip(axset_toprow3 + axset_bottomrow3, p3varkeys):
+    plot_p3prfs(path_p3prfflux_dir, vk, ax, linestyle='solid', cldgroups=[1, 2])
+
+
+axset_toprow3[0].set_yticks(axset_toprow3[0].get_yticks())
+axset_toprow3[0].set_yticklabels(['' for t in axset_toprow3[1].get_yticks()])
+axset_toprow3[0].set_ylim(-100, 3500)
+axset_toprow3[0].set_xlabel(r"TKE$_h$ (m$^2$ s$^{-2}$)", fontsize=12)
+axset_toprow3[0].set_xlim(0, 0.5)
+axset_toprow3[0].set_xticks([0, 0.1, 0.2, 0.3, 0.4, 0.5])
+axset_toprow3[0].set_xticklabels(['0', '', '0.2', '', '0.4', ''], fontsize=9)
+
+axset_toprow3[1].set_yticks(axset_toprow3[0].get_yticks())
+axset_toprow3[1].set_ylim(-100, 3500) 
+axset_toprow3[1].set_xlabel(r"$\bar{w'w'}$ (m$^2$ s$^{-2}$)", fontsize=12)
+axset_toprow3[1].set_xlim(0, 0.5)
+axset_toprow3[1].set_xticks([0, 0.1, 0.2, 0.3, 0.4, 0.5])
+axset_toprow3[1].set_xticklabels(['0', '', '0.2', '', '0.4', ''], fontsize=9)
+
+axset_toprow3[2].set_yticks(axset_toprow3[0].get_yticks())
+axset_toprow3[2].set_yticklabels(['' for t in axset_toprow3[1].get_yticks()])
+axset_toprow3[2].set_ylim(-100, 3500)
+axset_toprow3[2].set_xlabel(r"TKE (m$^2$ s$^{-2}$)", fontsize=12)
+axset_toprow3[2].set_xlim(0, 0.7)
+axset_toprow3[2].set_xticks([0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7])
+axset_toprow3[2].set_xticklabels(['0', '', '0.2', '', '0.4', '', '0.6', ''], fontsize=9)
+
+axset_toprow3[3].set_yticks(axset_toprow3[0].get_yticks())
+axset_toprow3[3].set_ylim(-100, 3500)
+#axset_toprow3[3].set_xlabel(r"$\bar{w'w'w'}$", fontsize=12)
+axset_toprow3[3].set_xlabel("anisotropy ratio", fontsize=12, labelpad=8)
+axset_toprow3[3].set_xlim(0, 1.8)
+axset_toprow3[3].set_xticks([0, 0.25, 0.5, 0.75, 1., 1.25, 1.5, 1.75])
+axset_toprow3[3].set_xticklabels(['0', '', '0.5', '', '1.0', '', '1.5', ''], fontsize=9)
+
+for ax in axset_toprow3:
+    ax.set_ylim(0, 3300)
+    ax.set_yticks(np.arange(0, 3500, 500))
+axset_toprow3[0].set_yticklabels(axset_toprow3[0].get_yticks().astype(str), fontsize=9)
+axset_toprow3[0].set_ylabel('altitude (m)', fontsize=12)
+for ax in axset_toprow3[1:]: 
+    ax.set_yticklabels(['' for t in ax.get_yticks()], fontsize=9)
+
+
+for ax in axset_bottomrow3:
+    ax.set_ylim(0, 3300)
+    ax.set_yticks(np.arange(0, 3300, 500))
+axset_bottomrow3[0].set_yticklabels(ax.get_yticks().astype(str), fontsize=9)
+axset_bottomrow3[0].set_ylabel('altitude (m)', fontsize=12)
+for ax in axset_bottomrow3[1:]: 
+    ax.set_yticklabels(['' for t in ax.get_yticks()], fontsize=9)
+    
+axset_bottomrow3[0].set_yticks(axset_bottomrow3[0].get_yticks())
+axset_bottomrow3[0].set_xlim(-40, 25) 
+#axset_bottomrow3[0].set_ylim(-100, 3500) 
+axset_bottomrow3[0].set_ylabel('altitude (m)', fontsize=12)
+axset_bottomrow3[0].set_xlabel(r"SHF (W m$^{-2}$)", fontsize=12)
+axset_bottomrow3[0].set_xticks([-30, -20, -10, 0, 10, 20])
+axset_bottomrow3[0].set_xticklabels(['', '-20', '', '0', '', '20'], fontsize=9)
+
+axset_bottomrow3[1].set_yticks(axset_bottomrow3[0].get_yticks())
+axset_bottomrow3[1].set_xlim(-60, 490) 
+#axset_bottomrow3[1].set_ylim(-100, 3500) 
+axset_bottomrow3[1].set_xlabel(r"LHF (W m$^{-2}$)", fontsize=12)
+axset_bottomrow3[1].set_xlim(-50, 400)
+axset_bottomrow3[1].set_xticks([0, 100, 200, 300, 400])
+axset_bottomrow3[1].set_xticklabels(['0', '100', '200', '300', '400'], fontsize=9)
+
+
+axset_bottomrow3[2].set_xlabel(r"F$_b$ ($m^2 s^{-3} 10^{-3}$)", fontsize=12)
+axset_bottomrow3[2].set_xlim(-0.75*1e-3, 0.8*1e-3)
+axset_bottomrow3[2].set_xticks(np.array([-0.75, -0.5, -0.25, 0, 0.25, 0.5, 0.75])*1e-3)
+axset_bottomrow3[2].set_xticklabels(['', '-0.5', '', '0', '', '0.5', ''], fontsize=9)
+
+
+legend_lines = [Line2D([0], [0], color='black', lw=1.5, linestyle='-'),
+                Line2D([0], [0], color='black', lw=1.5, linestyle='--'),
+                Line2D([0], [0], color='black', lw=1.5, linestyle='-.')]
+
+axset_bottomrow3[1].legend(
+    legend_lines, [r'CAM, $\mu$', r'CAM, $\mu_{95}$', r'CAM, $\mu_{99}$'], 
+    fontsize=9, loc='upper right',  bbox_to_anchor=(0.99, 0.99), handlelength=1.5, 
+    handletextpad=0.4, frameon=False,
+    )
+
+
+fig3.savefig("./fluxprofiles_cam-obs_comparison_cldgroup1-2.png")
+##_____________________________________________________________________________
+## Only CG1 and CG2 days
+
+
+
+
+
+
+
+
+
 
 
 
