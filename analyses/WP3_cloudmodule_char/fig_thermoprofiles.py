@@ -277,7 +277,7 @@ axset[0].set_ylabel('altitude (m)', fontsize=12)
 legend_lines = [Line2D([0], [0], color='red', lw=4),
                 Line2D([0], [0], color='grey', lw=4),
                 Line2D([0], [0], color='blue', lw=4)]
-ax.legend(legend_lines, ['cg1', 'cg2', 'cg3'])
+ax.legend(legend_lines, ['LCLT', 'LCHT', 'HCHT'])
 
 
 fig.savefig("./fig_thermoprofiles.png")

@@ -1,17 +1,17 @@
-ncld,z_mltop,z_lcl,z_tib,z_tit,note,z_ct50p,z_ct95p,z_ctmean_50p95p,z_madev
-1,550,658,2300,2800,"Strong trade inversion at quoted values, but a much weaker inversion also occurs around 1250 m.",1292,1387,1331,1500
-2,620,484,2300,2500,Very weak trade inversion.,2650,2962,2845,2200
-3,490,471,2150,2600,"More defined trade inversion than cld02, but still relatively weak.",2525,2806,2644,2200
-4,550,557,1650,1775,,1776,1963,1880,1650
-5,620,581,1390,,"Well-defined trade inversion bottom but poorly defined top from the dropsonedes, likely because the P-3 did not fly high enough.",1713,1838,1760,1400
-6,630,710,1900,2250,"Trade inversion top not well defined from the dropsondes, likely because the P-3 did not fly high enough. However, trade inversion bottom is well defined.",1932,2306,2083,1900
-7,580,578,1400,1725,,1432,1713,1594,1400
-8,730,685,1700,,Trade inversion either weak or not well defined.,2010,2495,2232,1600
-9,625,660,1500,1750,,1745,1963,1840,1500
-10,625,816,1500,1825,,1838,1979,1905,1600
-11,625,713,1600,1800,,1776,2057,1891,1600
-12,550,577,1800,,"Trade inversion bottom barely defined and top is not defined. There is a moist layer above the trade cumulus layer, which likely explains the ill-defined inversion.",2026,2057,2050,2000
-13,500,751,1950,2250,,2650,2993,2875,2100
-14,650,742,2625,2800,"Strong trade inversion at quoted values, but a much weaker inversion also occurs around 2200 m. Could be a moist layer erasing the original, lower inversion?",2775,2962,2902,2700
-15,750,722,1900,2300,Weak trade inversion.,2275,2900,2555,2000
-16,,525,2000,2250,Mixed layer not well defined - there are q and theta gradients down to the surface. Trade inversion also poorly defined. Looks like there could be several very small inversions.,2712,3132,2894,2600
+ncld,z_mltop,z_lcl,z_tib,z_tit,note,z_ct50p,z_ct95p,z_ctmean_50p95p,z_madev,ratio_zct_ztib
+1,550,658,2300,2800,"Strong trade inversion at quoted values, but a much weaker inversion also occurs around 1250 m.",1292,1387,1331,1500,0.887333333
+2,620,484,2300,2500,Very weak trade inversion.,2650,2962,2845,2200,1.293181818
+3,490,471,2150,2600,"More defined trade inversion than cld02, but still relatively weak.",2525,2806,2644,2200,1.201818182
+4,550,557,1650,1775,,1776,1963,1880,1650,1.139393939
+5,620,581,1390,,"Well-defined trade inversion bottom but poorly defined top from the dropsonedes, likely because the P-3 did not fly high enough.",1713,1838,1760,1400,1.257142857
+6,630,710,1900,2250,"Trade inversion top not well defined from the dropsondes, likely because the P-3 did not fly high enough. However, trade inversion bottom is well defined.",1932,2306,2083,1900,1.096315789
+7,580,578,1400,1725,,1432,1713,1594,1400,1.138571429
+8,730,685,1700,,Trade inversion either weak or not well defined.,2010,2495,2232,1600,1.395
+9,625,660,1500,1750,,1745,1963,1840,1500,1.226666667
+10,625,816,1500,1825,,1838,1979,1905,1600,1.190625
+11,625,713,1600,1800,,1776,2057,1891,1600,1.181875
+12,550,577,1800,,"Trade inversion bottom barely defined and top is not defined. There is a moist layer above the trade cumulus layer, which likely explains the ill-defined inversion.",2026,2057,2050,2000,1.025
+13,500,751,1950,2250,,2650,2993,2875,2100,1.369047619
+14,650,742,2625,2800,"Strong trade inversion at quoted values, but a much weaker inversion also occurs around 2200 m. Could be a moist layer erasing the original, lower inversion?",2775,2962,2902,2700,1.074814815
+15,750,722,1900,2300,Weak trade inversion.,2275,2900,2555,2000,1.2775
+16,,525,2000,2250,Mixed layer not well defined - there are q and theta gradients down to the surface. Trade inversion also poorly defined. Looks like there could be several very small inversions.,2712,3132,2894,2600,1.113076923
